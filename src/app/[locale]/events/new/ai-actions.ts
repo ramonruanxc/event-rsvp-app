@@ -1,12 +1,22 @@
 'use server';
 
+import { getServices } from '@/lib/container';
+import { getCurrentUserId } from '@/lib/session';
+import { toActionError, type ActionResult } from '@/lib/action-result';
 import type { ParseEventResult } from '@/lib/ai/types';
-import type { ActionResult } from '@/lib/action-result';
 
 /** Parses organizer text into event fields for the signed-in user (REQ-49). */
 export async function parseEventTextAction(
-  _text: string,
-  _timezone: string | null,
+  text: string,
+  timezone: string | null,
 ): Promise<ActionResult<ParseEventResult>> {
-  throw new Error('not implemented');
+  const userId = await getCurrentUserId();
+  if (!userId) return { ok: false, code: 'UNAUTHENTICATED' };
+
+  try {
+    const data = await getServices().parseEventText.execute({ userId, text, timezone });
+    return { ok: true, data };
+  } catch (error) {
+    return toActionError(error);
+  }
 }
