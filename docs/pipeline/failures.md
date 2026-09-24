@@ -14,3 +14,4 @@ Every escalation in the pipeline is recorded here. Failures escalate upstream:
 
 | # | Date | Task | Class | Attempts | Root cause | Artifact changed | Resolution |
 |---|---|---|---|---|---|---|---|
+| 1 | 2026-09-24 | Spec (phase 0) | DOC | — | BR-37/BR-38 ambiguous (can a cookie for one RSVP edit another RSVP's name?); no rule for "Fill with AI" on non-event text (BR-55 vs BR-59) | business-rules.md (BR-37, BR-38, BR-55 amended; BR-96 new) → spec.md, plan.md | Human decided: cookie only authorizes its own RSVP (DUPLICATE_NAME); non-event text → all fields missing + message "Couldn't find event details in that text." |

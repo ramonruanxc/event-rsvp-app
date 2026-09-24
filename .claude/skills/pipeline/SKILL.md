@@ -54,6 +54,8 @@ Rules:
 - **No model escalation.** Never re-run a failed task on a stronger model. Repeated execution failure means the spec
   is imprecise; fix the spec.
 - ENV failures are never counted against the spec.
+- The revision counter (max 2) counts only revisions caused by a **SPEC failure** of that task. Revisions that apply
+  a resolved DOC question or a human decision are not failure revisions and do not consume the budget.
 - Reviewer loop: at most 2 `REQUEST_CHANGES` rounds per PR; a 3rd means the phase's tasks are underspecified → SPEC.
 
 ## Recording

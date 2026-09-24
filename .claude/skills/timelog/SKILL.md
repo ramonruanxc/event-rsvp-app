@@ -22,6 +22,11 @@ Pause notes are neutral ("Personal break") — no personal details in the public
 
 Set the End of the current phase and the Start of the next in the Phases table, and add an Events row.
 
+## Agent runs
+
+Record every agent dispatch in the **Agent runs** table (agent, model, start, end, duration, result).
+Agents may run while the human is paused; agent time is reported separately from human active time.
+
 ## Report (for the README "Time report")
 
 Per phase: wall-clock (End − Start), pause count, paused time, **active time** (wall-clock − paused).
