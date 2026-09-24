@@ -39,3 +39,17 @@ export const timezoneSchema = z
   .trim()
   .min(1, 'required')
   .refine(isValidTimeZone, 'invalidTimezone');
+
+/** Raw shape and validated output of the event create/edit form (BR-04..BR-06, BR-13, BR-21). */
+export const eventInputSchema = z.object({
+  name: eventNameSchema,
+  description: eventDescriptionSchema,
+  date: eventDateSchema,
+  time: eventTimeSchema,
+  timezone: timezoneSchema,
+  location: eventLocationSchema,
+});
+/** Unvalidated input shape of the event form. */
+export type EventFormValues = z.input<typeof eventInputSchema>;
+/** Validated, transformed output of eventInputSchema. */
+export type EventInput = z.output<typeof eventInputSchema>;
