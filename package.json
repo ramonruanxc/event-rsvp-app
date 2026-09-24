@@ -17,6 +17,7 @@
     "test:unit": "vitest run --project unit",
     "pretest:int": "dotenv -e .env.test -- prisma migrate deploy",
     "test:int": "dotenv -e .env.test -- vitest run --project integration --passWithNoTests",
+    "trace": "tsx scripts/traceability/cli.ts",
     "db:migrate": "prisma migrate dev",
     "postinstall": "prisma generate"
   },
