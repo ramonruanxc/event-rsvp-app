@@ -94,3 +94,36 @@ test.describe('REQ-31: French UI', () => {
     await expect(page.getByText('Team dinner')).toBeVisible();
   });
 });
+
+test.describe('REQ-26: a duplicate name from another browser', () => {
+  test('REQ-26: a second browser cannot take a name already on the list', async ({
+    page,
+    browser,
+  }) => {
+    const owner = await createOwner();
+    const event = await createEvent(owner.id);
+
+    await page.goto(`/en/e/${event.slug}`);
+    await page.getByLabel('Your name').fill('Maria');
+    await page.getByLabel('How many people, including you?').fill('3');
+    await page.getByRole('button', { name: 'Send RSVP' }).click();
+    await expect(page.getByText("You're going (3)")).toBeVisible();
+
+    const b = await browser.newContext();
+    const pageB = await b.newPage();
+    await pageB.goto(`/en/e/${event.slug}`);
+    await pageB.getByLabel('Your name').fill('maria');
+    await pageB.getByLabel('How many people, including you?').fill('2');
+    await pageB.getByRole('button', { name: 'Send RSVP' }).click();
+
+    await expect(
+      pageB.getByText(
+        'This name is already on the list. Use a different name or ask the organizer.',
+      ),
+    ).toBeVisible();
+    await expect(pageB.getByLabel('Your name')).toHaveValue('maria');
+    expect(await db.rsvp.count()).toBe(1);
+
+    await b.close();
+  });
+});
