@@ -32,10 +32,40 @@ export function foldIcsLine(line: string): string {
   return parts.join('\r\n');
 }
 
+const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
+
+/** Formats an instant as an iCalendar UTC DATE-TIME, e.g. `20261002T230000Z`. */
+function formatUtc(instant: Date): string {
+  return instant
+    .toISOString()
+    .replace(/[-:]/g, '')
+    .replace(/\.\d{3}/, '');
+}
+
 /** Builds a single-VEVENT .ics document for an event, with a 2-hour default duration (REQ-41, BR-72). */
 export function buildIcs(
-  _event: Pick<EventRecord, 'slug' | 'name' | 'description' | 'location' | 'startsAt'>,
-  _now: Date,
+  event: Pick<EventRecord, 'slug' | 'name' | 'description' | 'location' | 'startsAt'>,
+  now: Date,
 ): string {
-  throw new Error('not implemented');
+  const end = new Date(event.startsAt.getTime() + TWO_HOURS_MS);
+
+  const lines = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//event-rsvp-app//EN',
+    'CALSCALE:GREGORIAN',
+    'METHOD:PUBLISH',
+    'BEGIN:VEVENT',
+    `UID:${event.slug}@event-rsvp-app`,
+    `DTSTAMP:${formatUtc(now)}`,
+    `DTSTART:${formatUtc(event.startsAt)}`,
+    `DTEND:${formatUtc(end)}`,
+    `SUMMARY:${escapeIcsText(event.name)}`,
+    `DESCRIPTION:${escapeIcsText(event.description)}`,
+    ...(event.location ? [`LOCATION:${escapeIcsText(event.location)}`] : []),
+    'END:VEVENT',
+    'END:VCALENDAR',
+  ];
+
+  return lines.map(foldIcsLine).join('\r\n') + '\r\n';
 }
