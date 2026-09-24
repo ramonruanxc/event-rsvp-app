@@ -127,3 +127,19 @@ test.describe('REQ-26: a duplicate name from another browser', () => {
     await b.close();
   });
 });
+
+test.describe('REQ-29: the guest page of an ended event', () => {
+  test('REQ-29: the guest page of an ended event is read-only', async ({ page }) => {
+    const owner = await createOwner();
+    const event = await createEvent(owner.id, {
+      startsAt: new Date('2020-01-01T19:00:00Z'),
+    });
+
+    await page.goto(`/en/e/${event.slug}`);
+
+    await expect(page.getByText('This event has ended')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Send RSVP' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Change' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Cancel' })).toHaveCount(0);
+  });
+});
