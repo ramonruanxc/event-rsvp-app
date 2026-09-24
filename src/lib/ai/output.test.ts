@@ -59,4 +59,21 @@ describe('normalizeAiOutput', () => {
     expect(r2.fields.timezone).toBe('America/New_York');
     expect(r2.timezoneFromText).toBe(true);
   });
+
+  it('REQ-45: missing lists every null field in form order', () => {
+    const r1 = normalizeAiOutput(
+      { ...VALID_RAW, date: null, time: null, location: null },
+      'America/New_York',
+    );
+    expect(r1.missing).toEqual(['date', 'time', 'location']);
+    expect(r1.notAnEvent).toBe(false);
+
+    const r2 = normalizeAiOutput(VALID_RAW, 'America/New_York');
+    expect(r2.missing).toEqual([]);
+  });
+
+  it('REQ-46: with no timezone in the text or the form, timezone is missing', () => {
+    expect(normalizeAiOutput(VALID_RAW, null).missing).toEqual(['timezone']);
+    expect(normalizeAiOutput(VALID_RAW, '').missing).toEqual(['timezone']);
+  });
 });
