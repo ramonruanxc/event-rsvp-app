@@ -1,3 +1,6 @@
+import { NotFoundError } from '@/domain/errors';
+import { hasEnded, isOwner } from '@/domain/policies';
+import { computeTotals } from '@/domain/rsvp';
 import type { EventRecord, OwnerRsvpRow, OwnRsvp, Clock, Totals } from '@/domain/types';
 import type { EventRepository, RsvpRepository } from '@/repositories/interfaces';
 
@@ -18,7 +21,26 @@ export class GetEventPageService {
     userId: string | null;
     editToken: string | null;
   }): Promise<EventPageView> {
-    void input;
-    throw new Error('not implemented');
+    const event = await this.deps.events.findBySlug(input.slug);
+    if (!event) throw new NotFoundError();
+    const now = this.deps.now();
+    const ended = hasEnded(event, now);
+    const allRsvps = await this.deps.rsvps.listByEvent(event.id);
+    const totals = computeTotals(allRsvps);
+
+    if (isOwner(event, input.userId)) {
+      const rsvps: OwnerRsvpRow[] = allRsvps.map(({ id, name, status, partySize, updatedAt }) => ({
+        id,
+        name,
+        status,
+        partySize,
+        updatedAt,
+      }));
+      return { role: 'owner', event, ended, totals, rsvps };
+    }
+
+    // TASK-75 will resolve ownRsvp from input.editToken.
+    const ownRsvp: OwnRsvp | null = null;
+    return { role: 'guest', event, ended, totals, ownRsvp };
   }
 }
