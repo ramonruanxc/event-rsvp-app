@@ -2,11 +2,12 @@
 import { fireEvent, screen } from '@testing-library/react';
 import { describe, expect, test, vi } from 'vitest';
 import { renderWithIntl } from '@/test/render';
+import { detectBrowserTimeZone } from '@/lib/browser-timezone';
 import { EventForm } from './event-form';
 
 const nav = vi.hoisted(() => ({ push: vi.fn(), refresh: vi.fn(), replace: vi.fn() }));
 vi.mock('@/i18n/navigation', () => ({ useRouter: () => nav, usePathname: () => '/' }));
-vi.mock('@/lib/browser-timezone', () => ({ detectBrowserTimeZone: () => 'UTC' }));
+vi.mock('@/lib/browser-timezone', () => ({ detectBrowserTimeZone: vi.fn(() => 'UTC') }));
 
 /** Fills every field with values that pass client-side validation. */
 function fillValidFields() {
@@ -53,5 +54,31 @@ describe('EventForm', () => {
 
     const alert = await screen.findByRole('alert');
     expect(alert.textContent).toBe('Something went wrong. Please try again.');
+  });
+});
+
+describe('EventForm timezone (REQ-13)', () => {
+  test('REQ-13: the timezone select starts with the browser timezone', () => {
+    vi.mocked(detectBrowserTimeZone).mockReturnValueOnce('America/Sao_Paulo');
+    renderWithIntl(<EventForm submit={vi.fn()} />);
+
+    const select = screen.getByLabelText('Timezone') as HTMLSelectElement;
+    expect(select.value).toBe('America/Sao_Paulo');
+  });
+
+  test('REQ-13: an initial timezone wins over the browser', () => {
+    renderWithIntl(<EventForm submit={vi.fn()} initialValues={{ timezone: 'Europe/Paris' }} />);
+
+    const select = screen.getByLabelText('Timezone') as HTMLSelectElement;
+    expect(select.value).toBe('Europe/Paris');
+  });
+
+  test('REQ-13: the organizer can change the timezone', () => {
+    renderWithIntl(<EventForm submit={vi.fn()} />);
+
+    fireEvent.change(screen.getByLabelText('Timezone'), { target: { value: 'Europe/Paris' } });
+
+    const select = screen.getByLabelText('Timezone') as HTMLSelectElement;
+    expect(select.value).toBe('Europe/Paris');
   });
 });
