@@ -1251,25 +1251,38 @@ all six jobs pass on the Phase 0 PR.
 - Rev 2 — human decision (ENV incident #3), not a failure revision: e2e job sets `E2E_PORT: '3000'` explicitly.
 
 ### TASK-20 — Vercel build configuration
-**Phase:** 0 · **Requirements:** — · **Status:** done · **Revision:** 1
+**Phase:** 0 · **Requirements:** — · **Status:** done · **Revision:** 2
 **Files:** vercel.json
-**Steps:** create
+**Steps:** replace the whole content of `vercel.json` with exactly
 ```json
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "ignoreCommand": "[ \"$VERCEL_ENV\" != \"production\" ]"
+  "ignoreCommand": "[ \"$VERCEL_GIT_COMMIT_REF\" != \"main\" ]"
 }
 ```
-(exit code 0 = skip build: every non-production deployment is skipped, so previews never run migrations against the
-production database). `package.json` already has `vercel-build` (TASK-05), which Vercel runs instead of `build`.
+Vercel runs `ignoreCommand` before each build; exit code 0 = skip the build, exit code 1 = build. The decision is by
+**branch**, not by environment:
+- deployment of branch `main` (automatic on merge, or created by hand in the dashboard) → `[ "main" != "main" ]`
+  is false → exit 1 → **builds**;
+- deployment of any other branch (per-PR previews) → exit 0 → **skipped**, so previews never run
+  `prisma migrate deploy` against the production database.
+Do not use `$VERCEL_ENV`: a deployment of `main` created from the dashboard is not flagged `production` and was
+skipped (ENV incident #8). Production is deployed only from Git (`main`); do not deploy with the `vercel` CLI.
+`package.json` already has `vercel-build` (TASK-05), which Vercel runs instead of `build`.
 **Test first:** —
-**Done when:** file committed; `npm run lint` unaffected.
+**Done when:** `vercel.json` has exactly the content above; `grep -c VERCEL_ENV vercel.json` prints `0`;
+`npm run lint` and `npm run format:check` pass; `git status` is clean after the commit.
 **TDD exception:** chore — deployment configuration
+**Changelog:**
+- Rev 2 — human decision (ENV incident #8), not a failure revision: ignore step by branch
+  (`$VERCEL_GIT_COMMIT_REF != main`) instead of `$VERCEL_ENV != production`.
 
 ### HUMAN-01 — Vercel project and Neon database
 **Phase:** 0 · **Owner:** human · **When:** after the Phase 0 PR is merged
 1. Go to https://vercel.com/new → **Import** the GitHub repository `ramonruanxc/event-rsvp-app`. Framework preset:
    Next.js. Leave build settings at their defaults. Click **Deploy** (the first build may fail — no database yet).
+   If the project already exists without any deployment (e.g. created without clicking **Deploy**), that is fine:
+   continue with step 2; step 6 creates the first production deployment.
 2. In the project: **Storage** → **Create Database** → **Neon** (Serverless Postgres) → region closest to you (e.g.
    `Washington, D.C., USA (East)`) → **Connect** to this project for **Production** only.
 3. **Settings → Environment Variables** (Production): check that `DATABASE_URL` (pooled) and `DATABASE_URL_UNPOOLED`
@@ -1277,8 +1290,17 @@ production database). `package.json` already has `vercel-build` (TASK-05), which
    connection strings shown in the Neon dashboard.
 4. Add (Production): `AUTH_SECRET` = output of `npx auth secret --raw` run on your machine; `AUTH_TRUST_HOST` = `true`.
 5. **Settings → Git**: Production Branch = `main`.
-6. **Deployments** → latest → **Redeploy**. Open the production URL: `/` must redirect to `/en` and show the headline.
+6. Deploy `main` so it picks up the variables. Use the first option that applies:
+   - a deployment of `main` exists in **Deployments** → open it → **Redeploy**;
+   - no deployment of `main` exists → **Deployments** → **Create Deployment** → enter `main` → **Create**;
+   - or simply merge the next PR into `main`: the merge triggers the production deployment automatically.
+   Only deployments of `main` build. A deployment of any other branch shows **Canceled** by the Ignored Build Step
+   (TASK-20) — that is expected, not an error. A deployment of `main` must never be canceled.
+   Open the production URL: `/` must redirect to `/en` and show the headline.
 7. Tell the orchestrator the production URL (it is not a secret).
+**Changelog:**
+- human decision (ENV incident #8), not a failure revision: steps 1 and 6 cover a project created without a first
+  deployment (Create Deployment → `main`, or next merge to `main`).
 
 ### HUMAN-02 — Google OAuth client
 **Phase:** 0 · **Owner:** human · **When:** after HUMAN-01 (needs the production URL)
