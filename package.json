@@ -1,0 +1,63 @@
+{
+  "name": "event-rsvp-app",
+  "version": "0.1.0",
+  "private": true,
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "vercel-build": "prisma generate && prisma migrate deploy && next build",
+    "lint": "eslint . --max-warnings=0",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "typecheck": "tsc --noEmit",
+    "test:unit": "vitest run --project unit",
+    "pretest:int": "dotenv -e .env.test -- prisma migrate deploy",
+    "test:int": "dotenv -e .env.test -- vitest run --project integration --passWithNoTests",
+    "pretest:e2e": "dotenv -e .env.test -- prisma migrate deploy",
+    "test:e2e": "dotenv -e .env.test -- playwright test",
+    "e2e:server": "dotenv -e .env.test -- next build && dotenv -e .env.test -- next start",
+    "trace": "tsx scripts/traceability/cli.ts",
+    "db:migrate": "prisma migrate dev",
+    "postinstall": "prisma generate",
+    "prepare": "husky"
+  },
+  "dependencies": {
+    "@auth/prisma-adapter": "^2.11.3",
+    "@prisma/client": "^6.19.3",
+    "next": "15.5.26",
+    "next-auth": "^5.0.0-beta.32",
+    "next-intl": "^4.14.7",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^21.2.3",
+    "@commitlint/config-conventional": "^21.2.3",
+    "@eslint/eslintrc": "^3",
+    "@playwright/test": "^1.63.0",
+    "@tailwindcss/postcss": "^4",
+    "@testing-library/dom": "^10.4.2",
+    "@testing-library/react": "^16.3.3",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@vitejs/plugin-react": "^6.1.1",
+    "dotenv-cli": "^11.0.0",
+    "eslint": "^9",
+    "eslint-config-next": "15.5.26",
+    "husky": "^9.1.7",
+    "jsdom": "^30.1.1",
+    "prettier": "^3.9.9",
+    "prisma": "^6.19.3",
+    "tailwindcss": "^4",
+    "tsx": "^4.23.15",
+    "typescript": "^5",
+    "vite-tsconfig-paths": "^6.1.1",
+    "vitest": "^3.2.7"
+  }
+}

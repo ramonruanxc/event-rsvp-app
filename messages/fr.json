@@ -1,0 +1,107 @@
+{
+  "meta": {
+    "title": "Event RSVP",
+    "description": "Créez un événement, partagez un seul lien, voyez qui vient."
+  },
+  "nav": {
+    "brand": "Event RSVP",
+    "language": "Langue",
+    "myEvents": "Mes événements",
+    "signIn": "Se connecter avec Google",
+    "signOut": "Se déconnecter"
+  },
+  "languages": { "en": "English", "fr": "Français", "pt-BR": "Português (Brasil)" },
+  "home": {
+    "headline": "Planifiez un événement. Partagez un seul lien. Voyez qui vient.",
+    "explanation": "Créez un événement en quelques secondes — décrivez-le avec vos propres mots et laissez l'IA remplir le formulaire. Les invités répondent depuis un seul lien sans compte, et vous voyez la liste des invités et les totaux au même endroit.",
+    "demoLink": "Voir un événement de démonstration"
+  },
+  "dashboard": {
+    "title": "Mes événements",
+    "upcoming": "À venir",
+    "past": "Passés",
+    "createEvent": "Créer un événement",
+    "createSample": "Créer un événement d'exemple",
+    "empty": "Vous n'avez pas encore d'événement.",
+    "noUpcoming": "Aucun événement à venir.",
+    "noPast": "Aucun événement passé."
+  },
+  "totals": {
+    "summary": "Y vont : {going} · Déclinés : {declined} · Personnes : {people}",
+    "peopleGoing": "{count, plural, one {# personne y va} other {# personnes y vont}}"
+  },
+  "eventForm": {
+    "titleNew": "Nouvel événement",
+    "titleEdit": "Modifier l'événement",
+    "name": "Nom",
+    "description": "Description",
+    "date": "Date",
+    "time": "Heure",
+    "timezone": "Fuseau horaire",
+    "location": "Lieu (facultatif)",
+    "save": "Enregistrer l'événement",
+    "saving": "Enregistrement…"
+  },
+  "ai": {
+    "label": "Décrivez votre événement",
+    "placeholder": "Dîner d'équipe vendredi prochain 19h chez Mario",
+    "fill": "Remplir avec l'IA",
+    "filling": "Remplissage…",
+    "missingHint": "Introuvable dans votre texte — veuillez le remplir.",
+    "notAnEvent": "Impossible de trouver les détails d'un événement dans ce texte."
+  },
+  "event": {
+    "edit": "Modifier",
+    "delete": "Supprimer l'événement",
+    "deleteConfirm": "Supprimer cet événement et toutes ses réponses ? Cette action est irréversible.",
+    "copyLink": "Copier le lien d'invitation",
+    "linkCopied": "Lien copié",
+    "addToCalendar": "Ajouter au calendrier",
+    "ended": "Cet événement est terminé",
+    "guestList": "Liste des invités",
+    "noRsvps": "Pas encore de réponses.",
+    "colName": "Nom",
+    "colResponse": "Réponse",
+    "colPeople": "Personnes",
+    "colUpdated": "Dernière mise à jour",
+    "remove": "Retirer"
+  },
+  "rsvp": {
+    "title": "Viendrez-vous ?",
+    "name": "Votre nom",
+    "going": "Je viens",
+    "notGoing": "Je ne viens pas",
+    "partySize": "Combien de personnes, vous compris ?",
+    "submit": "Envoyer la réponse",
+    "youreGoing": "Vous venez ({count})",
+    "youreNotGoing": "Vous ne venez pas",
+    "change": "Modifier",
+    "cancel": "Annuler"
+  },
+  "sample": {
+    "name": "Exemple : Soirée du vendredi",
+    "description": "Un événement d'exemple pour découvrir l'application. Partagez le lien d'invitation, collectez les réponses, et supprimez-le une fois terminé.",
+    "location": "Salle communautaire"
+  },
+  "errors": {
+    "VALIDATION_ERROR": "Veuillez corriger les champs en surbrillance.",
+    "NOT_FOUND": "Cette page n'existe pas.",
+    "NOT_OWNER": "Seul l'organisateur peut faire cela.",
+    "EVENT_ENDED": "Cet événement est terminé",
+    "DUPLICATE_NAME": "Ce nom figure déjà sur la liste. Utilisez un autre nom ou contactez l'organisateur.",
+    "RATE_LIMITED": "Trop d'envois — veuillez réessayer dans quelques minutes.",
+    "AI_LIMIT_REACHED": "Limite quotidienne d'IA atteinte — remplissez le formulaire manuellement.",
+    "AI_UNAVAILABLE": "Impossible de remplir automatiquement — veuillez remplir le formulaire.",
+    "UNAUTHENTICATED": "Veuillez vous connecter pour continuer.",
+    "INTERNAL_ERROR": "Une erreur s'est produite. Veuillez réessayer."
+  },
+  "validation": {
+    "required": "Ce champ est obligatoire.",
+    "tooLong": "C'est trop long.",
+    "invalidFormat": "Cette valeur n'est pas valide.",
+    "invalidTimezone": "Choisissez un fuseau horaire valide.",
+    "inPast": "La date et l'heure ne peuvent pas être dans le passé.",
+    "partySizeRange": "Entrez un nombre de 1 à 10.",
+    "invalidStatus": "Choisissez Je viens ou Je ne viens pas."
+  }
+}

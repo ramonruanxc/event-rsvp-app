@@ -15,7 +15,7 @@ The orchestrator (main session) dispatches agents and enforces this playbook. Ag
 |---|---|---|
 | analyst | sonnet | `docs/business-rules.md`, glossary, doc-sync |
 | spec-writer | opus | `docs/spec.md` (REQ-xx), `docs/plan.md` (TASK-xx) |
-| implementer | haiku | one task, strict TDD |
+| implementer | sonnet | one task or an ordered batch, strict TDD |
 | reviewer | sonnet | adversarial PR review, finding classification |
 | release | haiku | CI check, eval gate, deploy, smoke test |
 

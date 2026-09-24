@@ -44,7 +44,10 @@ Totals: 64 requirements (61 product + 3 tooling), 122 agent tasks, 5 human tasks
 4. Commands:
    - one unit file: `npx vitest run --project unit <path>` · all unit: `npm run test:unit`
    - integration: `npm run test:int` (applies migrations to `rsvp_test` first)
-   - e2e: `npm run test:e2e -- <spec file>` (builds and starts the app on port 3000 with `.env.test`)
+   - e2e: `npm run test:e2e -- <spec file>` (builds and starts the app with `.env.test` on port `E2E_PORT`, default
+     `3000`; the port comes from the shell environment, never from a file you edit). If Playwright reports that the
+     port "is already used", do **not** change the port in code or config: stop and return `ENV_FAILURE` asking the
+     human to set `E2E_PORT` (HUMAN-04).
    - `npm run lint` · `npm run typecheck`
 5. Commits follow `.claude/skills/tdd-commit/SKILL.md`; end every commit body with `Refs: TASK-xx, REQ-yy`.
 6. Next.js 15: `params` and `searchParams` of pages, layouts and route handlers are **Promises** —
@@ -456,7 +459,7 @@ these translations:
   "test:int": "dotenv -e .env.test -- vitest run --project integration",
   "pretest:e2e": "dotenv -e .env.test -- prisma migrate deploy",
   "test:e2e": "dotenv -e .env.test -- playwright test",
-  "e2e:server": "dotenv -e .env.test -- next build && dotenv -e .env.test -- next start -p 3000",
+  "e2e:server": "dotenv -e .env.test -- next build && dotenv -e .env.test -- next start",
   "trace": "tsx scripts/traceability/cli.ts",
   "eval": "dotenv -e .env.local -- tsx evals/event-parser/run.ts",
   "db:migrate": "prisma migrate dev",
@@ -466,17 +469,19 @@ these translations:
 }
 ```
 (Phase 3, TASK-99 changes `vercel-build` to `prisma generate && prisma migrate deploy && prisma db seed && next build`.)
+`e2e:server` has no port on purpose: Playwright runs `npm run e2e:server -- -p <E2E_PORT>` (TASK-10), and npm appends
+arguments after `--` to the end of the script, i.e. to `next start`. Run by hand without arguments it serves on 3000.
 
 ---
 
 ## Phase 0 — Walking skeleton (`phase-0/walking-skeleton`)
 
 Order: TASK-01 → TASK-20. HUMAN-03 as soon as CI has run on the Phase 0 PR (before the merge); HUMAN-01 then
-HUMAN-02 after the merge; HUMAN-04 any time.
+HUMAN-02 after the merge; HUMAN-04 any time (its step 4, `E2E_PORT`, before TASK-10 if port 3000 is busy).
 Release smoke test for this phase is only `GET /` → redirect → `GET /en` 200 (the demo event arrives in Phase 3).
 
 ### TASK-01 — Scaffold the Next.js app
-**Phase:** 0 · **Requirements:** — · **Status:** todo · **Revision:** 1
+**Phase:** 0 · **Requirements:** — · **Status:** done · **Revision:** 1
 **Files:** package.json, package-lock.json, tsconfig.json, next.config.ts, postcss.config.mjs, eslint.config.mjs,
 src/app/**, public/**, .nvmrc
 **Interface:** —
@@ -496,7 +501,7 @@ src/app/**, public/**, .nvmrc
 **TDD exception:** chore — generated scaffold
 
 ### TASK-02 — ESLint, Prettier and typecheck scripts
-**Phase:** 0 · **Requirements:** REQ-61 (lint rule only) · **Status:** todo · **Revision:** 1
+**Phase:** 0 · **Requirements:** REQ-61 (lint rule only) · **Status:** done · **Revision:** 1
 **Files:** eslint.config.mjs, .prettierrc.json, .prettierignore, package.json
 **Interface:** —
 **Steps:**
@@ -519,7 +524,7 @@ src/app/**, public/**, .nvmrc
 **TDD exception:** chore — configuration
 
 ### TASK-03 — Vitest with unit and integration projects
-**Phase:** 0 · **Requirements:** — · **Status:** todo · **Revision:** 1
+**Phase:** 0 · **Requirements:** — · **Status:** done · **Revision:** 1
 **Files:** vitest.config.mts, src/test/server-only-stub.ts, src/test/render.tsx, package.json
 **Interface:** `renderWithIntl(ui: React.ReactElement): RenderResult`
 **Steps:**
@@ -570,7 +575,7 @@ TASK-06.)
 **TDD exception:** chore — configuration
 
 ### TASK-04 — Local Postgres and environment files
-**Phase:** 0 · **Requirements:** — · **Status:** todo · **Revision:** 1
+**Phase:** 0 · **Requirements:** — · **Status:** done · **Revision:** 1
 **Files:** docker-compose.yml, docker/init-test-db.sql, .env.example, .env.test
 **Interface:** —
 **Steps:**
@@ -629,7 +634,7 @@ prints nothing).
 **TDD exception:** chore — configuration
 
 ### TASK-05 — Prisma schema and first migration
-**Phase:** 0 · **Requirements:** REQ-11 (unique slug), REQ-27 (unique name key) — schema only · **Status:** todo · **Revision:** 1
+**Phase:** 0 · **Requirements:** REQ-11 (unique slug), REQ-27 (unique name key) — schema only · **Status:** done · **Revision:** 1
 **Files:** prisma/schema.prisma, prisma/migrations/**, src/lib/prisma.ts, package.json
 **Interface:** `export const prisma: PrismaClient`
 **Steps:**
@@ -760,7 +765,7 @@ prints nothing).
 **TDD exception:** chore — schema/migration (generated SQL)
 
 ### TASK-06 — Event name validation (first TDD behavior)
-**Phase:** 0 · **Requirements:** REQ-04 · **Status:** todo · **Revision:** 1
+**Phase:** 0 · **Requirements:** REQ-04 · **Status:** done · **Revision:** 1
 **Files:** src/domain/schemas.ts, src/domain/schemas.test.ts, package.json
 **Interface:** `export const eventNameSchema` (Contract C3: `requiredText(120)`)
 **Test first:** in `src/domain/schemas.test.ts`, `describe('eventNameSchema')`:
@@ -776,7 +781,7 @@ z.string();` — the tests then fail on assertions (no trimming, no length rules
 **TDD exception:** none
 
 ### TASK-07 — next-intl wiring and message catalogs
-**Phase:** 0 · **Requirements:** REQ-52 (catalogs) · **Status:** todo · **Revision:** 1
+**Phase:** 0 · **Requirements:** REQ-52 (catalogs) · **Status:** done · **Revision:** 1
 **Files:** src/i18n/routing.ts, src/i18n/request.ts, src/i18n/navigation.ts, next.config.ts,
 src/app/[locale]/layout.tsx, src/app/[locale]/page.tsx, src/app/[locale]/not-found.tsx, messages/en.json,
 messages/fr.json, messages/pt-BR.json; delete src/app/layout.tsx and src/app/page.tsx; move nothing else
@@ -849,7 +854,7 @@ messages/fr.json, messages/pt-BR.json; delete src/app/layout.tsx and src/app/pag
 **TDD exception:** chore — configuration and translation catalogs
 
 ### TASK-08 — Message key parity test
-**Phase:** 0 · **Requirements:** REQ-52 · **Status:** todo · **Revision:** 1
+**Phase:** 0 · **Requirements:** REQ-52 · **Status:** done · **Revision:** 1
 **Files:** src/i18n/flatten-keys.ts, src/i18n/messages.test.ts
 **Interface:** `export function flattenKeys(messages: Record<string, unknown>, prefix?: string): string[]` — sorted,
 dot-joined leaf keys
@@ -867,7 +872,7 @@ Import JSON with `import en from '../../messages/en.json';` (tsconfig has `resol
 **TDD exception:** none
 
 ### TASK-09 — Auth.js with Google (configuration + handler)
-**Phase:** 0 · **Requirements:** REQ-01 · **Status:** todo · **Revision:** 1
+**Phase:** 0 · **Requirements:** REQ-01 · **Status:** done · **Revision:** 1
 **Files:** src/auth.config.ts, src/auth.config.test.ts, src/auth.ts, src/app/api/auth/[...nextauth]/route.ts,
 src/types/next-auth.d.ts
 **Interface:** `export const authConfig`; `export const { handlers, auth, signIn, signOut }`
@@ -922,7 +927,7 @@ src/types/next-auth.d.ts
 **TDD exception:** none
 
 ### TASK-10 — Playwright setup and E2E helpers
-**Phase:** 0 · **Requirements:** — · **Status:** todo · **Revision:** 1
+**Phase:** 0 · **Requirements:** — · **Status:** done · **Revision:** 2
 **Files:** playwright.config.ts, e2e/helpers/db.ts, e2e/helpers/auth.ts, package.json, .gitignore (already ignores
 reports)
 **Interface:**
@@ -934,19 +939,31 @@ reports)
    ```ts
    import { defineConfig, devices } from '@playwright/test';
 
+   /** Port the app is served on during E2E runs (env `E2E_PORT`, default 3000). */
+   const port = Number(process.env.E2E_PORT ?? 3000);
+   if (!Number.isInteger(port) || port <= 0) {
+     throw new Error(`E2E_PORT must be a positive integer, got "${process.env.E2E_PORT}"`);
+   }
+   const baseURL = `http://localhost:${port}`;
+
    export default defineConfig({
      testDir: './e2e',
      fullyParallel: false,
      workers: 1,
      retries: process.env.CI ? 1 : 0,
      reporter: process.env.CI ? [['list'], ['html', { open: 'never' }]] : 'list',
-     use: { baseURL: 'http://localhost:3000', trace: 'retain-on-failure' },
+     use: { baseURL, trace: 'retain-on-failure' },
      projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'], locale: 'en-US', timezoneId: 'America/New_York' } }],
      webServer: [
-       { command: 'npm run e2e:server', url: 'http://localhost:3000/en', reuseExistingServer: !process.env.CI, timeout: 240_000 },
+       { command: `npm run e2e:server -- -p ${port}`, url: `${baseURL}/en`, reuseExistingServer: false, timeout: 240_000 },
      ],
    });
    ```
+   - `reuseExistingServer: false` (everywhere, not only in CI) is deliberate: if anything already listens on the
+     port, Playwright fails with "http://localhost:<port> is already used" instead of silently testing another
+     application. It costs nothing extra: without a running server the app is built on every run anyway.
+   - Never hardcode `3000` (or any port) in E2E specs or helpers: use relative URLs (`page.goto('/en')`), which
+     resolve against `baseURL`. The session cookie in `auth.ts` uses `domain: 'localhost'`, which covers every port.
 3. `e2e/helpers/db.ts`:
    ```ts
    import { PrismaClient } from '@prisma/client';
@@ -976,13 +993,17 @@ reports)
      return { id: u.id };
    }
    ```
-5. Scripts from C9: `pretest:e2e`, `test:e2e`, `e2e:server`.
+5. Scripts from C9: `pretest:e2e`, `test:e2e`, `e2e:server` (exactly as in C9: `e2e:server` ends with
+   `next start` and has **no** `-p`; the port is appended by the Playwright `command`).
 **Test first:** — (first E2E test is TASK-11)
-**Done when:** typecheck and lint pass.
+**Done when:** typecheck and lint pass; `playwright.config.ts` contains no `localhost:3000` literal (only the `?? 3000` default).
 **TDD exception:** chore — test infrastructure
+**Changelog:**
+- Rev 2 — human decision (ENV incident #3), not a failure revision: port from `E2E_PORT` (default 3000),
+  `reuseExistingServer: false`, `e2e:server` without a hardcoded port.
 
 ### TASK-11 — Locale detection middleware
-**Phase:** 0 · **Requirements:** REQ-53 · **Status:** todo · **Revision:** 1
+**Phase:** 0 · **Requirements:** REQ-53 · **Status:** done · **Revision:** 2
 **Files:** e2e/i18n.spec.ts, src/middleware.ts
 **Interface:** default export `createMiddleware(routing)`; `config.matcher`
 **Test first:** `e2e/i18n.spec.ts` (use `test.use({ locale: … })` inside `test.describe` blocks):
@@ -999,11 +1020,17 @@ import { routing } from './i18n/routing';
 export default createMiddleware(routing);
 export const config = { matcher: ['/((?!api|_next|_vercel|.*\\..*).*)'] };
 ```
-**Done when:** the 3 E2E tests pass (`npm run test:e2e -- e2e/i18n.spec.ts`).
+**Done when:** the 3 E2E tests pass (`npm run test:e2e -- e2e/i18n.spec.ts`). The app is served on
+`http://localhost:<E2E_PORT>` (default 3000; the human's machine uses 3100, set in the environment — see HUMAN-04).
+Assertions use only the path (`/\/fr$/`), never host or port. If the port is busy, return `ENV_FAILURE` (do not edit
+the port).
 **TDD exception:** none
+**Changelog:**
+- Rev 2 — human decision (ENV incident #3), not a failure revision: E2E port comes from `E2E_PORT`; port-agnostic
+  assertions; busy port → `ENV_FAILURE`.
 
 ### TASK-12 — Traceability: parse business rules
-**Phase:** 0 · **Requirements:** REQ-90 · **Status:** todo · **Revision:** 1
+**Phase:** 0 · **Requirements:** REQ-90 · **Status:** done · **Revision:** 1
 **Files:** scripts/traceability/parse.ts, scripts/traceability/parse.test.ts
 **Interface:** `export function parseBusinessRules(markdown: string): { ids: Set<string>; deprecated: Set<string> }`
 **Test first:** `REQ-90: parseBusinessRules reads active and deprecated BR headings` — input
@@ -1019,7 +1046,7 @@ text BR-50 in prose is ignored
 **TDD exception:** none
 
 ### TASK-13 — Traceability: parse requirements
-**Phase:** 0 · **Requirements:** REQ-90 · **Status:** todo · **Revision:** 1
+**Phase:** 0 · **Requirements:** REQ-90 · **Status:** done · **Revision:** 1
 **Files:** scripts/traceability/parse.ts, scripts/traceability/parse.test.ts
 **Interface:** `export interface ParsedReq { id: string; rules: string[]; tooling: boolean; status: string }`;
 `export function parseRequirements(markdown: string): ParsedReq[]`
@@ -1036,7 +1063,7 @@ Lines like `### DOC-Q1 — …` or `### Identity & access` are not requirements.
 **TDD exception:** none
 
 ### TASK-14 — Traceability: find test citations
-**Phase:** 0 · **Requirements:** REQ-90 · **Status:** todo · **Revision:** 1
+**Phase:** 0 · **Requirements:** REQ-90 · **Status:** done · **Revision:** 1
 **Files:** scripts/traceability/parse.ts, scripts/traceability/parse.test.ts
 **Interface:** `export function isTestFile(path: string): boolean`;
 `export function findCitations(files: Array<{ path: string; content: string }>): Map<string, string[]>` (REQ id →
@@ -1055,7 +1082,7 @@ Citation regex: `/\b(?:it|test|describe)(?:\.\w+)*\(\s*['"\`](REQ-\d+):/g`.
 **TDD exception:** none
 
 ### TASK-15 — Traceability: diagram freshness
-**Phase:** 0 · **Requirements:** REQ-90 · **Status:** todo · **Revision:** 1
+**Phase:** 0 · **Requirements:** REQ-90 · **Status:** done · **Revision:** 1
 **Files:** scripts/traceability/check.ts, scripts/traceability/check.test.ts
 **Interface:**
 `export interface DiagramInfo { mmd: string; mmdTime: number; svgTime: number | null }` (seconds, `null` = no tracked svg);
@@ -1068,7 +1095,7 @@ svgTime: 150 }, { mmd: 'docs/diagrams/c.mmd', mmdTime: 300, svgTime: 300 }]` →
 **TDD exception:** none
 
 ### TASK-16 — Traceability: requirement checks
-**Phase:** 0 · **Requirements:** REQ-90 · **Status:** todo · **Revision:** 1
+**Phase:** 0 · **Requirements:** REQ-90 · **Status:** done · **Revision:** 1
 **Files:** scripts/traceability/check.ts, scripts/traceability/check.test.ts
 **Interface:** `export function checkRequirements(input: { brs: { ids: Set<string>; deprecated: Set<string> };
 reqs: ParsedReq[]; citations: Map<string, string[]> }): string[]`
@@ -1086,7 +1113,7 @@ reqs: ParsedReq[]; citations: Map<string, string[]> }): string[]`
 **TDD exception:** none
 
 ### TASK-17 — Traceability CLI
-**Phase:** 0 · **Requirements:** REQ-90 · **Status:** todo · **Revision:** 1
+**Phase:** 0 · **Requirements:** REQ-90 · **Status:** done · **Revision:** 1
 **Files:** scripts/traceability/cli.ts, scripts/traceability/cli.test.ts, package.json
 **Interface:** `export function runTraceability(repoRoot: string): string[]` (in `cli.ts`; the file ends with
 `if (process.argv[1]?.endsWith('cli.ts')) { … print and exit … }`)
@@ -1103,7 +1130,7 @@ or prints `✓ traceability ok` and exits 0. Add script `"trace"` from C9.
 **TDD exception:** none
 
 ### TASK-18 — Local commit-message hook
-**Phase:** 0 · **Requirements:** — · **Status:** todo · **Revision:** 1
+**Phase:** 0 · **Requirements:** — · **Status:** done · **Revision:** 1
 **Files:** .husky/commit-msg, package.json
 **Steps:** `npm i -D husky @commitlint/cli @commitlint/config-conventional`; `npx husky init`; delete the generated
 `.husky/pre-commit`; create `.husky/commit-msg` with the single line `npx --no -- commitlint --edit "$1"`; keep
@@ -1114,7 +1141,7 @@ works (then `git reset --soft HEAD~1` to drop that empty commit).
 **TDD exception:** chore — tooling configuration
 
 ### TASK-19 — CI workflow
-**Phase:** 0 · **Requirements:** REQ-90 (runs it) · **Status:** todo · **Revision:** 1
+**Phase:** 0 · **Requirements:** REQ-90 (runs it) · **Status:** done · **Revision:** 2
 **Files:** .github/workflows/ci.yml
 **Steps:** create exactly (job ids = check names required by branch protection; do not rename):
 ```yaml
@@ -1184,6 +1211,8 @@ jobs:
   e2e:
     name: e2e
     runs-on: ubuntu-latest
+    env:
+      E2E_PORT: '3000'
     services:
       postgres:
         image: postgres:16-alpine
@@ -1218,9 +1247,11 @@ The integration job passes in Phase 0 because `test:int` has `--passWithNoTests`
 **Done when:** YAML is valid (`npx --yes yaml-lint .github/workflows/ci.yml` or open the Actions tab after push);
 all six jobs pass on the Phase 0 PR.
 **TDD exception:** ci
+**Changelog:**
+- Rev 2 — human decision (ENV incident #3), not a failure revision: e2e job sets `E2E_PORT: '3000'` explicitly.
 
 ### TASK-20 — Vercel build configuration
-**Phase:** 0 · **Requirements:** — · **Status:** todo · **Revision:** 1
+**Phase:** 0 · **Requirements:** — · **Status:** done · **Revision:** 1
 **Files:** vercel.json
 **Steps:** create
 ```json
@@ -1259,13 +1290,19 @@ production database). `package.json` already has `vercel-build` (TASK-05), which
    - Authorized JavaScript origins: `http://localhost:3000`, `https://<production-domain>`
    - Authorized redirect URIs: `http://localhost:3000/api/auth/callback/google`,
      `https://<production-domain>/api/auth/callback/google`
+   - Only if you run `npm run dev -- -p 3100` (HUMAN-04, port 3000 busy): also add the origin `http://localhost:3100`
+     and the redirect URI `http://localhost:3100/api/auth/callback/google`. (E2E never uses Google: no entry needed.)
 4. Copy the Client ID and Client secret into Vercel (Production) as `AUTH_GOOGLE_ID` and `AUTH_GOOGLE_SECRET`, and into
    your local `.env.local` (HUMAN-04). Redeploy on Vercel.
 5. Check: on the production URL, open `/api/login?callbackUrl=%2Fen` after Phase 1 is deployed, or
    `/api/auth/signin` now, and sign in with Google.
+**Changelog:**
+- human decision (ENV incident #3), not a failure revision: optional `localhost:3100` origin/redirect for local dev.
 
 ### HUMAN-03 — Branch protection and merge settings
 **Phase:** 0 · **Owner:** human · **When:** after CI has run once on the Phase 0 PR (so the checks are selectable)
+**Status:** done — configured by the orchestrator via `gh api` (no secrets involved): requires `commitlint`, `lint`,
+`typecheck`, `unit`, `integration`, `e2e`, `traceability`; merge commits only; branches auto-deleted.
 1. GitHub → repository **Settings → General → Pull Requests**: allow **merge commits** only (uncheck squash and
    rebase); check **Automatically delete head branches**.
 2. **Settings → Rules → Rulesets → New branch ruleset** (or **Branches → Add classic protection rule**) for `main`:
@@ -1273,10 +1310,21 @@ production database). `package.json` already has `vercel-build` (TASK-05), which
    `integration`, `e2e`, `traceability`; block force pushes; restrict deletions.
 
 ### HUMAN-04 — Local environment file
-**Phase:** 0 · **Owner:** human · **When:** any time (needed only to sign in locally with `npm run dev`)
+**Phase:** 0 · **Owner:** human · **When:** any time (steps 1–3 needed only to sign in locally with `npm run dev`);
+step 4 before TASK-10 if port 3000 is busy on your machine
 1. Copy `.env.example` to `.env.local` (ignored by git).
 2. Fill `AUTH_SECRET` (`npx auth secret --raw`), and `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` from HUMAN-02.
 3. `docker compose up -d`, `npx dotenv -e .env.local -- prisma migrate dev`, `npm run dev`.
+4. **If port 3000 is busy on your machine** (needed before TASK-10/TASK-11 run):
+   - E2E: set `E2E_PORT=3100` in your **user environment** so every shell (including the agents' shells) sees it:
+     PowerShell `setx E2E_PORT 3100`, then restart the terminal and Claude Code. For one session only:
+     `$env:E2E_PORT = '3100'` (PowerShell) or `export E2E_PORT=3100` (bash). Do **not** put it in `.env.local`:
+     `npm run test:e2e` loads only `.env.test`, so a value in `.env.local` is ignored and the run falls back to 3000.
+     Check: `node -e "console.log(process.env.E2E_PORT)"` prints `3100`.
+   - Dev server: `npm run dev -- -p 3100` (Next.js ignores `PORT` in `.env.local`), and add the `localhost:3100`
+     origin and redirect URI to the Google OAuth client (HUMAN-02, step 3).
+**Changelog:**
+- human decision (ENV incident #3), not a failure revision: step 4 (`E2E_PORT`, dev on 3100).
 
 ---
 

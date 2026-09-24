@@ -1,0 +1,107 @@
+{
+  "meta": {
+    "title": "Event RSVP",
+    "description": "Create an event, share one link, see who's coming."
+  },
+  "nav": {
+    "brand": "Event RSVP",
+    "language": "Language",
+    "myEvents": "My events",
+    "signIn": "Sign in with Google",
+    "signOut": "Sign out"
+  },
+  "languages": { "en": "English", "fr": "Français", "pt-BR": "Português (Brasil)" },
+  "home": {
+    "headline": "Plan an event. Share one link. See who's coming.",
+    "explanation": "Create an event in seconds — describe it in your own words and let AI fill the form. Guests RSVP from one link without an account, and you see the guest list and totals in one place.",
+    "demoLink": "See a demo event"
+  },
+  "dashboard": {
+    "title": "My events",
+    "upcoming": "Upcoming",
+    "past": "Past",
+    "createEvent": "Create event",
+    "createSample": "Create sample event",
+    "empty": "You have no events yet.",
+    "noUpcoming": "No upcoming events.",
+    "noPast": "No past events."
+  },
+  "totals": {
+    "summary": "Going: {going} · Declined: {declined} · People: {people}",
+    "peopleGoing": "{count, plural, one {# person going} other {# people going}}"
+  },
+  "eventForm": {
+    "titleNew": "New event",
+    "titleEdit": "Edit event",
+    "name": "Name",
+    "description": "Description",
+    "date": "Date",
+    "time": "Time",
+    "timezone": "Timezone",
+    "location": "Location (optional)",
+    "save": "Save event",
+    "saving": "Saving…"
+  },
+  "ai": {
+    "label": "Describe your event",
+    "placeholder": "Team dinner next Friday 7pm at Mario's",
+    "fill": "Fill with AI",
+    "filling": "Filling…",
+    "missingHint": "Not found in your text — please fill it.",
+    "notAnEvent": "Couldn't find event details in that text."
+  },
+  "event": {
+    "edit": "Edit",
+    "delete": "Delete event",
+    "deleteConfirm": "Delete this event and all its RSVPs? This cannot be undone.",
+    "copyLink": "Copy invite link",
+    "linkCopied": "Link copied",
+    "addToCalendar": "Add to calendar",
+    "ended": "This event has ended",
+    "guestList": "Guest list",
+    "noRsvps": "No RSVPs yet.",
+    "colName": "Name",
+    "colResponse": "Response",
+    "colPeople": "People",
+    "colUpdated": "Last updated",
+    "remove": "Remove"
+  },
+  "rsvp": {
+    "title": "Will you come?",
+    "name": "Your name",
+    "going": "Going",
+    "notGoing": "Not going",
+    "partySize": "How many people, including you?",
+    "submit": "Send RSVP",
+    "youreGoing": "You're going ({count})",
+    "youreNotGoing": "You're not going",
+    "change": "Change",
+    "cancel": "Cancel"
+  },
+  "sample": {
+    "name": "Sample: Friday get-together",
+    "description": "A sample event to explore the app. Share the invite link, collect RSVPs, and delete it when you are done.",
+    "location": "Community Hall"
+  },
+  "errors": {
+    "VALIDATION_ERROR": "Please fix the highlighted fields.",
+    "NOT_FOUND": "This page does not exist.",
+    "NOT_OWNER": "Only the organizer can do this.",
+    "EVENT_ENDED": "This event has ended",
+    "DUPLICATE_NAME": "This name is already on the list. Use a different name or ask the organizer.",
+    "RATE_LIMITED": "Too many submissions — please try again in a few minutes.",
+    "AI_LIMIT_REACHED": "Daily AI limit reached — fill the form manually.",
+    "AI_UNAVAILABLE": "Couldn't fill automatically — please fill the form.",
+    "UNAUTHENTICATED": "Please sign in to continue.",
+    "INTERNAL_ERROR": "Something went wrong. Please try again."
+  },
+  "validation": {
+    "required": "This field is required.",
+    "tooLong": "This is too long.",
+    "invalidFormat": "This value is not valid.",
+    "invalidTimezone": "Choose a valid timezone.",
+    "inPast": "The date and time cannot be in the past.",
+    "partySizeRange": "Enter a number from 1 to 10.",
+    "invalidStatus": "Choose Going or Not going."
+  }
+}
