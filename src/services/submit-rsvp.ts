@@ -1,5 +1,6 @@
 import { NotFoundError, ValidationError } from '@/domain/errors';
 import { toNameKey } from '@/domain/name-key';
+import { assertNotEnded } from '@/domain/policies';
 import { rsvpInputSchema } from '@/domain/schemas';
 import type { Clock, OwnRsvp } from '@/domain/types';
 import { generateEditToken, hashToken } from '@/lib/crypto';
@@ -39,7 +40,7 @@ export class SubmitRsvpService {
     const event = await this.deps.events.findBySlug(input.slug);
     if (!event) throw new NotFoundError();
 
-    // TASK-79 will add assertNotEnded(event, this.deps.now()) here.
+    assertNotEnded(event, this.deps.now());
 
     const { name, status, partySize } = parsed.data;
     const nameKey = toNameKey(name);
@@ -48,7 +49,7 @@ export class SubmitRsvpService {
       ? await this.deps.rsvps.findByTokenHash(event.id, hashToken(input.editToken))
       : null;
 
-    // TASK-78 will block a nameKey collision with a different RSVP as DuplicateNameError.
+    // Duplicate names: rsvps.create/update throw DuplicateNameError (C4, REQ-27); no pre-check.
 
     if (own) {
       const updated = await this.deps.rsvps.update(own.id, { name, nameKey, status, partySize });
