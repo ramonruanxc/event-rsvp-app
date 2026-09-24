@@ -25,6 +25,10 @@ Before starting, read:
 7. Before finishing each task: run the task's tests, the full unit suite, `npm run lint`, `npm run typecheck`, and
    `npm run format:check` (fix with `npx prettier --write <files>` and commit). **`git status` must be clean** —
    nothing you produced may be left uncommitted. (Added after TASK-02/03 left formatting uncommitted.)
+8. Whenever `package.json` or `package-lock.json` changes, validate the lockfile with the npm that CI uses (the one
+   bundled with the `.nvmrc` Node version, currently npm 10): `npx -y npm@10 ci` in a scratch clone. Local and CI npm
+   can resolve optional peers differently. (Added after incident #4.)
+9. Never bypass hooks (`HUSKY=0`, `--no-verify`).
 
 ## Batches
 The orchestrator may give you an ordered list of tasks. Execute them **in order, one at a time**, each with its own

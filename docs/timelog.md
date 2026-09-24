@@ -22,7 +22,7 @@ Event times are taken from session timestamps. All times in America/Fortaleza (U
 |---|---|---|---|---|---|
 | 1 | 1 — Spec definition | 2026-09-24 12:32:29 | 2026-09-24 13:11:44 | 39m 15s | Personal break |
 | 2 | 2 — Pipeline bootstrap + spec | 2026-09-24 14:04:38 | 2026-09-24 14:39:47 | 35m 09s | Human away; spec-writer agent ran meanwhile (see Agent runs) |
-| 3 | 4 — Execution | 2026-09-24 15:27:44 | — | — | Work break; pipeline kept running |
+| 3 | 4 — Execution | 2026-09-24 15:27:44 | 2026-09-24 15:44:10 | 16m 26s | Work break; pipeline kept running |
 
 ## Agent runs
 
@@ -42,6 +42,11 @@ Pipeline agents working autonomously. Reported separately from human active time
 | implementer batch TASK-06–08 | sonnet | 2026-09-24 15:06:40 | 2026-09-24 15:13:15 | 6m 35s | DONE, 1 attempt each — first TDD behavior, next-intl, key parity |
 | implementer TASK-09 | sonnet | 2026-09-24 15:13:37 | 2026-09-24 15:16:54 | 3m 17s | DONE, 1 attempt — Auth.js Google + database sessions |
 | implementer batch TASK-12–17 | sonnet | 2026-09-24 15:17:07 | 2026-09-24 15:27:58 | 10m 51s | DONE, 1 attempt each — traceability script (run ahead of TASK-10/11, blocked by ENV) |
+| spec-writer (ENV #3, E2E_PORT) | opus | 2026-09-24 15:28:50 | 2026-09-24 15:31:22 | 2m 32s | TASK-10/11/19 rev 2, HUMAN-02/04 updated |
+| implementer batch TASK-10, 11, 18–20 | sonnet | 2026-09-24 15:31:34 | 2026-09-24 15:39:49 | 8m 15s | DONE, 1 attempt each — Playwright, locale middleware, commit hook, CI, Vercel |
+| reviewer PR #3 (round 1) | sonnet | 2026-09-24 15:40:24 | 2026-09-24 15:46:28 | 6m 04s | REQUEST_CHANGES — CODE=3 (lockfile, commit body length, TASK-02 scope) |
+| implementer (CODE: lockfile) | sonnet | 2026-09-24 15:46:47 | 2026-09-24 15:58:10 | 11m 23s | DONE — root cause npm 11 vs npm 10 optional-peer resolution |
+| implementer (CODE: line endings) | sonnet | 2026-09-24 15:58:38 | 2026-09-24 16:00:57 | 2m 19s | DONE — .gitattributes eol=lf |
 
 ## Events
 
@@ -75,3 +80,7 @@ Pipeline agents working autonomously. Reported separately from human active time
 | 2026-09-24 15:03:06 | Human decision A1: executor model Haiku → Sonnet from TASK-04 on |
 | 2026-09-24 15:13:37 | ENV: port 3000 occupied by an unrelated local app; TASK-10/11 blocked; traceability batch run ahead |
 | 2026-09-24 15:27:44 | Human decided ENV option A (configurable E2E_PORT: 3100 local, 3000 CI) |
+| 2026-09-24 15:39:59 | Phase 0 pushed; PR #3 opened; first CI run: all 7 jobs red |
+| 2026-09-24 15:46:28 | Reviewer round 1: REQUEST_CHANGES (CODE=3) |
+| 2026-09-24 15:50:20 | Human authorized history rewrite (reword one commit) on the PR branch |
+| 2026-09-24 16:02:29 | Commit ddfee56 reworded (body ≤ 100 chars, tree unchanged); fixes committed |
