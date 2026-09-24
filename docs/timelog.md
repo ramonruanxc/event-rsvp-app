@@ -47,8 +47,17 @@ Pipeline agents working autonomously. Reported separately from human active time
 | reviewer PR #3 (round 1) | sonnet | 2026-09-24 15:40:24 | 2026-09-24 15:46:28 | 6m 04s | REQUEST_CHANGES — CODE=3 (lockfile, commit body length, TASK-02 scope) |
 | implementer (CODE: lockfile) | sonnet | 2026-09-24 15:46:47 | 2026-09-24 15:58:10 | 11m 23s | DONE — root cause npm 11 vs npm 10 optional-peer resolution |
 | implementer (CODE: line endings) | sonnet | 2026-09-24 15:58:38 | 2026-09-24 16:00:57 | 2m 19s | DONE — .gitattributes eol=lf |
-| reviewer PR #3 (round 2) | sonnet | 2026-09-24 16:03:40 | 2026-09-24 16:06:05 | 2m 25s | APPROVE — CODE=0 SPEC=0 DOC=0 |
-| analyst (Mode 3, doc-sync PR #3) | sonnet | 2026-09-24 16:06:30 | 2026-09-24 16:09:11 | 2m 41s | plan/spec status, README, CHANGELOG |
+| reviewer PR #3 (round 2) | sonnet | 2026-09-24 16:04:36 | 2026-09-24 16:07:06 | 2m 30s | APPROVE — CODE=0 SPEC=0 DOC=0 |
+| analyst (Mode 3, doc-sync PR #3) | sonnet | 2026-09-24 16:07:17 | 2026-09-24 16:10:00 | 2m 43s | plan/spec status, README, CHANGELOG |
+| implementer batch TASK-30–36 | sonnet | 2026-09-24 16:12:50 | 2026-09-24 16:25:18 | 12m 28s | DONE, 1 attempt each — errors, validation, timezone, UTC conversion |
+| implementer batch TASK-37–42 | sonnet | 2026-09-24 16:25:34 | 2026-09-24 16:36:41 | 11m 07s | DONE, 1 attempt each — policies, slug, display, totals (plan ordering gap self-resolved) |
+| spec-writer (ENV #8, TASK-20 rev 2) | opus | 2026-09-24 16:36:22 | 2026-09-24 16:38:00 | 1m 38s | TASK-20 + HUMAN-01 revised (hotfix worktree) |
+| implementer TASK-20 rev 2 (hotfix) | sonnet | 2026-09-24 16:38:11 | 2026-09-24 16:39:37 | 1m 26s | DONE — branch-based ignored build step |
+| implementer batch TASK-43–51 | sonnet | 2026-09-24 16:38:19 | 2026-09-24 16:59:06 | 20m 47s | DONE, 1 attempt each — repositories; fixed integration-test race (fileParallelism) |
+| reviewer PR #4 | sonnet | 2026-09-24 16:40:00 | 2026-09-24 16:43:18 | 3m 18s | APPROVE |
+| analyst (Mode 3, doc-sync PR #4) | sonnet | 2026-09-24 16:43:31 | 2026-09-24 16:44:24 | 0m 53s | TASK-20 done, CHANGELOG |
+| implementer batch TASK-52–58 | sonnet | 2026-09-24 16:59:27 | 2026-09-24 17:14:30 | 15m 03s | DONE, 1 attempt each — services, safe redirects, container |
+| implementer batch TASK-59–67 | sonnet | 2026-09-24 17:14:41 | 2026-09-24 18:00:26 | 45m 45s | DONE, 1 attempt each — protected routes, form, pages, header, dashboard, delete, edit |
 
 ## Events
 
@@ -88,3 +97,8 @@ Pipeline agents working autonomously. Reported separately from human active time
 | 2026-09-24 16:02:29 | Commit ddfee56 reworded (body ≤ 100 chars, tree unchanged); fixes committed |
 | 2026-09-24 16:03:10 | CI green on PR #3 (7/7); main now requires all 7 checks (HUMAN-03 done by orchestrator) |
 | 2026-09-24 16:12:15 | Human approved; PR #3 merged — phase 0 (walking skeleton) complete |
+| 2026-09-24 16:12:50 | Phase 1 (events core) execution starts; human works on HUMAN-01 in parallel |
+| 2026-09-24 16:33:00 | ENV incident #8: dashboard deployment canceled by ignored build step; hotfix via separate worktree |
+| 2026-09-24 16:46:02 | PR #4 merged (pre-authorized by human); first production deployment succeeded 16:47 |
+| 2026-09-24 16:50:00 | Human configures HUMAN-02 (Google OAuth) — counted as active work; OAuth app kept in Testing with test users (human decision) |
+| 2026-09-24 18:00:26 | Phase 1 complete: 38/38 tasks, first attempt each |
