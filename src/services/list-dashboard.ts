@@ -1,3 +1,5 @@
+import { hasEnded } from '@/domain/policies';
+import { computeTotals } from '@/domain/rsvp';
 import type { Clock, Totals } from '@/domain/types';
 import type { EventRepository } from '@/repositories/interfaces';
 
@@ -18,7 +20,24 @@ export class ListDashboardService {
   async execute(input: {
     ownerId: string;
   }): Promise<{ upcoming: DashboardItem[]; past: DashboardItem[] }> {
-    void input;
-    throw new Error('not implemented');
+    const now = this.deps.now();
+    const rows = await this.deps.events.listByOwnerWithRsvpSummaries(input.ownerId);
+
+    const upcoming: DashboardItem[] = [];
+    const past: DashboardItem[] = [];
+    for (const { event, rsvps } of rows) {
+      const item: DashboardItem = {
+        slug: event.slug,
+        name: event.name,
+        startsAt: event.startsAt,
+        timezone: event.timezone,
+        totals: computeTotals(rsvps),
+      };
+      (hasEnded(event, now) ? past : upcoming).push(item);
+    }
+    upcoming.sort((a, b) => a.startsAt.getTime() - b.startsAt.getTime());
+    past.sort((a, b) => b.startsAt.getTime() - a.startsAt.getTime());
+
+    return { upcoming, past };
   }
 }
