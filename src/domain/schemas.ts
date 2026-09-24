@@ -5,4 +5,8 @@ const requiredText = (max: number) =>
 
 export const eventNameSchema = requiredText(120);
 export const eventDescriptionSchema = requiredText(2000);
-export const eventLocationSchema = z.string();
+export const eventLocationSchema = z
+  .string()
+  .trim()
+  .nullish()
+  .transform((v) => (v ? v : null));
