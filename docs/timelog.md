@@ -23,7 +23,8 @@ Event times are taken from session timestamps. All times in America/Fortaleza (U
 | 1 | 1 — Spec definition | 2026-09-24 12:32:29 | 2026-09-24 13:11:44 | 39m 15s | Personal break |
 | 2 | 2 — Pipeline bootstrap + spec | 2026-09-24 14:04:38 | 2026-09-24 14:39:47 | 35m 09s | Human away; spec-writer agent ran meanwhile (see Agent runs) |
 | 3 | 4 — Execution | 2026-09-24 15:27:44 | 2026-09-24 15:44:10 | 16m 26s | Work break; pipeline kept running |
-| 4 | 4 — Execution | 2026-09-24 18:59:23 | — | — | Work and calls; pipeline kept running |
+| 4 | 4 — Execution | 2026-09-24 18:59:23 | 2026-09-24 19:20:18 | 20m 55s | Work and calls; pipeline kept running |
+| 5 | 4 — Execution | 2026-09-24 19:24:11 | — | — | Break; pipeline kept running |
 
 ## Agent runs
 
@@ -66,6 +67,9 @@ Pipeline agents working autonomously. Reported separately from human active time
 | spec-writer (SPEC failure #13) | opus | 2026-09-24 18:39:58 | 2026-09-24 18:43:29 | 3m 31s | TASK-76/78/79/86/89 revised; REQ-26 enforcement point stated |
 | implementer batch TASK-78–82 (retry) | sonnet | 2026-09-24 18:43:46 | 2026-09-24 18:51:39 | 7m 53s | DONE, 1 attempt each |
 | implementer batch TASK-83–89 | sonnet | 2026-09-24 18:51:51 | 2026-09-24 19:18:52 | 27m 01s | DONE, 1 attempt each — RSVP form, guest panel, owner list, E2E |
+| reviewer PR #6 | sonnet | 2026-09-24 19:19:48 | 2026-09-24 19:24:52 | 5m 04s | APPROVE — CODE=0 SPEC=0 DOC=0 (2 nits) |
+| analyst (Mode 3, doc-sync PR #6) | sonnet | 2026-09-24 19:25:20 | 2026-09-24 19:29:15 | 3m 55s | REQs done, README live demo + known limitations, CHANGELOG |
+| implementer batch TASK-90–100 | sonnet | 2026-09-24 19:25:07 | 2026-09-24 19:58:27 | 33m 20s | DONE, 1 attempt each — sample event, invite link, .ics, demo seed, home (isolated worktree, DB rsvp_p3_test, port 3200) |
 
 ## Events
 
@@ -116,3 +120,6 @@ Pipeline agents working autonomously. Reported separately from human active time
 | 2026-09-24 18:47:00 | HUMAN-01 done: stable production domain https://event-rsvp-app-flax.vercel.app; smoke test passed |
 | 2026-09-24 18:47:59 | Human verified Google sign-in end-to-end in production |
 | 2026-09-24 19:18:52 | Phase 2 complete: 20/20 tasks (one SPEC failure, resolved) |
+| 2026-09-24 19:24:11 | Phase 3 started in a separate worktree (isolated test DB and port) while PR #6 was reviewed |
+| 2026-09-24 19:31:33 | PR #6 merged (pre-authorized by human) — phase 2 in production |
+| 2026-09-24 19:58:27 | Phase 3 complete: 11/11 tasks, first attempt each |
