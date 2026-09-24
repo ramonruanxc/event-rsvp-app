@@ -171,4 +171,36 @@ describe('EventForm — Fill with AI (REQ-51)', () => {
     expect(submit).not.toHaveBeenCalled();
     expect(nav.push).not.toHaveBeenCalled();
   });
+
+  test('REQ-51: non-event text shows the not-found message and flags no field', async () => {
+    const aiFill = vi.fn().mockResolvedValue({
+      ok: true,
+      data: {
+        fields: {
+          name: null,
+          description: null,
+          date: null,
+          time: null,
+          timezone: null,
+          location: null,
+        },
+        missing: ['name', 'description', 'date', 'time', 'timezone', 'location'],
+        timezoneFromText: false,
+        notAnEvent: true,
+      },
+    });
+    const { container } = renderWithIntl(<EventForm submit={vi.fn()} aiFill={aiFill} />);
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Old name' } });
+    fireEvent.change(screen.getByLabelText('Describe your event'), {
+      target: { value: "What's the weather like tomorrow?" },
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Fill with AI' }));
+
+    const alert = await screen.findByRole('alert');
+    expect(alert.textContent).toBe("Couldn't find event details in that text.");
+    expect((screen.getByLabelText('Name') as HTMLInputElement).value).toBe('Old name');
+    expect(container.querySelectorAll('[aria-invalid="true"]').length).toBe(0);
+    expect(screen.queryByText('Not found in your text — please fill it.')).toBeNull();
+  });
 });
