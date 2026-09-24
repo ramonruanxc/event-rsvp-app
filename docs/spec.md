@@ -411,7 +411,9 @@ server started by Playwright). Production code is unchanged; only the base URL d
   `DuplicateNameError` (a cookie of another RSVP does not make it "the same browser")
 - E2E: browser A RSVPs as "Maria"; browser B (new context, no cookie) submits "maria" → the form shows
   "This name is already on the list. Use a different name or ask the organizer." and keeps the typed values
-**Test level:** unit + e2e
+- Enforcement point: `RsvpRepository.create`/`update` throw `DuplicateNameError` on an `(eventId, nameKey)` collision
+  (REQ-27, BR-39). `SubmitRsvpService` has no separate name lookup; it lets the error through.
+**Test level:** unit (service, characterization over the repository enforcement) + e2e
 
 ### REQ-27 — Name uniqueness is enforced by the database
 **Rules:** BR-39
