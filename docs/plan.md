@@ -1251,7 +1251,7 @@ all six jobs pass on the Phase 0 PR.
 - Rev 2 — human decision (ENV incident #3), not a failure revision: e2e job sets `E2E_PORT: '3000'` explicitly.
 
 ### TASK-20 — Vercel build configuration
-**Phase:** 0 · **Requirements:** — · **Status:** todo · **Revision:** 2
+**Phase:** 0 · **Requirements:** — · **Status:** done · **Revision:** 2
 **Files:** vercel.json
 **Steps:** replace the whole content of `vercel.json` with exactly
 ```json
