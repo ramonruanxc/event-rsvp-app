@@ -33,8 +33,8 @@ export class PrismaRsvpRepository implements RsvpRepository {
   }
 
   /** Deletes the RSVP with the given id. */
-  async delete(_id: string): Promise<void> {
-    throw new Error('not implemented');
+  async delete(id: string): Promise<void> {
+    await this.prisma.rsvp.delete({ where: { id } });
   }
 
   /** Returns the RSVP with the given id, or null when none exists. */
@@ -61,7 +61,7 @@ export class PrismaRsvpRepository implements RsvpRepository {
   }
 
   /** Stores every given RSVP. */
-  async createMany(_data: NewRsvp[]): Promise<void> {
-    throw new Error('not implemented');
+  async createMany(data: NewRsvp[]): Promise<void> {
+    await this.prisma.rsvp.createMany({ data });
   }
 }
