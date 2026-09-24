@@ -48,17 +48,27 @@ export const aiRawOutputSchema = z.object({
 /** Validated shape of the model's raw structured output. */
 export type AiRawOutput = z.infer<typeof aiRawOutputSchema>;
 
-/** Validates the model's raw output field by field, throwing AiUnavailableError when the shape itself is wrong (BR-59). */
-export function normalizeAiOutput(
-  raw: unknown,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- used starting TASK-113 (timezone priority)
+/** Resolves the timezone priority (REQ-46, BR-60, BR-61): valid text timezone, else valid form timezone, else null. */
+function resolveTimezone(
+  modelTimezone: string | null,
   formTimezone: string | null,
-): ParseEventResult {
+): { timezone: string | null; fromText: boolean } {
+  if (modelTimezone !== null && isValidTimeZone(modelTimezone)) {
+    return { timezone: modelTimezone, fromText: true };
+  }
+  if (formTimezone && isValidTimeZone(formTimezone)) {
+    return { timezone: formTimezone, fromText: false };
+  }
+  return { timezone: null, fromText: false };
+}
+
+/** Validates the model's raw output field by field, throwing AiUnavailableError when the shape itself is wrong (BR-59). */
+export function normalizeAiOutput(raw: unknown, formTimezone: string | null): ParseEventResult {
   const parsed = aiRawOutputSchema.safeParse(raw);
   if (!parsed.success) throw new AiUnavailableError();
   const data = parsed.data;
 
-  const timezone = data.timezone !== null && isValidTimeZone(data.timezone) ? data.timezone : null;
+  const { timezone, fromText } = resolveTimezone(data.timezone, formTimezone);
 
   const fields: Record<AiField, string | null> = {
     name: normalizeName(data.name),
@@ -69,5 +79,5 @@ export function normalizeAiOutput(
     location: normalizeLocation(data.location),
   };
 
-  return { fields, missing: [], timezoneFromText: timezone !== null, notAnEvent: false };
+  return { fields, missing: [], timezoneFromText: fromText, notAnEvent: false };
 }
