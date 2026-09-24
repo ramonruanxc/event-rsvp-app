@@ -32,7 +32,11 @@ export class PrismaEventRepository implements EventRepository {
   }
 
   /** Returns every event owned by ownerId, each paired with its RSVPs' status and partySize. */
-  async listByOwnerWithRsvpSummaries(_ownerId: string): Promise<EventWithRsvpSummaries[]> {
-    throw new Error('not implemented');
+  async listByOwnerWithRsvpSummaries(ownerId: string): Promise<EventWithRsvpSummaries[]> {
+    const events = await this.prisma.event.findMany({
+      where: { ownerId },
+      include: { rsvps: { select: { status: true, partySize: true } } },
+    });
+    return events.map(({ rsvps, ...event }) => ({ event, rsvps }));
   }
 }
