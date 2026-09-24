@@ -95,3 +95,42 @@ describe('SubmitRsvpService', () => {
     expect(store.rsvps).toHaveLength(201);
   });
 });
+
+describe('SubmitRsvpService — REQ-25 same-browser resubmission', () => {
+  it("REQ-25: the same name with the guest's own token edits the RSVP", async () => {
+    const { events, rsvps, store } = await arrange();
+    const service = new SubmitRsvpService({ events, rsvps, now, newToken: () => 'T' });
+    await service.execute({ ...base, values: { name: 'Maria', status: 'GOING', partySize: 3 } });
+    const originalId = store.rsvps[0].id;
+
+    const result = await service.execute({
+      ...base,
+      editToken: 'T',
+      values: { name: '  maria ', status: 'GOING', partySize: 5 },
+    });
+
+    expect(store.rsvps).toHaveLength(1);
+    expect(store.rsvps[0].id).toBe(originalId);
+    expect(store.rsvps[0].partySize).toBe(5);
+    expect(store.rsvps[0].name).toBe('maria');
+    expect(result.created).toBe(false);
+    expect(result.editToken).toBe('T');
+  });
+
+  it('REQ-25: the guest can rename their own RSVP', async () => {
+    const { events, rsvps, store } = await arrange();
+    const service = new SubmitRsvpService({ events, rsvps, now, newToken: () => 'T' });
+    await service.execute({ ...base, values: { name: 'Maria', status: 'GOING', partySize: 3 } });
+    const originalId = store.rsvps[0].id;
+
+    await service.execute({
+      ...base,
+      editToken: 'T',
+      values: { name: 'Maria Silva', status: 'GOING', partySize: 3 },
+    });
+
+    expect(store.rsvps).toHaveLength(1);
+    expect(store.rsvps[0].id).toBe(originalId);
+    expect(store.rsvps[0].name).toBe('Maria Silva');
+  });
+});
