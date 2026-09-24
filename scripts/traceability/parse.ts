@@ -26,7 +26,7 @@ export function parseBusinessRules(markdown: string): ParsedBusinessRules {
   const ids = new Set<string>();
   const deprecated = new Set<string>();
 
-  for (const line of markdown.split('\n')) {
+  for (const line of markdown.split(/\r?\n/)) {
     const match = BR_HEADING.exec(line);
     if (!match) continue;
     const [, strikeStart, id] = match;
@@ -61,7 +61,7 @@ const STATUS_LABEL = /^\*\*Status:\*\*\s*(.*)$/;
  * `### REQ-xx — …` (e.g. `### DOC-Q1 — …` or section titles) are not requirements.
  */
 export function parseRequirements(markdown: string): ParsedReq[] {
-  const lines = markdown.split('\n');
+  const lines = markdown.split(/\r?\n/);
   const requirements: ParsedReq[] = [];
 
   for (let i = 0; i < lines.length; i++) {
