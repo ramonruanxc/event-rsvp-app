@@ -3,7 +3,9 @@ import { ValidationError } from '@/domain/errors';
 
 const mocks = vi.hoisted(() => ({ userId: null as string | null, execute: vi.fn() }));
 vi.mock('@/lib/session', () => ({ getCurrentUserId: async () => mocks.userId }));
-vi.mock('@/lib/container', () => ({ getServices: () => ({ createEvent: { execute: mocks.execute } }) }));
+vi.mock('@/lib/container', () => ({
+  getServices: () => ({ createEvent: { execute: mocks.execute } }),
+}));
 
 import { createEventAction } from './actions';
 
