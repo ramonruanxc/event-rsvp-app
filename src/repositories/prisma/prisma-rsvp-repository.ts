@@ -38,22 +38,22 @@ export class PrismaRsvpRepository implements RsvpRepository {
   }
 
   /** Returns the RSVP with the given id, or null when none exists. */
-  async findById(): Promise<RsvpRecord | null> {
+  async findById(_id: string): Promise<RsvpRecord | null> {
     throw new Error('not implemented');
   }
 
   /** Returns the RSVP with the given event id and name key, or null when none exists. */
-  async findByNameKey(): Promise<RsvpRecord | null> {
+  async findByNameKey(_eventId: string, _nameKey: string): Promise<RsvpRecord | null> {
     throw new Error('not implemented');
   }
 
   /** Returns the RSVP with the given event id and edit token hash, or null when none exists. */
-  async findByTokenHash(): Promise<RsvpRecord | null> {
+  async findByTokenHash(_eventId: string, _editTokenHash: string): Promise<RsvpRecord | null> {
     throw new Error('not implemented');
   }
 
   /** Ordered by createdAt ascending. */
-  async listByEvent(): Promise<RsvpRecord[]> {
+  async listByEvent(_eventId: string): Promise<RsvpRecord[]> {
     throw new Error('not implemented');
   }
 
