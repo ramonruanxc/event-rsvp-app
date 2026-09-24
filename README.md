@@ -4,7 +4,9 @@ Create an event, share one link, see who's coming.
 
 ## Status
 
-Phase 1 of 6 merged: organizer sign-in and events (create, edit, delete, dashboard).
+Phase 2 of 6 merged: guest RSVP flow.
+
+**Live demo:** https://event-rsvp-app-flax.vercel.app
 
 ### Features so far
 
@@ -15,6 +17,18 @@ Phase 1 of 6 merged: organizer sign-in and events (create, edit, delete, dashboa
 - Delete an event you own, with a confirmation prompt.
 - Dashboard listing your upcoming and past events.
 - Three interface languages (English, French, Brazilian Portuguese) with a language switcher.
+- Guests RSVP from the event page without an account: name, Going / Not going, and party size.
+- A returning guest (same browser) sees their own RSVP instead of a blank form, and can change or cancel it.
+- Duplicate guest names on the same event are blocked, whether or not the guest has a cookie.
+- RSVP submission and editing close once the event starts; the guest page becomes read-only.
+- The guest page never exposes other guests' names — only the visitor's own RSVP and the event totals.
+- Organizers see every RSVP on their event's guest list with totals, and can remove any RSVP, including after
+  the event has ended.
+
+### Known limitations
+
+- Google sign-in runs in Testing mode — evaluators' Google accounts are added as test users; guests never need
+  to sign in.
 
 ## Run locally
 

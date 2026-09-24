@@ -23,6 +23,7 @@ Event times are taken from session timestamps. All times in America/Fortaleza (U
 | 1 | 1 — Spec definition | 2026-09-24 12:32:29 | 2026-09-24 13:11:44 | 39m 15s | Personal break |
 | 2 | 2 — Pipeline bootstrap + spec | 2026-09-24 14:04:38 | 2026-09-24 14:39:47 | 35m 09s | Human away; spec-writer agent ran meanwhile (see Agent runs) |
 | 3 | 4 — Execution | 2026-09-24 15:27:44 | 2026-09-24 15:44:10 | 16m 26s | Work break; pipeline kept running |
+| 4 | 4 — Execution | 2026-09-24 18:59:23 | — | — | Work and calls; pipeline kept running |
 
 ## Agent runs
 
@@ -58,6 +59,13 @@ Pipeline agents working autonomously. Reported separately from human active time
 | analyst (Mode 3, doc-sync PR #4) | sonnet | 2026-09-24 16:43:31 | 2026-09-24 16:44:24 | 0m 53s | TASK-20 done, CHANGELOG |
 | implementer batch TASK-52–58 | sonnet | 2026-09-24 16:59:27 | 2026-09-24 17:14:30 | 15m 03s | DONE, 1 attempt each — services, safe redirects, container |
 | implementer batch TASK-59–67 | sonnet | 2026-09-24 17:14:41 | 2026-09-24 18:00:26 | 45m 45s | DONE, 1 attempt each — protected routes, form, pages, header, dashboard, delete, edit |
+| reviewer PR #5 | sonnet | 2026-09-24 18:01:32 | 2026-09-24 18:07:36 | 6m 04s | APPROVE — CODE=0 SPEC=0 DOC=0 |
+| analyst (Mode 3, doc-sync PR #5) | sonnet | 2026-09-24 18:07:55 | 2026-09-24 18:10:44 | 2m 49s | 24 REQs done, README, CHANGELOG |
+| implementer batch TASK-70–76 | sonnet | 2026-09-24 18:21:45 | 2026-09-24 18:34:01 | 12m 16s | DONE, 1 attempt each — RSVP rules, tokens, cookies, IP hash, SubmitRsvpService |
+| implementer batch TASK-77–82 | sonnet | 2026-09-24 18:34:21 | 2026-09-24 18:39:43 | 5m 22s | TASK-77 DONE; TASK-78 SPEC_FAILURE (green-first test) — batch stopped |
+| spec-writer (SPEC failure #13) | opus | 2026-09-24 18:39:58 | 2026-09-24 18:43:29 | 3m 31s | TASK-76/78/79/86/89 revised; REQ-26 enforcement point stated |
+| implementer batch TASK-78–82 (retry) | sonnet | 2026-09-24 18:43:46 | 2026-09-24 18:51:39 | 7m 53s | DONE, 1 attempt each |
+| implementer batch TASK-83–89 | sonnet | 2026-09-24 18:51:51 | 2026-09-24 19:18:52 | 27m 01s | DONE, 1 attempt each — RSVP form, guest panel, owner list, E2E |
 
 ## Events
 
@@ -102,3 +110,9 @@ Pipeline agents working autonomously. Reported separately from human active time
 | 2026-09-24 16:46:02 | PR #4 merged (pre-authorized by human); first production deployment succeeded 16:47 |
 | 2026-09-24 16:50:00 | Human configures HUMAN-02 (Google OAuth) — counted as active work; OAuth app kept in Testing with test users (human decision) |
 | 2026-09-24 18:00:26 | Phase 1 complete: 38/38 tasks, first attempt each |
+| 2026-09-24 18:21:36 | PR #5 merged (human approved) — phase 1 in production; phase 2 (RSVP flow) starts |
+| 2026-09-24 18:29:43 | HUMAN-02 done: Google OAuth client; app kept in Testing with test users |
+| 2026-09-24 18:39:43 | SPEC failure #13 (TASK-78 green-first) routed to spec-writer; batch resumed 18:43 |
+| 2026-09-24 18:47:00 | HUMAN-01 done: stable production domain https://event-rsvp-app-flax.vercel.app; smoke test passed |
+| 2026-09-24 18:47:59 | Human verified Google sign-in end-to-end in production |
+| 2026-09-24 19:18:52 | Phase 2 complete: 20/20 tasks (one SPEC failure, resolved) |

@@ -2,6 +2,7 @@ import { NotFoundError } from '@/domain/errors';
 import { hasEnded, isOwner } from '@/domain/policies';
 import { computeTotals } from '@/domain/rsvp';
 import type { EventRecord, OwnerRsvpRow, OwnRsvp, Clock, Totals } from '@/domain/types';
+import { hashToken } from '@/lib/crypto';
 import type { EventRepository, RsvpRepository } from '@/repositories/interfaces';
 
 /** The event page's data, shaped differently for the owner and for a guest (REQ-33). */
@@ -39,8 +40,12 @@ export class GetEventPageService {
       return { role: 'owner', event, ended, totals, rsvps };
     }
 
-    // TASK-75 will resolve ownRsvp from input.editToken.
-    const ownRsvp: OwnRsvp | null = null;
+    const own = input.editToken
+      ? await this.deps.rsvps.findByTokenHash(event.id, hashToken(input.editToken))
+      : null;
+    const ownRsvp: OwnRsvp | null = own
+      ? { name: own.name, status: own.status, partySize: own.partySize }
+      : null;
     return { role: 'guest', event, ended, totals, ownRsvp };
   }
 }
