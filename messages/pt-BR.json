@@ -1,0 +1,107 @@
+{
+  "meta": {
+    "title": "Event RSVP",
+    "description": "Crie um evento, compartilhe um único link, veja quem vai."
+  },
+  "nav": {
+    "brand": "Event RSVP",
+    "language": "Idioma",
+    "myEvents": "Meus eventos",
+    "signIn": "Entrar com Google",
+    "signOut": "Sair"
+  },
+  "languages": { "en": "English", "fr": "Français", "pt-BR": "Português (Brasil)" },
+  "home": {
+    "headline": "Planeje um evento. Compartilhe um único link. Veja quem vai.",
+    "explanation": "Crie um evento em segundos — descreva-o com suas próprias palavras e deixe a IA preencher o formulário. Os convidados confirmam presença a partir de um único link sem precisar de conta, e você vê a lista de convidados e os totais em um só lugar.",
+    "demoLink": "Ver um evento de demonstração"
+  },
+  "dashboard": {
+    "title": "Meus eventos",
+    "upcoming": "Próximos",
+    "past": "Passados",
+    "createEvent": "Criar evento",
+    "createSample": "Criar evento de exemplo",
+    "empty": "Você ainda não tem eventos.",
+    "noUpcoming": "Nenhum evento próximo.",
+    "noPast": "Nenhum evento passado."
+  },
+  "totals": {
+    "summary": "Confirmados: {going} · Recusados: {declined} · Pessoas: {people}",
+    "peopleGoing": "{count, plural, one {# pessoa confirmada} other {# pessoas confirmadas}}"
+  },
+  "eventForm": {
+    "titleNew": "Novo evento",
+    "titleEdit": "Editar evento",
+    "name": "Nome",
+    "description": "Descrição",
+    "date": "Data",
+    "time": "Hora",
+    "timezone": "Fuso horário",
+    "location": "Local (opcional)",
+    "save": "Salvar evento",
+    "saving": "Salvando…"
+  },
+  "ai": {
+    "label": "Descreva seu evento",
+    "placeholder": "Jantar da equipe sexta-feira que vem às 19h no Mario's",
+    "fill": "Preencher com IA",
+    "filling": "Preenchendo…",
+    "missingHint": "Não encontrado no seu texto — por favor, preencha.",
+    "notAnEvent": "Não foi possível encontrar detalhes de evento nesse texto."
+  },
+  "event": {
+    "edit": "Editar",
+    "delete": "Excluir evento",
+    "deleteConfirm": "Excluir este evento e todas as confirmações? Isso não pode ser desfeito.",
+    "copyLink": "Copiar link de convite",
+    "linkCopied": "Link copiado",
+    "addToCalendar": "Adicionar ao calendário",
+    "ended": "Este evento já terminou",
+    "guestList": "Lista de convidados",
+    "noRsvps": "Nenhuma confirmação ainda.",
+    "colName": "Nome",
+    "colResponse": "Resposta",
+    "colPeople": "Pessoas",
+    "colUpdated": "Última atualização",
+    "remove": "Remover"
+  },
+  "rsvp": {
+    "title": "Você vem?",
+    "name": "Seu nome",
+    "going": "Vou",
+    "notGoing": "Não vou",
+    "partySize": "Quantas pessoas, incluindo você?",
+    "submit": "Enviar confirmação",
+    "youreGoing": "Você vai ({count})",
+    "youreNotGoing": "Você não vai",
+    "change": "Alterar",
+    "cancel": "Cancelar"
+  },
+  "sample": {
+    "name": "Exemplo: Encontro de sexta-feira",
+    "description": "Um evento de exemplo para explorar o aplicativo. Compartilhe o link de convite, colete confirmações e exclua-o quando terminar.",
+    "location": "Salão Comunitário"
+  },
+  "errors": {
+    "VALIDATION_ERROR": "Corrija os campos destacados.",
+    "NOT_FOUND": "Esta página não existe.",
+    "NOT_OWNER": "Somente o organizador pode fazer isso.",
+    "EVENT_ENDED": "Este evento já terminou",
+    "DUPLICATE_NAME": "Este nome já está na lista. Use outro nome ou fale com o organizador.",
+    "RATE_LIMITED": "Muitos envios — tente novamente em alguns minutos.",
+    "AI_LIMIT_REACHED": "Limite diário de IA atingido — preencha o formulário manualmente.",
+    "AI_UNAVAILABLE": "Não foi possível preencher automaticamente — preencha o formulário.",
+    "UNAUTHENTICATED": "Por favor, entre para continuar.",
+    "INTERNAL_ERROR": "Algo deu errado. Tente novamente."
+  },
+  "validation": {
+    "required": "Este campo é obrigatório.",
+    "tooLong": "Isto é muito longo.",
+    "invalidFormat": "Este valor não é válido.",
+    "invalidTimezone": "Escolha um fuso horário válido.",
+    "inPast": "A data e a hora não podem estar no passado.",
+    "partySizeRange": "Informe um número de 1 a 10.",
+    "invalidStatus": "Escolha Vou ou Não vou."
+  }
+}
