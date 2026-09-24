@@ -39,7 +39,7 @@ export function EventForm({ initialValues, submit, aiFill }: EventFormProps) {
   const [aiText, setAiText] = useState('');
   const [filling, setFilling] = useState(false);
   const [missing, setMissing] = useState<AiField[]>([]);
-  const [aiNotice, setAiNotice] = useState<ErrorCode | null>(null);
+  const [aiNotice, setAiNotice] = useState<ErrorCode | 'notAnEvent' | null>(null);
 
   // Only the browser knows its own timezone; deferred to an effect so the server-rendered
   // markup (which cannot know it) matches the first client render (REQ-13).
@@ -67,6 +67,12 @@ export function EventForm({ initialValues, submit, aiFill }: EventFormProps) {
 
     if (!result.ok) {
       setAiNotice(result.code);
+      return;
+    }
+
+    if (result.data.notAnEvent) {
+      setAiNotice('notAnEvent');
+      setMissing([]);
       return;
     }
 
@@ -131,7 +137,11 @@ export function EventForm({ initialValues, submit, aiFill }: EventFormProps) {
           <button type="button" onClick={handleAiFill} disabled={filling}>
             {filling ? t('ai.filling') : t('ai.fill')}
           </button>
-          {aiNotice && <div role="alert">{t(`errors.${aiNotice}`)}</div>}
+          {aiNotice && (
+            <div role="alert">
+              {aiNotice === 'notAnEvent' ? t('ai.notAnEvent') : t(`errors.${aiNotice}`)}
+            </div>
+          )}
         </div>
       )}
 
