@@ -4,7 +4,17 @@ Create an event, share one link, see who's coming.
 
 ## Status
 
-Phase 0 of 6 merged: walking skeleton.
+Phase 1 of 6 merged: organizer sign-in and events (create, edit, delete, dashboard).
+
+### Features so far
+
+- Sign in with Google.
+- Create an event (name, description, date/time, timezone prefilled from the browser, optional location).
+- View an event page with its formatted date/time in the event's timezone.
+- Edit an event you own, until it starts.
+- Delete an event you own, with a confirmation prompt.
+- Dashboard listing your upcoming and past events.
+- Three interface languages (English, French, Brazilian Portuguese) with a language switcher.
 
 ## Run locally
 

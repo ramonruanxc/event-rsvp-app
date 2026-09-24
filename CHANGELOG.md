@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- Organizers create an event: name, description, date/time, timezone (prefilled from the browser, editable),
+  and an optional location (REQ-14, REQ-15).
+- Event page showing the event's date and time formatted in its own timezone (REQ-12).
+- Organizers edit their own events until the event starts; editing is blocked once it has (REQ-16, REQ-17).
+- Organizers delete their own events, with a confirmation prompt; the event's RSVPs are deleted with it
+  (REQ-18, REQ-19).
+- Dashboard listing an organizer's upcoming and past events with RSVP totals (REQ-35, REQ-36).
+- Signed-out visitors to organizer pages are sent to Google sign-in and returned to the page they wanted
+  (REQ-02).
+- Language switcher in the site header (REQ-54).
+
 ### Fixed
 
 - Vercel ignored build step now skips by branch (`main` builds), so manual dashboard deployments of `main` are

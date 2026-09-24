@@ -111,7 +111,7 @@ server started by Playwright). Production code is unchanged; only the base URL d
 
 ### REQ-02 — Signed-out visitors to organizer routes go to Google sign-in and come back
 **Rules:** BR-95
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - Given a signed-out visitor
 - When they request `/en/dashboard`, `/en/events/new`, or `/en/e/<slug>/edit`
@@ -126,7 +126,7 @@ server started by Playwright). Production code is unchanged; only the base URL d
 
 ### REQ-03 — Role is derived per event by ownership
 **Rules:** BR-03, BR-86
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - Given an event with `ownerId = "u1"`
 - `isOwner(event, "u1")` → `true`; `isOwner(event, "u2")` → `false`; `isOwner(event, null)` → `false`
@@ -149,7 +149,7 @@ server started by Playwright). Production code is unchanged; only the base URL d
 
 ### REQ-05 — Event description is required and at most 2000 characters
 **Rules:** BR-05
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - `description: "Hi"` → valid (short is fine); `description: ""` → `description: "required"`
 - `description: "a".repeat(2000)` → valid; `"a".repeat(2001)` → `description: "tooLong"`
@@ -158,7 +158,7 @@ server started by Playwright). Production code is unchanged; only the base URL d
 
 ### REQ-06 — Event location is optional
 **Rules:** BR-06
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - `location` omitted → output `location: null`; `location: ""` → `null`; `location: "   "` → `null`
 - `location: " Mario's "` → `"Mario's"`
@@ -166,7 +166,7 @@ server started by Playwright). Production code is unchanged; only the base URL d
 
 ### REQ-07 — Event date and time are required and well-formed
 **Rules:** BR-15
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - `date: "2026-10-02"`, `time: "19:00"` → valid
 - `date: ""` → `date: "required"`; `time: ""` → `time: "required"`
@@ -176,7 +176,7 @@ server started by Playwright). Production code is unchanged; only the base URL d
 
 ### REQ-08 — Event timezone is required and a valid IANA identifier
 **Rules:** BR-16
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - `isValidTimeZone("America/New_York")` → `true`; `isValidTimeZone("UTC")` → `true`
 - `isValidTimeZone("Mars/Olympus")` → `false`; `isValidTimeZone("")` → `false`
@@ -185,7 +185,7 @@ server started by Playwright). Production code is unchanged; only the base URL d
 
 ### REQ-09 — Date/time entered in the event timezone is stored as a UTC instant plus timezone
 **Rules:** BR-17, BR-18
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - `toStartsAt("2026-10-02", "19:00", "America/New_York")` → `2026-10-02T23:00:00.000Z`
 - `toStartsAt("2026-12-15", "19:00", "America/New_York")` → `2026-12-16T00:00:00.000Z` (standard time, day rollover)
@@ -196,7 +196,7 @@ server started by Playwright). Production code is unchanged; only the base URL d
 
 ### REQ-10 — Event date/time cannot be in the past (create and edit)
 **Rules:** BR-21, BR-90
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - Given now = `2026-09-24T15:00:00.000Z`
 - `assertNotInPast(new Date("2026-09-24T14:59:00.000Z"), now)` throws `ValidationError` with
@@ -207,7 +207,7 @@ server started by Playwright). Production code is unchanged; only the base URL d
 
 ### REQ-11 — Event URLs use a random 10-character slug
 **Rules:** BR-14
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - `generateSlug()` returns a string matching `/^[A-Za-z0-9_-]{10}$/`
 - 1000 consecutive calls return 1000 distinct values
@@ -216,7 +216,7 @@ server started by Playwright). Production code is unchanged; only the base URL d
 
 ### REQ-12 — Date/time is displayed in the event timezone with its label, formatted for the UI locale
 **Rules:** BR-19, BR-76
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - Given `startsAt = 2026-10-02T23:00:00.000Z`, `timezone = "America/New_York"`
 - `formatEventDateTime(startsAt, "America/New_York", "en")` contains `"October 2, 2026"`, matches `/7:00\sPM/` and
@@ -229,7 +229,7 @@ server started by Playwright). Production code is unchanged; only the base URL d
 
 ### REQ-13 — Timezone field is prefilled from the browser and editable
 **Rules:** BR-20
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - Given a Playwright context with `timezoneId: "America/Sao_Paulo"` and a signed-in organizer
 - When they open `/en/events/new`
@@ -243,7 +243,7 @@ server started by Playwright). Production code is unchanged; only the base URL d
 
 ### REQ-14 — Organizer creates an event
 **Rules:** BR-04, BR-05, BR-06, BR-13, BR-14, BR-15, BR-16, BR-17, BR-18, BR-21, BR-85
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - Given now = `2026-09-24T15:00:00.000Z` and owner `"u1"`
 - When `CreateEventService.execute({ ownerId: "u1", values: { name: "Team dinner", description: "Pasta night",
@@ -259,7 +259,7 @@ server started by Playwright). Production code is unchanged; only the base URL d
 
 ### REQ-15 — Create-event page and action
 **Rules:** BR-66, BR-83, BR-85
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - Given a signed-in organizer on `/en/events/new`
 - When they fill Name "Team dinner", Description "Pasta night", Date (7 days ahead), Time "19:00", keep the timezone,
@@ -275,7 +275,7 @@ server started by Playwright). Production code is unchanged; only the base URL d
 
 ### REQ-16 — Only the owner edits an event, until it ends
 **Rules:** BR-07, BR-11, BR-12, BR-86, BR-90, BR-94
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - Given now = `2026-09-24T15:00:00.000Z` and event `"abc"` owned by `"u1"` starting `2026-10-02T23:00:00.000Z`
   that already has 2 RSVPs
@@ -290,7 +290,7 @@ server started by Playwright). Production code is unchanged; only the base URL d
 
 ### REQ-17 — Edit page access
 **Rules:** BR-07, BR-94
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - Given event `<slug>` owned by organizer A
 - When A opens `/en/e/<slug>/edit` → the form is prefilled with the stored values converted back to the event
@@ -302,7 +302,7 @@ server started by Playwright). Production code is unchanged; only the base URL d
 
 ### REQ-18 — Only the owner deletes an event; its RSVPs go with it
 **Rules:** BR-08, BR-10, BR-86, BR-93
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - `DeleteEventService.execute({ userId: "u1", slug: "abc" })` removes the event; `userId: "u2"` → `NotOwnerError`;
   unknown slug → `NotFoundError`
@@ -313,7 +313,7 @@ server started by Playwright). Production code is unchanged; only the base URL d
 
 ### REQ-19 — Deleting an event asks for confirmation
 **Rules:** BR-09
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - Given the owner's event page with the "Delete event" button
 - When the owner clicks it, `window.confirm` is shown with "Delete this event and all its RSVPs? This cannot be undone."
@@ -415,7 +415,7 @@ server started by Playwright). Production code is unchanged; only the base URL d
 
 ### REQ-27 — Name uniqueness is enforced by the database
 **Rules:** BR-39
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - `prisma/schema.prisma` declares `@@unique([eventId, nameKey])` on `Rsvp`
 - Integration: two concurrent `PrismaRsvpRepository.create` calls (via `Promise.allSettled`) for the same event with
@@ -478,7 +478,7 @@ server started by Playwright). Production code is unchanged; only the base URL d
 
 ### REQ-32 — Totals
 **Rules:** BR-43, BR-44, BR-47
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - `computeTotals([{status:"GOING",partySize:3},{status:"GOING",partySize:1},{status:"NOT_GOING",partySize:0}])`
   → `{ going: 2, declined: 1, people: 4 }`
@@ -488,7 +488,7 @@ server started by Playwright). Production code is unchanged; only the base URL d
 
 ### REQ-33 — Event page data depends on the viewer's role
 **Rules:** BR-42, BR-44, BR-45, BR-86, BR-91
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - Given event `"abc"` owned by `"u1"` with RSVPs "Maria" (GOING 3, token `T`) and "João" (NOT_GOING)
 - `GetEventPageService.execute({ slug: "abc", userId: "u1", editToken: null })` → `{ role: "owner", event, ended,
@@ -520,7 +520,7 @@ server started by Playwright). Production code is unchanged; only the base URL d
 
 ### REQ-35 — Dashboard data: upcoming and past events with counts
 **Rules:** BR-46, BR-47
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - Given now = `2026-09-24T15:00:00.000Z` and owner `"u1"` with events A (starts `2026-10-01T12:00Z`, RSVPs GOING 2 +
   NOT_GOING), B (starts `2026-09-30T12:00Z`, no RSVPs), C (started `2026-09-20T12:00Z`), and an event D owned by `"u2"`
@@ -533,7 +533,7 @@ server started by Playwright). Production code is unchanged; only the base URL d
 
 ### REQ-36 — Dashboard page
 **Rules:** BR-46, BR-47, BR-48
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - Given a signed-in organizer with one upcoming and one past event
 - `/en/dashboard` shows the heading "My events", sections "Upcoming" and "Past", and for each event its name (linking
@@ -768,7 +768,7 @@ server started by Playwright). Production code is unchanged; only the base URL d
 
 ### REQ-54 — Manual locale switch
 **Rules:** BR-75
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - Given any page, the header has a select labelled "Language" with options "English", "Français", "Português (Brasil)"
 - Choosing "Français" on `/en/e/<slug>` navigates to `/fr/e/<slug>` and the UI labels are French
@@ -825,7 +825,7 @@ server started by Playwright). Production code is unchanged; only the base URL d
 
 ### REQ-59 — Errors are mapped and translated; unexpected errors are logged
 **Rules:** BR-83, BR-84
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - `toActionError(new DuplicateNameError())` → `{ ok: false, code: "DUPLICATE_NAME" }` and the logger is not called
 - `toActionError(new ValidationError({ name: "required" }))` → `{ ok: false, code: "VALIDATION_ERROR", fieldErrors:
