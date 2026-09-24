@@ -35,13 +35,13 @@ Pipeline agents working autonomously. Reported separately from human active time
 | spec-writer | opus | 2026-09-24 13:58:20 | 2026-09-24 14:39:10 | 40m 50s | 64 REQs, 120 tasks, DOC_FAILURE (2 questions) |
 | analyst (Mode 2, DOC-Q1/Q2) | sonnet | 2026-09-24 14:43:40 | 2026-09-24 14:45:25 | 1m 45s | BR-37/38/55 amended, BR-96 new |
 | spec-writer (DOC resolution) | opus | 2026-09-24 14:45:40 | 2026-09-24 14:49:13 | 3m 33s | 6 REQs + 8 tasks updated; 122 tasks total |
-| implementer TASK-01 | haiku | 2026-09-24 14:50:30 | 2026-09-24 14:55:45 | 5m 15s | DONE, 1 attempt — Next.js scaffold |
-| implementer TASK-02 | haiku | 2026-09-24 14:56:05 | 2026-09-24 14:58:19 | 2m 14s | DONE, 1 attempt — ESLint, Prettier, typecheck |
-| implementer TASK-03 | haiku | 2026-09-24 14:58:40 | 2026-09-24 15:02:00 | 3m 20s | DONE, 1 attempt — Vitest unit + integration projects |
-| implementer batch TASK-04–05 | sonnet | 2026-09-24 15:03:30 | 2026-09-24 15:06:50 | 3m 16s | DONE, 1 attempt each — Postgres compose, Prisma schema + migration |
-| implementer batch TASK-06–08 | sonnet | 2026-09-24 15:07:30 | 2026-09-24 15:14:00 | 6m 33s | DONE, 1 attempt each — first TDD behavior, next-intl, key parity |
-| implementer TASK-09 | sonnet | 2026-09-24 15:15:00 | 2026-09-24 15:18:15 | 3m 15s | DONE, 1 attempt — Auth.js Google + database sessions |
-| implementer batch TASK-12–17 | sonnet | 2026-09-24 15:19:00 | 2026-09-24 15:29:50 | 10m 49s | DONE, 1 attempt each — traceability script (run ahead of TASK-10/11, blocked by ENV) |
+| implementer TASK-01 | haiku | 2026-09-24 14:50:12 | 2026-09-24 14:55:47 | 5m 35s | DONE, 1 attempt — Next.js scaffold |
+| implementer TASK-02 | haiku | 2026-09-24 14:56:03 | 2026-09-24 14:58:19 | 2m 16s | DONE, 1 attempt — ESLint, Prettier, typecheck |
+| implementer TASK-03 | haiku | 2026-09-24 14:58:32 | 2026-09-24 15:01:53 | 3m 21s | DONE, 1 attempt — Vitest unit + integration projects |
+| implementer batch TASK-04–05 | sonnet | 2026-09-24 15:03:06 | 2026-09-24 15:06:23 | 3m 17s | DONE, 1 attempt each — Postgres compose, Prisma schema + migration |
+| implementer batch TASK-06–08 | sonnet | 2026-09-24 15:06:40 | 2026-09-24 15:13:15 | 6m 35s | DONE, 1 attempt each — first TDD behavior, next-intl, key parity |
+| implementer TASK-09 | sonnet | 2026-09-24 15:13:37 | 2026-09-24 15:16:54 | 3m 17s | DONE, 1 attempt — Auth.js Google + database sessions |
+| implementer batch TASK-12–17 | sonnet | 2026-09-24 15:17:07 | 2026-09-24 15:27:58 | 10m 51s | DONE, 1 attempt each — traceability script (run ahead of TASK-10/11, blocked by ENV) |
 
 ## Events
 
@@ -72,6 +72,6 @@ Pipeline agents working autonomously. Reported separately from human active time
 | 2026-09-24 14:42:13 | Human resolved DOC-Q1/Q2 and approved spec + plan |
 | 2026-09-24 14:48:45 | DOC failure #1 resolved; spec + plan final (96/96 BRs covered) |
 | 2026-09-24 14:50:06 | Spec PR #2 merged; execution starts — phase 0 walking skeleton |
-| 2026-09-24 15:03:30 | Human decision A1: executor model Haiku → Sonnet from TASK-04 on |
-| 2026-09-24 15:19:00 | ENV: port 3000 occupied by an unrelated local app; TASK-10/11 blocked; traceability batch run ahead |
+| 2026-09-24 15:03:06 | Human decision A1: executor model Haiku → Sonnet from TASK-04 on |
+| 2026-09-24 15:13:37 | ENV: port 3000 occupied by an unrelated local app; TASK-10/11 blocked; traceability batch run ahead |
 | 2026-09-24 15:27:44 | Human decided ENV option A (configurable E2E_PORT: 3100 local, 3000 CI) |
