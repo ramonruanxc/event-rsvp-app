@@ -126,4 +126,43 @@ describe('PrismaRsvpRepository', () => {
     expect(await repo.findByNameKey(otherEvent.id, 'maria')).toBeNull();
     expect(await repo.findByTokenHash(otherEvent.id, '5'.repeat(64))).toBeNull();
   });
+
+  it('REQ-30: delete removes one RSVP', async () => {
+    const repo = new PrismaRsvpRepository(prisma);
+    const owner = await createUser();
+    const event = await createEventRow(owner.id);
+    const maria = await repo.create({
+      eventId: event.id,
+      name: 'Maria',
+      nameKey: 'maria',
+      status: 'GOING',
+      partySize: 1,
+      editTokenHash: '6'.repeat(64),
+    });
+
+    await repo.delete(maria.id);
+
+    expect(await repo.findById(maria.id)).toBeNull();
+  });
+
+  it('REQ-37: createMany stores all given RSVPs', async () => {
+    const repo = new PrismaRsvpRepository(prisma);
+    const owner = await createUser();
+    const event = await createEventRow(owner.id);
+    const names = ['a', 'b', 'c', 'd', 'e'];
+
+    await repo.createMany(
+      names.map((name, index) => ({
+        eventId: event.id,
+        name,
+        nameKey: name,
+        status: 'GOING' as const,
+        partySize: 1,
+        editTokenHash: `${index}`.repeat(64),
+      })),
+    );
+
+    const list = await repo.listByEvent(event.id);
+    expect(list).toHaveLength(5);
+  });
 });
