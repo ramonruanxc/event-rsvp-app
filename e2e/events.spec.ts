@@ -63,3 +63,26 @@ test.describe('REQ-13: timezone prefill', () => {
     expect(event?.timezone).toBe('Europe/Paris');
   });
 });
+
+test.describe('REQ-18: deleting an event', () => {
+  test('REQ-18: the owner deletes an event', async ({ page, context }) => {
+    const { id: ownerId } = await signInAs(context, { email: 'del@example.com', name: 'Del' });
+    const event = await db.event.create({
+      data: {
+        slug: 'evt-delete01',
+        ownerId,
+        name: 'Team dinner',
+        description: 'Pasta night',
+        startsAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        timezone: 'America/New_York',
+      },
+    });
+
+    await page.goto(`/en/e/${event.slug}`);
+    page.once('dialog', (dialog) => dialog.accept());
+    await page.getByRole('button', { name: 'Delete event' }).click();
+
+    await expect(page).toHaveURL(/\/en\/dashboard$/);
+    expect(await db.event.count()).toBe(0);
+  });
+});
