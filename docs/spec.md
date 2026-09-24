@@ -102,7 +102,7 @@ server started by Playwright). Production code is unchanged; only the base URL d
 
 ### REQ-01 — Google is the only sign-in method
 **Rules:** BR-01
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - Given the Auth.js configuration exported as `authConfig` from `src/auth.config.ts`
 - When its `providers` are inspected
@@ -139,7 +139,7 @@ server started by Playwright). Production code is unchanged; only the base URL d
 
 ### REQ-04 — Event name is required and at most 120 characters
 **Rules:** BR-04
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - Given `eventNameSchema` from `src/domain/schemas.ts` (the `name` field of `eventInputSchema`)
 - `name: "Team dinner"` → valid, output `"Team dinner"`; `name: "  Team dinner  "` → output `"Team dinner"` (trimmed)
@@ -748,7 +748,7 @@ server started by Playwright). Production code is unchanged; only the base URL d
 
 ### REQ-52 — Three locales with identical message keys
 **Rules:** BR-73, BR-78
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - `routing.locales` is `["en", "fr", "pt-BR"]` and `routing.defaultLocale` is `"en"`
 - `flattenKeys({ a: { b: "x", c: "y" }, d: "z" })` → `["a.b", "a.c", "d"]` (sorted)
@@ -759,7 +759,7 @@ server started by Playwright). Production code is unchanged; only the base URL d
 
 ### REQ-53 — Locale detected from the browser
 **Rules:** BR-74
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - Given a Playwright context with `locale: "fr-FR"` and no locale cookie
 - When it opens `/` → it ends on `/fr` and `<html lang="fr">`
@@ -863,7 +863,7 @@ These requirements are code in the repository and are TDD'd like product code. T
 
 ### REQ-90 — CI traceability check
 **Rules:** none (tooling)
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - `npm run trace` runs `scripts/traceability/cli.ts`, prints each problem on its own line prefixed with `✗ `, prints
   `✓ traceability ok` when there is none, and exits 1 if there is any problem, 0 otherwise

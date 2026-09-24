@@ -481,7 +481,7 @@ HUMAN-02 after the merge; HUMAN-04 any time (its step 4, `E2E_PORT`, before TASK
 Release smoke test for this phase is only `GET /` → redirect → `GET /en` 200 (the demo event arrives in Phase 3).
 
 ### TASK-01 — Scaffold the Next.js app
-**Phase:** 0 · **Requirements:** — · **Status:** todo · **Revision:** 1
+**Phase:** 0 · **Requirements:** — · **Status:** done · **Revision:** 1
 **Files:** package.json, package-lock.json, tsconfig.json, next.config.ts, postcss.config.mjs, eslint.config.mjs,
 src/app/**, public/**, .nvmrc
 **Interface:** —
@@ -501,7 +501,7 @@ src/app/**, public/**, .nvmrc
 **TDD exception:** chore — generated scaffold
 
 ### TASK-02 — ESLint, Prettier and typecheck scripts
-**Phase:** 0 · **Requirements:** REQ-61 (lint rule only) · **Status:** todo · **Revision:** 1
+**Phase:** 0 · **Requirements:** REQ-61 (lint rule only) · **Status:** done · **Revision:** 1
 **Files:** eslint.config.mjs, .prettierrc.json, .prettierignore, package.json
 **Interface:** —
 **Steps:**
@@ -524,7 +524,7 @@ src/app/**, public/**, .nvmrc
 **TDD exception:** chore — configuration
 
 ### TASK-03 — Vitest with unit and integration projects
-**Phase:** 0 · **Requirements:** — · **Status:** todo · **Revision:** 1
+**Phase:** 0 · **Requirements:** — · **Status:** done · **Revision:** 1
 **Files:** vitest.config.mts, src/test/server-only-stub.ts, src/test/render.tsx, package.json
 **Interface:** `renderWithIntl(ui: React.ReactElement): RenderResult`
 **Steps:**
@@ -575,7 +575,7 @@ TASK-06.)
 **TDD exception:** chore — configuration
 
 ### TASK-04 — Local Postgres and environment files
-**Phase:** 0 · **Requirements:** — · **Status:** todo · **Revision:** 1
+**Phase:** 0 · **Requirements:** — · **Status:** done · **Revision:** 1
 **Files:** docker-compose.yml, docker/init-test-db.sql, .env.example, .env.test
 **Interface:** —
 **Steps:**
@@ -634,7 +634,7 @@ prints nothing).
 **TDD exception:** chore — configuration
 
 ### TASK-05 — Prisma schema and first migration
-**Phase:** 0 · **Requirements:** REQ-11 (unique slug), REQ-27 (unique name key) — schema only · **Status:** todo · **Revision:** 1
+**Phase:** 0 · **Requirements:** REQ-11 (unique slug), REQ-27 (unique name key) — schema only · **Status:** done · **Revision:** 1
 **Files:** prisma/schema.prisma, prisma/migrations/**, src/lib/prisma.ts, package.json
 **Interface:** `export const prisma: PrismaClient`
 **Steps:**
@@ -765,7 +765,7 @@ prints nothing).
 **TDD exception:** chore — schema/migration (generated SQL)
 
 ### TASK-06 — Event name validation (first TDD behavior)
-**Phase:** 0 · **Requirements:** REQ-04 · **Status:** todo · **Revision:** 1
+**Phase:** 0 · **Requirements:** REQ-04 · **Status:** done · **Revision:** 1
 **Files:** src/domain/schemas.ts, src/domain/schemas.test.ts, package.json
 **Interface:** `export const eventNameSchema` (Contract C3: `requiredText(120)`)
 **Test first:** in `src/domain/schemas.test.ts`, `describe('eventNameSchema')`:
@@ -781,7 +781,7 @@ z.string();` — the tests then fail on assertions (no trimming, no length rules
 **TDD exception:** none
 
 ### TASK-07 — next-intl wiring and message catalogs
-**Phase:** 0 · **Requirements:** REQ-52 (catalogs) · **Status:** todo · **Revision:** 1
+**Phase:** 0 · **Requirements:** REQ-52 (catalogs) · **Status:** done · **Revision:** 1
 **Files:** src/i18n/routing.ts, src/i18n/request.ts, src/i18n/navigation.ts, next.config.ts,
 src/app/[locale]/layout.tsx, src/app/[locale]/page.tsx, src/app/[locale]/not-found.tsx, messages/en.json,
 messages/fr.json, messages/pt-BR.json; delete src/app/layout.tsx and src/app/page.tsx; move nothing else
@@ -854,7 +854,7 @@ messages/fr.json, messages/pt-BR.json; delete src/app/layout.tsx and src/app/pag
 **TDD exception:** chore — configuration and translation catalogs
 
 ### TASK-08 — Message key parity test
-**Phase:** 0 · **Requirements:** REQ-52 · **Status:** todo · **Revision:** 1
+**Phase:** 0 · **Requirements:** REQ-52 · **Status:** done · **Revision:** 1
 **Files:** src/i18n/flatten-keys.ts, src/i18n/messages.test.ts
 **Interface:** `export function flattenKeys(messages: Record<string, unknown>, prefix?: string): string[]` — sorted,
 dot-joined leaf keys
@@ -872,7 +872,7 @@ Import JSON with `import en from '../../messages/en.json';` (tsconfig has `resol
 **TDD exception:** none
 
 ### TASK-09 — Auth.js with Google (configuration + handler)
-**Phase:** 0 · **Requirements:** REQ-01 · **Status:** todo · **Revision:** 1
+**Phase:** 0 · **Requirements:** REQ-01 · **Status:** done · **Revision:** 1
 **Files:** src/auth.config.ts, src/auth.config.test.ts, src/auth.ts, src/app/api/auth/[...nextauth]/route.ts,
 src/types/next-auth.d.ts
 **Interface:** `export const authConfig`; `export const { handlers, auth, signIn, signOut }`
@@ -927,7 +927,7 @@ src/types/next-auth.d.ts
 **TDD exception:** none
 
 ### TASK-10 — Playwright setup and E2E helpers
-**Phase:** 0 · **Requirements:** — · **Status:** todo · **Revision:** 2
+**Phase:** 0 · **Requirements:** — · **Status:** done · **Revision:** 2
 **Files:** playwright.config.ts, e2e/helpers/db.ts, e2e/helpers/auth.ts, package.json, .gitignore (already ignores
 reports)
 **Interface:**
@@ -1003,7 +1003,7 @@ reports)
   `reuseExistingServer: false`, `e2e:server` without a hardcoded port.
 
 ### TASK-11 — Locale detection middleware
-**Phase:** 0 · **Requirements:** REQ-53 · **Status:** todo · **Revision:** 2
+**Phase:** 0 · **Requirements:** REQ-53 · **Status:** done · **Revision:** 2
 **Files:** e2e/i18n.spec.ts, src/middleware.ts
 **Interface:** default export `createMiddleware(routing)`; `config.matcher`
 **Test first:** `e2e/i18n.spec.ts` (use `test.use({ locale: … })` inside `test.describe` blocks):
@@ -1030,7 +1030,7 @@ the port).
   assertions; busy port → `ENV_FAILURE`.
 
 ### TASK-12 — Traceability: parse business rules
-**Phase:** 0 · **Requirements:** REQ-90 · **Status:** todo · **Revision:** 1
+**Phase:** 0 · **Requirements:** REQ-90 · **Status:** done · **Revision:** 1
 **Files:** scripts/traceability/parse.ts, scripts/traceability/parse.test.ts
 **Interface:** `export function parseBusinessRules(markdown: string): { ids: Set<string>; deprecated: Set<string> }`
 **Test first:** `REQ-90: parseBusinessRules reads active and deprecated BR headings` — input
@@ -1046,7 +1046,7 @@ text BR-50 in prose is ignored
 **TDD exception:** none
 
 ### TASK-13 — Traceability: parse requirements
-**Phase:** 0 · **Requirements:** REQ-90 · **Status:** todo · **Revision:** 1
+**Phase:** 0 · **Requirements:** REQ-90 · **Status:** done · **Revision:** 1
 **Files:** scripts/traceability/parse.ts, scripts/traceability/parse.test.ts
 **Interface:** `export interface ParsedReq { id: string; rules: string[]; tooling: boolean; status: string }`;
 `export function parseRequirements(markdown: string): ParsedReq[]`
@@ -1063,7 +1063,7 @@ Lines like `### DOC-Q1 — …` or `### Identity & access` are not requirements.
 **TDD exception:** none
 
 ### TASK-14 — Traceability: find test citations
-**Phase:** 0 · **Requirements:** REQ-90 · **Status:** todo · **Revision:** 1
+**Phase:** 0 · **Requirements:** REQ-90 · **Status:** done · **Revision:** 1
 **Files:** scripts/traceability/parse.ts, scripts/traceability/parse.test.ts
 **Interface:** `export function isTestFile(path: string): boolean`;
 `export function findCitations(files: Array<{ path: string; content: string }>): Map<string, string[]>` (REQ id →
@@ -1082,7 +1082,7 @@ Citation regex: `/\b(?:it|test|describe)(?:\.\w+)*\(\s*['"\`](REQ-\d+):/g`.
 **TDD exception:** none
 
 ### TASK-15 — Traceability: diagram freshness
-**Phase:** 0 · **Requirements:** REQ-90 · **Status:** todo · **Revision:** 1
+**Phase:** 0 · **Requirements:** REQ-90 · **Status:** done · **Revision:** 1
 **Files:** scripts/traceability/check.ts, scripts/traceability/check.test.ts
 **Interface:**
 `export interface DiagramInfo { mmd: string; mmdTime: number; svgTime: number | null }` (seconds, `null` = no tracked svg);
@@ -1095,7 +1095,7 @@ svgTime: 150 }, { mmd: 'docs/diagrams/c.mmd', mmdTime: 300, svgTime: 300 }]` →
 **TDD exception:** none
 
 ### TASK-16 — Traceability: requirement checks
-**Phase:** 0 · **Requirements:** REQ-90 · **Status:** todo · **Revision:** 1
+**Phase:** 0 · **Requirements:** REQ-90 · **Status:** done · **Revision:** 1
 **Files:** scripts/traceability/check.ts, scripts/traceability/check.test.ts
 **Interface:** `export function checkRequirements(input: { brs: { ids: Set<string>; deprecated: Set<string> };
 reqs: ParsedReq[]; citations: Map<string, string[]> }): string[]`
@@ -1113,7 +1113,7 @@ reqs: ParsedReq[]; citations: Map<string, string[]> }): string[]`
 **TDD exception:** none
 
 ### TASK-17 — Traceability CLI
-**Phase:** 0 · **Requirements:** REQ-90 · **Status:** todo · **Revision:** 1
+**Phase:** 0 · **Requirements:** REQ-90 · **Status:** done · **Revision:** 1
 **Files:** scripts/traceability/cli.ts, scripts/traceability/cli.test.ts, package.json
 **Interface:** `export function runTraceability(repoRoot: string): string[]` (in `cli.ts`; the file ends with
 `if (process.argv[1]?.endsWith('cli.ts')) { … print and exit … }`)
@@ -1130,7 +1130,7 @@ or prints `✓ traceability ok` and exits 0. Add script `"trace"` from C9.
 **TDD exception:** none
 
 ### TASK-18 — Local commit-message hook
-**Phase:** 0 · **Requirements:** — · **Status:** todo · **Revision:** 1
+**Phase:** 0 · **Requirements:** — · **Status:** done · **Revision:** 1
 **Files:** .husky/commit-msg, package.json
 **Steps:** `npm i -D husky @commitlint/cli @commitlint/config-conventional`; `npx husky init`; delete the generated
 `.husky/pre-commit`; create `.husky/commit-msg` with the single line `npx --no -- commitlint --edit "$1"`; keep
@@ -1141,7 +1141,7 @@ works (then `git reset --soft HEAD~1` to drop that empty commit).
 **TDD exception:** chore — tooling configuration
 
 ### TASK-19 — CI workflow
-**Phase:** 0 · **Requirements:** REQ-90 (runs it) · **Status:** todo · **Revision:** 2
+**Phase:** 0 · **Requirements:** REQ-90 (runs it) · **Status:** done · **Revision:** 2
 **Files:** .github/workflows/ci.yml
 **Steps:** create exactly (job ids = check names required by branch protection; do not rename):
 ```yaml
@@ -1251,7 +1251,7 @@ all six jobs pass on the Phase 0 PR.
 - Rev 2 — human decision (ENV incident #3), not a failure revision: e2e job sets `E2E_PORT: '3000'` explicitly.
 
 ### TASK-20 — Vercel build configuration
-**Phase:** 0 · **Requirements:** — · **Status:** todo · **Revision:** 1
+**Phase:** 0 · **Requirements:** — · **Status:** done · **Revision:** 1
 **Files:** vercel.json
 **Steps:** create
 ```json
@@ -1301,6 +1301,8 @@ production database). `package.json` already has `vercel-build` (TASK-05), which
 
 ### HUMAN-03 — Branch protection and merge settings
 **Phase:** 0 · **Owner:** human · **When:** after CI has run once on the Phase 0 PR (so the checks are selectable)
+**Status:** done — configured by the orchestrator via `gh api` (no secrets involved): requires `commitlint`, `lint`,
+`typecheck`, `unit`, `integration`, `e2e`, `traceability`; merge commits only; branches auto-deleted.
 1. GitHub → repository **Settings → General → Pull Requests**: allow **merge commits** only (uncheck squash and
    rebase); check **Automatically delete head branches**.
 2. **Settings → Rules → Rulesets → New branch ruleset** (or **Branches → Add classic protection rule**) for `main`:
