@@ -325,7 +325,7 @@ server started by Playwright). Production code is unchanged; only the base URL d
 
 ### REQ-20 — RSVP input rules
 **Rules:** BR-22, BR-23, BR-24, BR-26, BR-27
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - Given `rsvpInputSchema` from `src/domain/schemas.ts`
 - `{ name: " Maria ", status: "GOING", partySize: 3 }` → `{ name: "Maria", status: "GOING", partySize: 3 }`
@@ -337,7 +337,7 @@ server started by Playwright). Production code is unchanged; only the base URL d
 
 ### REQ-21 — Name key normalization
 **Rules:** BR-37, BR-38
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - `toNameKey("  Maria ")` → `"maria"`; `toNameKey("MARIA")` → `"maria"`
 - `toNameKey("José")` equals `toNameKey("José")` (Unicode NFC normalization)
@@ -346,7 +346,7 @@ server started by Playwright). Production code is unchanged; only the base URL d
 
 ### REQ-22 — Edit token generation and hashing
 **Rules:** BR-28, BR-29
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - `generateEditToken()` returns a base64url string of 43 characters that decodes to 32 bytes; two calls differ
 - `hashToken("abc")` → `"ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"` (SHA-256 hex, 64 chars)
@@ -354,7 +354,7 @@ server started by Playwright). Production code is unchanged; only the base URL d
 
 ### REQ-23 — Guest submits a new RSVP
 **Rules:** BR-02, BR-28, BR-29, BR-34, BR-85
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - Given now = `2026-09-24T15:00:00.000Z` and an open event `"abc"` (starts `2026-10-02T23:00:00.000Z`) with no RSVPs
 - When `SubmitRsvpService.execute({ slug: "abc", values: { name: "Maria", status: "GOING", partySize: 3 },
@@ -370,7 +370,7 @@ server started by Playwright). Production code is unchanged; only the base URL d
 
 ### REQ-24 — Edit token cookie
 **Rules:** BR-30, BR-31
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - `editTokenExpiry(new Date("2026-10-02T23:00:00.000Z"))` → `2026-11-01T23:00:00.000Z` (event start + 30 days)
 - `editTokenCookies("abc", "tok", new Date("2026-11-01T23:00:00.000Z"))` returns 3 cookies, one per locale:
@@ -388,7 +388,7 @@ server started by Playwright). Production code is unchanged; only the base URL d
 
 ### REQ-25 — Same-browser resubmission edits the guest's own RSVP
 **Rules:** BR-37
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - Given event `"abc"` (open) with RSVP "Maria" (GOING, 3) created with token `T`
 - When `SubmitRsvpService.execute({ slug: "abc", values: { name: "  maria ", status: "GOING", partySize: 5 },
@@ -402,7 +402,7 @@ server started by Playwright). Production code is unchanged; only the base URL d
 
 ### REQ-26 — A duplicate name from another browser is blocked
 **Rules:** BR-38, BR-40
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - Given event `"abc"` with RSVP "Maria" created with token `T`
 - `editToken: null`, name `"  maria "` → throws `DuplicateNameError` and nothing changes
@@ -427,7 +427,7 @@ server started by Playwright). Production code is unchanged; only the base URL d
 
 ### REQ-28 — Cancel sets the RSVP to Not going and keeps it
 **Rules:** BR-27, BR-36
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - Given open event `"abc"` with RSVP "Maria" (GOING, 3, token `T`)
 - `CancelRsvpService.execute({ slug: "abc", editToken: T })` → RSVP becomes `{ status: "NOT_GOING", partySize: 0 }`,
@@ -437,7 +437,7 @@ server started by Playwright). Production code is unchanged; only the base URL d
 
 ### REQ-29 — RSVPs close when the event starts
 **Rules:** BR-32, BR-33
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - Given event `"abc"` starting `2026-10-02T23:00:00.000Z` and now = `2026-10-02T23:00:01.000Z`
 - `SubmitRsvpService.execute(...)` (new or edit) → `EventEndedError`; `CancelRsvpService.execute(...)` →
@@ -448,7 +448,7 @@ server started by Playwright). Production code is unchanged; only the base URL d
 
 ### REQ-30 — Organizer removes any RSVP, also after the event ended
 **Rules:** BR-41, BR-86, BR-92
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - `RemoveRsvpService.execute({ userId: "u1", slug: "abc", rsvpId })` (owner) → the RSVP is deleted
 - Works when the event has ended
@@ -459,7 +459,7 @@ server started by Playwright). Production code is unchanged; only the base URL d
 
 ### REQ-31 — Guest event page
 **Rules:** BR-02, BR-25, BR-33, BR-35, BR-44, BR-77
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - Given an open event and a visitor without cookie (signed out, or signed in as a non-owner)
 - Then the page shows the event name and description exactly as entered (never translated), the formatted date/time
@@ -506,7 +506,7 @@ server started by Playwright). Production code is unchanged; only the base URL d
 
 ### REQ-34 — Owner event page
 **Rules:** BR-42, BR-43, BR-51, BR-91
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - Given the owner opens `/en/e/<slug>` with RSVPs "Maria" (Going, 3) and "João" (Not going)
 - Then the page shows "Going: 1 · Declined: 1 · People: 3" and a table with columns "Name", "Response", "People",
@@ -808,7 +808,7 @@ server started by Playwright). Production code is unchanged; only the base URL d
 
 ### REQ-57 — Rate-limited RSVP keeps the guest's input
 **Rules:** BR-88
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - Component: `RsvpForm` whose submit resolves `{ ok: false, code: "RATE_LIMITED" }` shows "Too many submissions —
   please try again in a few minutes." and the name, response and party size inputs keep the typed values
