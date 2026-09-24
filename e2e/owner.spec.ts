@@ -60,10 +60,7 @@ test.describe('REQ-30: the owner removes an RSVP', () => {
     await createRsvp(event.id, 'João', 'NOT_GOING');
 
     await page.goto(`/en/e/${event.slug}`);
-    await page
-      .getByRole('row', { name: /Maria/ })
-      .getByRole('button', { name: 'Remove' })
-      .click();
+    await page.getByRole('row', { name: /Maria/ }).getByRole('button', { name: 'Remove' }).click();
 
     await expect(page.getByText('Maria')).toHaveCount(0);
     await expect(page.getByText('Going: 0 · Declined: 1 · People: 0')).toBeVisible();
