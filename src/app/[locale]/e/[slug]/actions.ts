@@ -1,5 +1,6 @@
 'use server';
 
+import type { OwnRsvp } from '@/domain/types';
 import { getServices } from '@/lib/container';
 import { getCurrentUserId } from '@/lib/session';
 import { toActionError, type ActionResult } from '@/lib/action-result';
@@ -27,4 +28,22 @@ export async function updateEventAction(
   } catch (error) {
     return toActionError(error);
   }
+}
+
+/** Creates or edits the caller's own RSVP for an event (REQ-23, REQ-24, REQ-25, REQ-26, REQ-29). */
+export async function submitRsvpAction(
+  _locale: string,
+  _slug: string,
+  _values: unknown,
+  _honeypot: string,
+): Promise<ActionResult<OwnRsvp>> {
+  throw new Error('not implemented');
+}
+
+/** Sets the caller's own RSVP to Not going (REQ-28, REQ-29). */
+export async function cancelRsvpAction(
+  _locale: string,
+  _slug: string,
+): Promise<ActionResult<OwnRsvp>> {
+  throw new Error('not implemented');
 }
