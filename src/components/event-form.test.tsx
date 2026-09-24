@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
-import { fireEvent, screen } from '@testing-library/react';
+import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { describe, expect, test, vi } from 'vitest';
 import { renderWithIntl } from '@/test/render';
 import { detectBrowserTimeZone } from '@/lib/browser-timezone';
+import type { ParseEventResult } from '@/lib/ai/types';
 import { EventForm } from './event-form';
 
 const nav = vi.hoisted(() => ({ push: vi.fn(), refresh: vi.fn(), replace: vi.fn() }));
@@ -80,5 +81,94 @@ describe('EventForm timezone (REQ-13)', () => {
 
     const select = screen.getByLabelText('Timezone') as HTMLSelectElement;
     expect(select.value).toBe('Europe/Paris');
+  });
+});
+
+describe('EventForm — Fill with AI (REQ-51)', () => {
+  const filled: ParseEventResult = {
+    fields: {
+      name: 'Team dinner',
+      description: 'Dinner with the team.',
+      date: '2026-10-02',
+      time: '19:00',
+      timezone: 'America/New_York',
+      location: null,
+    },
+    missing: ['location'],
+    timezoneFromText: true,
+    notAnEvent: false,
+  };
+
+  function describeAndFill(container: HTMLElement) {
+    fireEvent.change(screen.getByLabelText('Describe your event'), {
+      target: { value: "Team dinner next Friday 7pm at Mario's" },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Fill with AI' }));
+    return container;
+  }
+
+  test('REQ-51: Fill with AI puts the returned values in the form and flags the missing ones', async () => {
+    const aiFill = vi.fn().mockResolvedValue({ ok: true, data: filled });
+    const { container } = renderWithIntl(<EventForm submit={vi.fn()} aiFill={aiFill} />);
+
+    describeAndFill(container);
+
+    await waitFor(() => {
+      expect((screen.getByLabelText('Name') as HTMLInputElement).value).toBe('Team dinner');
+    });
+    expect((screen.getByLabelText('Description') as HTMLTextAreaElement).value).toBe(
+      'Dinner with the team.',
+    );
+    expect((screen.getByLabelText('Date') as HTMLInputElement).value).toBe('2026-10-02');
+    expect((screen.getByLabelText('Time') as HTMLInputElement).value).toBe('19:00');
+    expect((screen.getByLabelText('Timezone') as HTMLSelectElement).value).toBe(
+      'America/New_York',
+    );
+    const location = screen.getByLabelText('Location (optional)') as HTMLInputElement;
+    expect(location.value).toBe('');
+    expect(location.getAttribute('aria-invalid')).toBe('true');
+    expect(container.querySelector('#location-missing')?.textContent).toBe(
+      'Not found in your text — please fill it.',
+    );
+    expect(container.querySelector('#name-missing')).toBeNull();
+    expect(screen.getByLabelText('Name').getAttribute('aria-invalid')).toBeNull();
+    expect(aiFill).toHaveBeenCalledWith("Team dinner next Friday 7pm at Mario's", 'UTC');
+  });
+
+  test('REQ-51: an AI failure shows the fallback message and keeps the typed values', async () => {
+    const aiFill = vi.fn().mockResolvedValue({ ok: false, code: 'AI_UNAVAILABLE' });
+    const { container } = renderWithIntl(<EventForm submit={vi.fn()} aiFill={aiFill} />);
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Old name' } });
+
+    describeAndFill(container);
+
+    const alert = await screen.findByRole('alert');
+    expect(alert.textContent).toBe("Couldn't fill automatically — please fill the form.");
+    expect((screen.getByLabelText('Name') as HTMLInputElement).value).toBe('Old name');
+  });
+
+  test('REQ-51: the daily limit message keeps the Fill with AI button visible', async () => {
+    const aiFill = vi.fn().mockResolvedValue({ ok: false, code: 'AI_LIMIT_REACHED' });
+    const { container } = renderWithIntl(<EventForm submit={vi.fn()} aiFill={aiFill} />);
+
+    describeAndFill(container);
+
+    const alert = await screen.findByRole('alert');
+    expect(alert.textContent).toBe('Daily AI limit reached — fill the form manually.');
+    expect(screen.getByRole('button', { name: 'Fill with AI' })).toBeTruthy();
+  });
+
+  test('REQ-51: filling does not submit the form', async () => {
+    const submit = vi.fn();
+    const aiFill = vi.fn().mockResolvedValue({ ok: true, data: filled });
+    const { container } = renderWithIntl(<EventForm submit={submit} aiFill={aiFill} />);
+
+    describeAndFill(container);
+
+    await waitFor(() => {
+      expect((screen.getByLabelText('Name') as HTMLInputElement).value).toBe('Team dinner');
+    });
+    expect(submit).not.toHaveBeenCalled();
+    expect(nav.push).not.toHaveBeenCalled();
   });
 });
