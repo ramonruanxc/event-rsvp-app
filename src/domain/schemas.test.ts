@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest';
+import { ValidationError } from './errors';
 import {
   eventDateSchema,
   eventDescriptionSchema,
   eventLocationSchema,
   eventNameSchema,
   eventTimeSchema,
+  rsvpInputSchema,
   timezoneSchema,
 } from './schemas';
 
@@ -127,6 +129,78 @@ describe('timezoneSchema', () => {
     expect(invalidResult.success).toBe(false);
     if (!invalidResult.success) {
       expect(invalidResult.error.issues[0].message).toBe('invalidTimezone');
+    }
+  });
+});
+
+describe('rsvpInputSchema', () => {
+  it('REQ-20: trims the name', () => {
+    const result = rsvpInputSchema.parse({ name: ' Maria ', status: 'GOING', partySize: 3 });
+    expect(result).toEqual({ name: 'Maria', status: 'GOING', partySize: 3 });
+  });
+
+  it('REQ-20: a blank name is required', () => {
+    for (const name of ['', '   ']) {
+      const result = rsvpInputSchema.safeParse({ name, status: 'GOING', partySize: 1 });
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(ValidationError.fromZod(result.error).fieldErrors.name).toBe('required');
+      }
+    }
+  });
+
+  it('REQ-20: accepts 80 characters and rejects 81', () => {
+    const ok = rsvpInputSchema.safeParse({ name: 'a'.repeat(80), status: 'GOING', partySize: 1 });
+    expect(ok.success).toBe(true);
+
+    const tooLong = rsvpInputSchema.safeParse({
+      name: 'a'.repeat(81),
+      status: 'GOING',
+      partySize: 1,
+    });
+    expect(tooLong.success).toBe(false);
+    if (!tooLong.success) {
+      expect(ValidationError.fromZod(tooLong.error).fieldErrors.name).toBe('tooLong');
+    }
+  });
+
+  it('REQ-20: only Going and Not going are accepted', () => {
+    const result = rsvpInputSchema.safeParse({ name: 'Maria', status: 'MAYBE', partySize: 1 });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(ValidationError.fromZod(result.error).fieldErrors.status).toBe('invalidStatus');
+    }
+  });
+
+  it('REQ-20: Going accepts party sizes 1 to 10', () => {
+    for (const partySize of [1, 10]) {
+      const result = rsvpInputSchema.safeParse({ name: 'Maria', status: 'GOING', partySize });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.partySize).toBe(partySize);
+      }
+    }
+  });
+
+  it('REQ-20: Going rejects 0, 11 and 2.5 as partySizeRange', () => {
+    for (const partySize of [0, 11, 2.5]) {
+      const result = rsvpInputSchema.safeParse({ name: 'Maria', status: 'GOING', partySize });
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(ValidationError.fromZod(result.error).fieldErrors.partySize).toBe(
+          'partySizeRange',
+        );
+      }
+    }
+  });
+
+  it('REQ-20: Not going always stores party size 0', () => {
+    for (const partySize of [5, 0, undefined]) {
+      const result = rsvpInputSchema.safeParse({ name: 'Maria', status: 'NOT_GOING', partySize });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.partySize).toBe(0);
+      }
     }
   });
 });
