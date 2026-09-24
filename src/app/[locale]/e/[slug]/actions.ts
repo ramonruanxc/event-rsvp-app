@@ -74,3 +74,11 @@ export async function cancelRsvpAction(
     return toActionError(error);
   }
 }
+
+/** Removes an RSVP; only the event's owner may remove it, even after it has ended (REQ-30). */
+export async function removeRsvpAction(
+  _slug: string,
+  _rsvpId: string,
+): Promise<ActionResult<null>> {
+  throw new Error('not implemented');
+}
