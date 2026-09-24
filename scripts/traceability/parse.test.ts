@@ -45,6 +45,14 @@ describe('parseRequirements', () => {
       { id: 'REQ-02', rules: [], tooling: false, status: 'todo' },
     ]);
   });
+
+  it('REQ-90: parseRequirements handles CRLF line endings', () => {
+    const markdown = ['### REQ-01 — A', '**Rules:** BR-01', '**Status:** done'].join('\r\n');
+
+    const result = parseRequirements(markdown);
+
+    expect(result).toEqual([{ id: 'REQ-01', rules: ['BR-01'], tooling: false, status: 'done' }]);
+  });
 });
 
 describe('isTestFile', () => {
