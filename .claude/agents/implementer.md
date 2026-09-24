@@ -22,7 +22,14 @@ Before starting, read:
 5. Controllers stay thin: validate input, call a service, map the result. Business logic lives in `src/domain` and
    `src/services`.
 6. Add TSDoc to every public class and method you create. Update `.env.example` if you add configuration.
-7. Before finishing: run the task's tests, the full unit suite, lint, and typecheck.
+7. Before finishing each task: run the task's tests, the full unit suite, `npm run lint`, `npm run typecheck`, and
+   `npm run format:check` (fix with `npx prettier --write <files>` and commit). **`git status` must be clean** —
+   nothing you produced may be left uncommitted. (Added after TASK-02/03 left formatting uncommitted.)
+
+## Batches
+The orchestrator may give you an ordered list of tasks. Execute them **in order, one at a time**, each with its own
+TDD commits and its own attempt counter (max 3 per task). If a task ends in `SPEC_FAILURE` or `ENV_FAILURE`, stop the
+batch there — do not start the next task — and report which tasks were completed.
 
 ## Attempts and failures
 An **attempt** is one run of your implementation against the task's tests. Maximum **3 attempts**.
@@ -35,8 +42,8 @@ An **attempt** is one run of your implementation against the task's tests. Maxim
 ## Output to the orchestrator
 ```
 STATUS: DONE | SPEC_FAILURE | ENV_FAILURE
-TASK: TASK-xx
-ATTEMPTS: n
+TASKS_DONE: TASK-xx (attempts n), …
+FAILED_TASK: TASK-xx (only when not DONE)
 COMMITS: <sha subject> …
 FAILURE_REPORT: <only when not DONE>
 ```
