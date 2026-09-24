@@ -44,7 +44,10 @@ Totals: 64 requirements (61 product + 3 tooling), 122 agent tasks, 5 human tasks
 4. Commands:
    - one unit file: `npx vitest run --project unit <path>` · all unit: `npm run test:unit`
    - integration: `npm run test:int` (applies migrations to `rsvp_test` first)
-   - e2e: `npm run test:e2e -- <spec file>` (builds and starts the app on port 3000 with `.env.test`)
+   - e2e: `npm run test:e2e -- <spec file>` (builds and starts the app with `.env.test` on port `E2E_PORT`, default
+     `3000`; the port comes from the shell environment, never from a file you edit). If Playwright reports that the
+     port "is already used", do **not** change the port in code or config: stop and return `ENV_FAILURE` asking the
+     human to set `E2E_PORT` (HUMAN-04).
    - `npm run lint` · `npm run typecheck`
 5. Commits follow `.claude/skills/tdd-commit/SKILL.md`; end every commit body with `Refs: TASK-xx, REQ-yy`.
 6. Next.js 15: `params` and `searchParams` of pages, layouts and route handlers are **Promises** —
@@ -456,7 +459,7 @@ these translations:
   "test:int": "dotenv -e .env.test -- vitest run --project integration",
   "pretest:e2e": "dotenv -e .env.test -- prisma migrate deploy",
   "test:e2e": "dotenv -e .env.test -- playwright test",
-  "e2e:server": "dotenv -e .env.test -- next build && dotenv -e .env.test -- next start -p 3000",
+  "e2e:server": "dotenv -e .env.test -- next build && dotenv -e .env.test -- next start",
   "trace": "tsx scripts/traceability/cli.ts",
   "eval": "dotenv -e .env.local -- tsx evals/event-parser/run.ts",
   "db:migrate": "prisma migrate dev",
@@ -466,13 +469,15 @@ these translations:
 }
 ```
 (Phase 3, TASK-99 changes `vercel-build` to `prisma generate && prisma migrate deploy && prisma db seed && next build`.)
+`e2e:server` has no port on purpose: Playwright runs `npm run e2e:server -- -p <E2E_PORT>` (TASK-10), and npm appends
+arguments after `--` to the end of the script, i.e. to `next start`. Run by hand without arguments it serves on 3000.
 
 ---
 
 ## Phase 0 — Walking skeleton (`phase-0/walking-skeleton`)
 
 Order: TASK-01 → TASK-20. HUMAN-03 as soon as CI has run on the Phase 0 PR (before the merge); HUMAN-01 then
-HUMAN-02 after the merge; HUMAN-04 any time.
+HUMAN-02 after the merge; HUMAN-04 any time (its step 4, `E2E_PORT`, before TASK-10 if port 3000 is busy).
 Release smoke test for this phase is only `GET /` → redirect → `GET /en` 200 (the demo event arrives in Phase 3).
 
 ### TASK-01 — Scaffold the Next.js app
@@ -922,7 +927,7 @@ src/types/next-auth.d.ts
 **TDD exception:** none
 
 ### TASK-10 — Playwright setup and E2E helpers
-**Phase:** 0 · **Requirements:** — · **Status:** todo · **Revision:** 1
+**Phase:** 0 · **Requirements:** — · **Status:** todo · **Revision:** 2
 **Files:** playwright.config.ts, e2e/helpers/db.ts, e2e/helpers/auth.ts, package.json, .gitignore (already ignores
 reports)
 **Interface:**
@@ -934,19 +939,31 @@ reports)
    ```ts
    import { defineConfig, devices } from '@playwright/test';
 
+   /** Port the app is served on during E2E runs (env `E2E_PORT`, default 3000). */
+   const port = Number(process.env.E2E_PORT ?? 3000);
+   if (!Number.isInteger(port) || port <= 0) {
+     throw new Error(`E2E_PORT must be a positive integer, got "${process.env.E2E_PORT}"`);
+   }
+   const baseURL = `http://localhost:${port}`;
+
    export default defineConfig({
      testDir: './e2e',
      fullyParallel: false,
      workers: 1,
      retries: process.env.CI ? 1 : 0,
      reporter: process.env.CI ? [['list'], ['html', { open: 'never' }]] : 'list',
-     use: { baseURL: 'http://localhost:3000', trace: 'retain-on-failure' },
+     use: { baseURL, trace: 'retain-on-failure' },
      projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'], locale: 'en-US', timezoneId: 'America/New_York' } }],
      webServer: [
-       { command: 'npm run e2e:server', url: 'http://localhost:3000/en', reuseExistingServer: !process.env.CI, timeout: 240_000 },
+       { command: `npm run e2e:server -- -p ${port}`, url: `${baseURL}/en`, reuseExistingServer: false, timeout: 240_000 },
      ],
    });
    ```
+   - `reuseExistingServer: false` (everywhere, not only in CI) is deliberate: if anything already listens on the
+     port, Playwright fails with "http://localhost:<port> is already used" instead of silently testing another
+     application. It costs nothing extra: without a running server the app is built on every run anyway.
+   - Never hardcode `3000` (or any port) in E2E specs or helpers: use relative URLs (`page.goto('/en')`), which
+     resolve against `baseURL`. The session cookie in `auth.ts` uses `domain: 'localhost'`, which covers every port.
 3. `e2e/helpers/db.ts`:
    ```ts
    import { PrismaClient } from '@prisma/client';
@@ -976,13 +993,17 @@ reports)
      return { id: u.id };
    }
    ```
-5. Scripts from C9: `pretest:e2e`, `test:e2e`, `e2e:server`.
+5. Scripts from C9: `pretest:e2e`, `test:e2e`, `e2e:server` (exactly as in C9: `e2e:server` ends with
+   `next start` and has **no** `-p`; the port is appended by the Playwright `command`).
 **Test first:** — (first E2E test is TASK-11)
-**Done when:** typecheck and lint pass.
+**Done when:** typecheck and lint pass; `playwright.config.ts` contains no `localhost:3000` literal (only the `?? 3000` default).
 **TDD exception:** chore — test infrastructure
+**Changelog:**
+- Rev 2 — human decision (ENV incident #3), not a failure revision: port from `E2E_PORT` (default 3000),
+  `reuseExistingServer: false`, `e2e:server` without a hardcoded port.
 
 ### TASK-11 — Locale detection middleware
-**Phase:** 0 · **Requirements:** REQ-53 · **Status:** todo · **Revision:** 1
+**Phase:** 0 · **Requirements:** REQ-53 · **Status:** todo · **Revision:** 2
 **Files:** e2e/i18n.spec.ts, src/middleware.ts
 **Interface:** default export `createMiddleware(routing)`; `config.matcher`
 **Test first:** `e2e/i18n.spec.ts` (use `test.use({ locale: … })` inside `test.describe` blocks):
@@ -999,8 +1020,14 @@ import { routing } from './i18n/routing';
 export default createMiddleware(routing);
 export const config = { matcher: ['/((?!api|_next|_vercel|.*\\..*).*)'] };
 ```
-**Done when:** the 3 E2E tests pass (`npm run test:e2e -- e2e/i18n.spec.ts`).
+**Done when:** the 3 E2E tests pass (`npm run test:e2e -- e2e/i18n.spec.ts`). The app is served on
+`http://localhost:<E2E_PORT>` (default 3000; the human's machine uses 3100, set in the environment — see HUMAN-04).
+Assertions use only the path (`/\/fr$/`), never host or port. If the port is busy, return `ENV_FAILURE` (do not edit
+the port).
 **TDD exception:** none
+**Changelog:**
+- Rev 2 — human decision (ENV incident #3), not a failure revision: E2E port comes from `E2E_PORT`; port-agnostic
+  assertions; busy port → `ENV_FAILURE`.
 
 ### TASK-12 — Traceability: parse business rules
 **Phase:** 0 · **Requirements:** REQ-90 · **Status:** todo · **Revision:** 1
@@ -1114,7 +1141,7 @@ works (then `git reset --soft HEAD~1` to drop that empty commit).
 **TDD exception:** chore — tooling configuration
 
 ### TASK-19 — CI workflow
-**Phase:** 0 · **Requirements:** REQ-90 (runs it) · **Status:** todo · **Revision:** 1
+**Phase:** 0 · **Requirements:** REQ-90 (runs it) · **Status:** todo · **Revision:** 2
 **Files:** .github/workflows/ci.yml
 **Steps:** create exactly (job ids = check names required by branch protection; do not rename):
 ```yaml
@@ -1184,6 +1211,8 @@ jobs:
   e2e:
     name: e2e
     runs-on: ubuntu-latest
+    env:
+      E2E_PORT: '3000'
     services:
       postgres:
         image: postgres:16-alpine
@@ -1218,6 +1247,8 @@ The integration job passes in Phase 0 because `test:int` has `--passWithNoTests`
 **Done when:** YAML is valid (`npx --yes yaml-lint .github/workflows/ci.yml` or open the Actions tab after push);
 all six jobs pass on the Phase 0 PR.
 **TDD exception:** ci
+**Changelog:**
+- Rev 2 — human decision (ENV incident #3), not a failure revision: e2e job sets `E2E_PORT: '3000'` explicitly.
 
 ### TASK-20 — Vercel build configuration
 **Phase:** 0 · **Requirements:** — · **Status:** todo · **Revision:** 1
@@ -1259,10 +1290,14 @@ production database). `package.json` already has `vercel-build` (TASK-05), which
    - Authorized JavaScript origins: `http://localhost:3000`, `https://<production-domain>`
    - Authorized redirect URIs: `http://localhost:3000/api/auth/callback/google`,
      `https://<production-domain>/api/auth/callback/google`
+   - Only if you run `npm run dev -- -p 3100` (HUMAN-04, port 3000 busy): also add the origin `http://localhost:3100`
+     and the redirect URI `http://localhost:3100/api/auth/callback/google`. (E2E never uses Google: no entry needed.)
 4. Copy the Client ID and Client secret into Vercel (Production) as `AUTH_GOOGLE_ID` and `AUTH_GOOGLE_SECRET`, and into
    your local `.env.local` (HUMAN-04). Redeploy on Vercel.
 5. Check: on the production URL, open `/api/login?callbackUrl=%2Fen` after Phase 1 is deployed, or
    `/api/auth/signin` now, and sign in with Google.
+**Changelog:**
+- human decision (ENV incident #3), not a failure revision: optional `localhost:3100` origin/redirect for local dev.
 
 ### HUMAN-03 — Branch protection and merge settings
 **Phase:** 0 · **Owner:** human · **When:** after CI has run once on the Phase 0 PR (so the checks are selectable)
@@ -1273,10 +1308,21 @@ production database). `package.json` already has `vercel-build` (TASK-05), which
    `integration`, `e2e`, `traceability`; block force pushes; restrict deletions.
 
 ### HUMAN-04 — Local environment file
-**Phase:** 0 · **Owner:** human · **When:** any time (needed only to sign in locally with `npm run dev`)
+**Phase:** 0 · **Owner:** human · **When:** any time (steps 1–3 needed only to sign in locally with `npm run dev`);
+step 4 before TASK-10 if port 3000 is busy on your machine
 1. Copy `.env.example` to `.env.local` (ignored by git).
 2. Fill `AUTH_SECRET` (`npx auth secret --raw`), and `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` from HUMAN-02.
 3. `docker compose up -d`, `npx dotenv -e .env.local -- prisma migrate dev`, `npm run dev`.
+4. **If port 3000 is busy on your machine** (needed before TASK-10/TASK-11 run):
+   - E2E: set `E2E_PORT=3100` in your **user environment** so every shell (including the agents' shells) sees it:
+     PowerShell `setx E2E_PORT 3100`, then restart the terminal and Claude Code. For one session only:
+     `$env:E2E_PORT = '3100'` (PowerShell) or `export E2E_PORT=3100` (bash). Do **not** put it in `.env.local`:
+     `npm run test:e2e` loads only `.env.test`, so a value in `.env.local` is ignored and the run falls back to 3000.
+     Check: `node -e "console.log(process.env.E2E_PORT)"` prints `3100`.
+   - Dev server: `npm run dev -- -p 3100` (Next.js ignores `PORT` in `.env.local`), and add the `localhost:3100`
+     origin and redirect URI to the Google OAuth client (HUMAN-02, step 3).
+**Changelog:**
+- human decision (ENV incident #3), not a failure revision: step 4 (`E2E_PORT`, dev on 3100).
 
 ---
 
