@@ -11,6 +11,7 @@ export default defineConfig({
     },
   },
   test: {
+    fileParallelism: false,
     projects: [
       {
         extends: true,
@@ -27,7 +28,6 @@ export default defineConfig({
           name: 'integration',
           environment: 'node',
           include: ['src/**/*.int.test.ts'],
-          fileParallelism: false,
           testTimeout: 20_000,
         },
       },

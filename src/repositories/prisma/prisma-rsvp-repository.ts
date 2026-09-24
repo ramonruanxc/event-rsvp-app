@@ -1,19 +1,35 @@
-import type { PrismaClient } from '@prisma/client';
+import { Prisma, type PrismaClient } from '@prisma/client';
+import { DuplicateNameError } from '@/domain/errors';
 import type { RsvpRecord } from '@/domain/types';
 import type { NewRsvp, RsvpChanges, RsvpRepository } from '@/repositories/interfaces';
+
+/** True when the error is a Prisma unique-constraint violation (P2002). */
+function isUniqueViolation(error: unknown): boolean {
+  return error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002';
+}
 
 /** Prisma-backed implementation of RsvpRepository. */
 export class PrismaRsvpRepository implements RsvpRepository {
   constructor(private readonly prisma: PrismaClient) {}
 
   /** Throws DuplicateNameError when (eventId, nameKey) already exists. */
-  async create(_data: NewRsvp): Promise<RsvpRecord> {
-    throw new Error('not implemented');
+  async create(data: NewRsvp): Promise<RsvpRecord> {
+    try {
+      return await this.prisma.rsvp.create({ data });
+    } catch (error) {
+      if (isUniqueViolation(error)) throw new DuplicateNameError();
+      throw error;
+    }
   }
 
   /** Throws DuplicateNameError when the new nameKey collides. */
-  async update(_id: string, _changes: RsvpChanges): Promise<RsvpRecord> {
-    throw new Error('not implemented');
+  async update(id: string, changes: RsvpChanges): Promise<RsvpRecord> {
+    try {
+      return await this.prisma.rsvp.update({ where: { id }, data: changes });
+    } catch (error) {
+      if (isUniqueViolation(error)) throw new DuplicateNameError();
+      throw error;
+    }
   }
 
   /** Deletes the RSVP with the given id. */
