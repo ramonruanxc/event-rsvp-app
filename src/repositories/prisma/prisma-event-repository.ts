@@ -1,6 +1,11 @@
 import type { PrismaClient } from '@prisma/client';
 import type { EventRecord } from '@/domain/types';
-import type { EventRepository, EventWithRsvpSummaries, NewEvent } from '@/repositories/interfaces';
+import type {
+  EventChanges,
+  EventRepository,
+  EventWithRsvpSummaries,
+  NewEvent,
+} from '@/repositories/interfaces';
 
 /** Prisma-backed implementation of EventRepository. */
 export class PrismaEventRepository implements EventRepository {
@@ -17,12 +22,12 @@ export class PrismaEventRepository implements EventRepository {
   }
 
   /** Applies the given changes to the event and returns the updated record. */
-  async update(): Promise<EventRecord> {
+  async update(_id: string, _changes: EventChanges): Promise<EventRecord> {
     throw new Error('not implemented');
   }
 
   /** Deletes the event; its RSVPs are removed by cascade. */
-  async delete(): Promise<void> {
+  async delete(_id: string): Promise<void> {
     throw new Error('not implemented');
   }
 
