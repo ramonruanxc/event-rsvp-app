@@ -10,3 +10,11 @@ export const eventLocationSchema = z
   .trim()
   .nullish()
   .transform((v) => (v ? v : null));
+
+/** True for an existing calendar date written yyyy-MM-dd. */
+export function isCalendarDate(_value: string): boolean {
+  return true;
+}
+
+export const eventDateSchema = z.string();
+export const eventTimeSchema = z.string();

@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { eventDescriptionSchema, eventLocationSchema, eventNameSchema } from './schemas';
+import {
+  eventDateSchema,
+  eventDescriptionSchema,
+  eventLocationSchema,
+  eventNameSchema,
+  eventTimeSchema,
+} from './schemas';
 
 describe('eventNameSchema', () => {
   it('REQ-04: accepts and trims a normal name', () => {
@@ -62,5 +68,48 @@ describe('eventLocationSchema', () => {
 
   it('REQ-06: location is trimmed', () => {
     expect(eventLocationSchema.parse(" Mario's ")).toBe("Mario's");
+  });
+});
+
+describe('eventDateSchema and eventTimeSchema', () => {
+  it('REQ-07: accepts a calendar date and a 24h time', () => {
+    expect(eventDateSchema.parse('2026-10-02')).toBe('2026-10-02');
+    for (const time of ['19:00', '00:00', '23:59']) {
+      expect(eventTimeSchema.parse(time)).toBe(time);
+    }
+  });
+
+  it('REQ-07: empty date and time are required', () => {
+    const dateResult = eventDateSchema.safeParse('');
+    expect(dateResult.success).toBe(false);
+    if (!dateResult.success) {
+      expect(dateResult.error.issues[0].message).toBe('required');
+    }
+
+    const timeResult = eventTimeSchema.safeParse('');
+    expect(timeResult.success).toBe(false);
+    if (!timeResult.success) {
+      expect(timeResult.error.issues[0].message).toBe('required');
+    }
+  });
+
+  it('REQ-07: impossible or badly formatted dates are invalidFormat', () => {
+    for (const value of ['2026-02-30', '02/10/2026', '2026-13-01']) {
+      const result = eventDateSchema.safeParse(value);
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues[0].message).toBe('invalidFormat');
+      }
+    }
+  });
+
+  it('REQ-07: badly formatted times are invalidFormat', () => {
+    for (const value of ['24:00', '7pm', '19:60']) {
+      const result = eventTimeSchema.safeParse(value);
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues[0].message).toBe('invalidFormat');
+      }
+    }
   });
 });
