@@ -23,7 +23,7 @@ const result: ParseEventResult = {
 describe('ParseEventTextService', () => {
   it('REQ-48: the 21st call of the day is refused without calling the AI', async () => {
     const parser: EventTextParser = { parse: vi.fn().mockResolvedValue(result) };
-    let current = new Date('2026-09-24T23:59:00.000Z');
+    const current = new Date('2026-09-24T23:59:00.000Z');
     const rateLimiter = new RateLimiter({
       repo: new MemoryRateLimitRepository(createMemoryStore()),
       now: () => current,

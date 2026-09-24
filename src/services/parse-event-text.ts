@@ -1,4 +1,6 @@
+import { AiLimitReachedError, ValidationError } from '@/domain/errors';
 import type { Clock } from '@/domain/types';
+import { AI_RULE } from './rate-limiter';
 import type { EventTextParser, ParseEventResult } from '@/lib/ai/types';
 import type { RateLimiter } from './rate-limiter';
 
@@ -9,11 +11,22 @@ export class ParseEventTextService {
   ) {}
 
   /** Validates the text, consumes the AI quota, then delegates to the parser. */
-  async execute(_input: {
+  async execute(input: {
     userId: string;
     text: string;
     timezone: string | null;
   }): Promise<ParseEventResult> {
-    throw new Error('not implemented');
+    const text = input.text.trim();
+    if (text.length === 0) throw new ValidationError({ text: 'required' });
+    if (text.length > 2000) throw new ValidationError({ text: 'tooLong' });
+
+    const { allowed } = await this.deps.rateLimiter.consume(AI_RULE, input.userId);
+    if (!allowed) throw new AiLimitReachedError();
+
+    return this.deps.parser.parse({
+      text,
+      formTimezone: input.timezone || null,
+      now: this.deps.now(),
+    });
   }
 }
