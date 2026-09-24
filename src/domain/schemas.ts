@@ -1,3 +1,6 @@
 import { z } from 'zod';
 
-export const eventNameSchema = z.string();
+const requiredText = (max: number) =>
+  z.string({ error: 'required' }).trim().min(1, 'required').max(max, 'tooLong');
+
+export const eventNameSchema = requiredText(120);
