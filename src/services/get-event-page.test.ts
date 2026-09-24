@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { NotFoundError } from '@/domain/errors';
+import { hashToken } from '@/lib/crypto';
 import { createMemoryRepositories } from '@/repositories/memory';
 import { GetEventPageService } from './get-event-page';
 
@@ -20,7 +21,7 @@ async function arrange(startsAt = new Date('2026-10-02T23:00:00.000Z')) {
     nameKey: 'maria',
     status: 'GOING',
     partySize: 3,
-    editTokenHash: 'T'.repeat(64),
+    editTokenHash: hashToken('T'),
   });
   await rsvps.create({
     eventId: event.id,
@@ -89,5 +90,27 @@ describe('GetEventPageService', () => {
     await expect(
       service.execute({ slug: 'nope', userId: 'u1', editToken: null }),
     ).rejects.toBeInstanceOf(NotFoundError);
+  });
+
+  it('REQ-33: a guest with a valid edit token sees only their own RSVP', async () => {
+    const { events, rsvps } = await arrange();
+    const now = () => new Date('2026-09-24T15:00:00.000Z');
+    const service = new GetEventPageService({ events, rsvps, now });
+
+    const view = await service.execute({ slug: 'abc', userId: null, editToken: 'T' });
+
+    expect(view.role).toBe('guest');
+    if (view.role !== 'guest') throw new Error('unreachable');
+    expect(view.ownRsvp).toEqual({ name: 'Maria', status: 'GOING', partySize: 3 });
+    expect(JSON.stringify(view)).not.toContain('João');
+
+    const wrongTokenView = await service.execute({
+      slug: 'abc',
+      userId: null,
+      editToken: 'wrong',
+    });
+    expect(wrongTokenView.role).toBe('guest');
+    if (wrongTokenView.role !== 'guest') throw new Error('unreachable');
+    expect(wrongTokenView.ownRsvp).toBeNull();
   });
 });
