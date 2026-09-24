@@ -1,0 +1,48 @@
+---
+title: Event RSVP App — User flows (Organizer & Guest)
+---
+flowchart TB
+  subgraph ORG["ORGANIZER · signed in with Google"]
+    direction TB
+    H["Home"] --> LOGIN{{"Sign in with Google"}}
+    LOGIN --> D["Dashboard · My events<br/><small>upcoming / past · going · declined · people</small>"]
+    D -->|"empty state"| SAMPLE["Create sample event<br/><small>+5 demo RSVPs</small>"]
+    D --> NEW["New event form<br/><small>name · description · date · time · timezone · location?</small>"]
+    NEW -->|"optional"| AI[["Fill with AI<br/><small>natural language → fields</small>"]]
+    AI --> REVIEW["Review fields<br/><small>missing ones highlighted</small>"]
+    NEW --> REVIEW
+    REVIEW --> SAVE["Save"]
+    SAVE --> OWNER["Event page · owner view<br/><small>full guest list · edit · delete · remove RSVP</small>"]
+    SAMPLE --> OWNER
+    OWNER --> LINK["Copy invite link"]
+  end
+
+  LINK -. "shares link" .-> OPEN
+
+  subgraph GST["GUEST · anonymous, no account"]
+    direction TB
+    OPEN["Open invite link<br/><small>locale from browser · time in event timezone</small>"] --> ENDED{"Event<br/>ended?"}
+    OPEN --> ICS["Add to calendar (.ics)"]
+    ENDED -->|"yes"| RO["Read-only<br/><small>This event has ended</small>"]
+    ENDED -->|"no"| COOKIE{"Edit cookie<br/>for this event?"}
+    COOKIE -->|"yes"| MINE["Your RSVP<br/><small>You're going (3) · Change · Cancel → Not going</small>"]
+    COOKIE -->|"no"| FORM["RSVP form<br/><small>name · Going / Not going · people incl. you (1–10)</small>"]
+    FORM --> DUP{"Name already<br/>on list?"}
+    DUP -->|"no"| OK["Saved<br/><small>httpOnly edit cookie set</small>"]
+    DUP -->|"yes"| BLOCK["Blocked<br/><small>use another name or ask the organizer</small>"]
+    OK --> MINE
+    MINE -. "sees total only" .-> TOTAL["14 people going"]
+  end
+
+  classDef org fill:#EEF2FF,stroke:#6366F1,color:#1E293B
+  classDef guest fill:#F0FDFA,stroke:#14B8A6,color:#134E4A
+  classDef ai fill:#FEF3C7,stroke:#F59E0B,color:#78350F
+  classDef decision fill:#FFFFFF,stroke:#64748B,color:#1E293B
+  classDef stop fill:#FEF2F2,stroke:#EF4444,color:#7F1D1D
+
+  class H,D,SAMPLE,NEW,REVIEW,SAVE,OWNER,LINK org
+  class LOGIN org
+  class OPEN,ICS,FORM,OK,MINE,TOTAL guest
+  class AI ai
+  class ENDED,COOKIE,DUP decision
+  class RO,BLOCK stop

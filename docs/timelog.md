@@ -1,0 +1,46 @@
+# Time log
+
+Wall-clock tracking for the challenge. Timer started when spec definition began.
+Pauses are logged when announced ("pause" / "resume" / "paused X hours") and subtracted from active time.
+Event times are taken from session timestamps. All times in America/Fortaleza (UTC-3).
+
+## Phases
+
+| # | Phase | Start | End |
+|---|---|---|---|
+| 0 | Comprehension (untimed — before timer) | 2026-09-24 11:40:40 | 2026-09-24 12:06:04 |
+| 1 | Spec definition (business rules, scope, gaps, design) | 2026-09-24 12:06:04 | 2026-09-24 13:35:54 |
+| 2 | Pipeline bootstrap (repo, agents, skills) + spec writing | 2026-09-24 13:35:54 | — |
+| 3 | Plan | — | — |
+| 4 | Execution | — | — |
+| 5 | Review | — | — |
+| 6 | Ship (deploy + README) | — | — |
+
+## Pauses
+
+| # | Phase | Start | End | Duration | Note |
+|---|---|---|---|---|---|
+| 1 | 1 — Spec definition | 2026-09-24 12:32:29 | 2026-09-24 13:11:44 | 39m 15s | Personal break |
+
+## Events
+
+| Time | Event |
+|---|---|
+| 2026-09-24 11:40:40 | Session start — comprehension of challenge |
+| 2026-09-24 12:06:04 | Timer start — spec definition (stack: Next.js; pipeline agents) |
+| 2026-09-24 12:09:37 | Lean scope decided (Claude Code skills/subagents, no custom infra) |
+| 2026-09-24 12:10:53 | BR: only Organizer signs in |
+| 2026-09-24 12:12:25 | BR: Guest edits own RSVP via browser token |
+| 2026-09-24 12:13:32 | BR: guest names visible to Organizer only |
+| 2026-09-24 12:31:28 | D1–D5 decided + AI eval (quiz) added |
+| 2026-09-24 12:32:29 | Rules 1–7, gaps table, eval design approved |
+| 2026-09-24 13:11:44 | Final gap sweep answered (G1–G15); i18n EN/FR/PT-BR added |
+| 2026-09-24 13:15:28 | Timezone rule refined: explicit text > form field (browser prefill) > missing |
+| 2026-09-24 13:17:16 | Architecture: layered MVC inside Next.js (approach A) |
+| 2026-09-24 13:18:47 | Design section 1 (structure + data model) approved; TDD mandatory |
+| 2026-09-24 13:19:53 | Design section 2 (flows) approved; diagrams rendered with mermaid-cli |
+| 2026-09-24 13:22:51 | Design section 3 (errors + security) approved; diagrams switched to SVG only |
+| 2026-09-24 13:25:10 | Design section 4 (tests, TDD, eval) approved |
+| 2026-09-24 13:28:58 | Execution loop redefined: execution failure → spec failure → documentation failure |
+| 2026-09-24 13:34:18 | Doc ownership defined: analyst doc-sync before merge + CI traceability check |
+| 2026-09-24 13:35:54 | Design section 5 (pipeline, repo, delivery) approved — phase 2 starts |

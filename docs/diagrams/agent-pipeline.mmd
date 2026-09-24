@@ -1,0 +1,71 @@
+---
+title: Agent pipeline — failures escalate upstream (execution → spec → documentation)
+---
+flowchart TB
+  HUMAN(("Ramon<br/><small>human decisions</small>"))
+
+  subgraph L1["1 · KNOWLEDGE"]
+    direction LR
+    AN["analyst<br/><small>Sonnet</small>"] --> BR[("docs/business-rules.md<br/><small>BR-xx · glossary</small>")]
+  end
+
+  subgraph L2["2 · SPECIFICATION"]
+    direction LR
+    SW["spec-writer<br/><small>Opus</small>"] --> SP[("docs/spec.md<br/><small>REQ-xx → BR-xx</small><br/>docs/plan.md<br/><small>TASK-xx → REQ-xx</small>")]
+  end
+
+  subgraph L3["3 · EXECUTION · per task · TDD"]
+    direction LR
+    IM["implementer<br/><small>Haiku</small>"] --> TG{"tests<br/>green?"}
+    TG -->|"no · attempt < 3"| IM
+  end
+
+  subgraph L4["4 · REVIEW · per PR"]
+    direction LR
+    RV["reviewer<br/><small>Sonnet · adversarial</small>"] --> VD{"verdict"}
+  end
+
+  subgraph L5["5 · RELEASE"]
+    direction LR
+    RL["release<br/><small>Haiku · checks · eval · migrate</small>"] --> PROD["Vercel production"]
+  end
+
+  %% happy path
+  BR --> SW
+  SP --> G1{{"Ramon approves spec + plan"}}
+  G1 --> IM
+  TG -->|"yes"| PR["Pull request<br/><small>test: → feat: commits</small>"]
+  PR --> RV
+  VD -->|"APPROVE"| DS["analyst · doc-sync<br/><small>REQ/TASK status · README · CHANGELOG · diagrams<br/>commit on same PR</small>"]
+  DS --> CI{{"CI traceability check<br/><small>BR → REQ → test · .mmd ↔ .svg</small>"}}
+  CI --> G2{{"Ramon approves merge"}}
+  G2 --> MERGE["merge commit to main"]
+  MERGE --> RL
+
+  %% failure escalation (upstream)
+  VD -. "CODE defect" .-> IM
+  TG -. "3 failed attempts<br/>= SPEC FAILURE<br/>failure report" .-> SW
+  VD -. "SPEC gap" .-> SW
+  SW -. "rule missing or contradictory<br/>or 2 spec revisions failed<br/>= DOC FAILURE" .-> AN
+  AN -. "rule decision needed" .-> HUMAN
+  HUMAN -. "decides rule" .-> AN
+  TG -. "ENV failure<br/>(infra, not spec)" .-> HUMAN
+
+  classDef agent fill:#EEF2FF,stroke:#6366F1,color:#1E293B
+  classDef artifact fill:#F0FDFA,stroke:#14B8A6,color:#134E4A
+  classDef gate fill:#FEF3C7,stroke:#F59E0B,color:#78350F
+  classDef human fill:#FDF2F8,stroke:#DB2777,color:#831843
+  classDef decision fill:#FFFFFF,stroke:#64748B,color:#1E293B
+  classDef ship fill:#ECFDF5,stroke:#10B981,color:#064E3B
+
+  class AN,SW,IM,RV,RL agent
+  class BR,SP,PR artifact
+  class G1,G2 gate
+  class HUMAN human
+  class TG,VD decision
+  class MERGE,PROD ship
+
+  linkStyle 3 stroke:#F59E0B,stroke-width:2px
+  class DS agent
+  class CI gate
+  linkStyle 16,17,18,19,20,21,22 stroke:#EF4444,stroke-width:2px
