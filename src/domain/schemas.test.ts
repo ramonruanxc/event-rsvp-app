@@ -187,9 +187,7 @@ describe('rsvpInputSchema', () => {
       const result = rsvpInputSchema.safeParse({ name: 'Maria', status: 'GOING', partySize });
       expect(result.success).toBe(false);
       if (!result.success) {
-        expect(ValidationError.fromZod(result.error).fieldErrors.partySize).toBe(
-          'partySizeRange',
-        );
+        expect(ValidationError.fromZod(result.error).fieldErrors.partySize).toBe('partySizeRange');
       }
     }
   });

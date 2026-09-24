@@ -53,3 +53,25 @@ export const eventInputSchema = z.object({
 export type EventFormValues = z.input<typeof eventInputSchema>;
 /** Validated, transformed output of eventInputSchema. */
 export type EventInput = z.output<typeof eventInputSchema>;
+
+/** Raw shape and validated output of the RSVP form (BR-22..BR-27). */
+export const rsvpInputSchema = z
+  .object({
+    name: requiredText(80),
+    status: z.enum(['GOING', 'NOT_GOING'], { error: 'invalidStatus' }),
+    partySize: z.unknown().optional(),
+  })
+  .superRefine((v, ctx) => {
+    if (v.status !== 'GOING') return;
+    const n = v.partySize;
+    if (typeof n !== 'number' || !Number.isInteger(n) || n < 1 || n > 10) {
+      ctx.addIssue({ code: 'custom', path: ['partySize'], message: 'partySizeRange' });
+    }
+  })
+  .transform((v) => ({
+    name: v.name,
+    status: v.status,
+    partySize: v.status === 'GOING' ? (v.partySize as number) : 0,
+  }));
+/** Validated, transformed output of rsvpInputSchema. */
+export type RsvpInput = z.output<typeof rsvpInputSchema>;
