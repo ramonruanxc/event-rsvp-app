@@ -44,3 +44,6 @@ Event times are taken from session timestamps. All times in America/Fortaleza (U
 | 2026-09-24 13:28:58 | Execution loop redefined: execution failure → spec failure → documentation failure |
 | 2026-09-24 13:34:18 | Doc ownership defined: analyst doc-sync before merge + CI traceability check |
 | 2026-09-24 13:35:54 | Design section 5 (pipeline, repo, delivery) approved — phase 2 starts |
+| 2026-09-24 13:39:30 | Repository created and protected (merge commits only, commitlint required) |
+| 2026-09-24 13:44:02 | analyst: 87 business rules derived, 10 open questions for human decision |
+| 2026-09-24 13:52:37 | Human decided all 10 open questions; analyst recorded BR-88–BR-95 and amended 9 BRs |
