@@ -17,6 +17,9 @@
     "test:unit": "vitest run --project unit",
     "pretest:int": "dotenv -e .env.test -- prisma migrate deploy",
     "test:int": "dotenv -e .env.test -- vitest run --project integration --passWithNoTests",
+    "pretest:e2e": "dotenv -e .env.test -- prisma migrate deploy",
+    "test:e2e": "dotenv -e .env.test -- playwright test",
+    "e2e:server": "dotenv -e .env.test -- next build && dotenv -e .env.test -- next start",
     "trace": "tsx scripts/traceability/cli.ts",
     "db:migrate": "prisma migrate dev",
     "postinstall": "prisma generate"
@@ -33,6 +36,7 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
+    "@playwright/test": "^1.63.0",
     "@tailwindcss/postcss": "^4",
     "@testing-library/dom": "^10.4.2",
     "@testing-library/react": "^16.3.3",
