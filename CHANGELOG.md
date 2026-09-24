@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Vercel ignored build step now skips by branch (`main` builds), so manual dashboard deployments of `main` are
+  not canceled.
+
 ### Added
 
 - Next.js 15 app scaffold (TypeScript, Tailwind, App Router, `src/` layout).
