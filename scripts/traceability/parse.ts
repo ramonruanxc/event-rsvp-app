@@ -92,3 +92,44 @@ export function parseRequirements(markdown: string): ParsedReq[] {
 
   return requirements;
 }
+
+const TEST_FILE_PATTERN = /\.test\.tsx?$/;
+const INT_TEST_FILE_PATTERN = /\.int\.test\.ts$/;
+const E2E_FILE_PATTERN = /^e2e\/.+\.spec\.ts$/;
+
+/**
+ * Tells whether `path` is a test file that the traceability check should scan for REQ citations:
+ * unit/component (`*.test.ts` / `*.test.tsx`), integration (`*.int.test.ts`), or e2e (`e2e/*.spec.ts`).
+ */
+export function isTestFile(path: string): boolean {
+  return (
+    TEST_FILE_PATTERN.test(path) || INT_TEST_FILE_PATTERN.test(path) || E2E_FILE_PATTERN.test(path)
+  );
+}
+
+const CITATION = /\b(?:it|test|describe)(?:\.\w+)*\(\s*['"`](REQ-\d+):/g;
+
+/**
+ * Scans test file contents for citations — test titles starting with `REQ-xx:` inside an `it(`,
+ * `test(`, `describe(`, or any `.skip`/`.only`/etc. variant call. Returns a map from REQ id to the
+ * list of file paths that cite it (each path listed once, even with multiple citations in the file).
+ */
+export function findCitations(
+  files: Array<{ path: string; content: string }>,
+): Map<string, string[]> {
+  const citations = new Map<string, string[]>();
+
+  for (const { path, content } of files) {
+    const reqIdsInFile = new Set<string>();
+    for (const match of content.matchAll(CITATION)) {
+      reqIdsInFile.add(match[1]);
+    }
+    for (const reqId of reqIdsInFile) {
+      const paths = citations.get(reqId) ?? [];
+      paths.push(path);
+      citations.set(reqId, paths);
+    }
+  }
+
+  return citations;
+}
