@@ -22,13 +22,13 @@ export class PrismaEventRepository implements EventRepository {
   }
 
   /** Applies the given changes to the event and returns the updated record. */
-  async update(_id: string, _changes: EventChanges): Promise<EventRecord> {
-    throw new Error('not implemented');
+  async update(id: string, changes: EventChanges): Promise<EventRecord> {
+    return this.prisma.event.update({ where: { id }, data: changes });
   }
 
   /** Deletes the event; its RSVPs are removed by cascade. */
-  async delete(_id: string): Promise<void> {
-    throw new Error('not implemented');
+  async delete(id: string): Promise<void> {
+    await this.prisma.event.delete({ where: { id } });
   }
 
   /** Returns every event owned by ownerId, each paired with its RSVPs' status and partySize. */
