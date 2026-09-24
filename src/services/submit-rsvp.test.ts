@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { DuplicateNameError, NotFoundError, ValidationError } from '@/domain/errors';
+import {
+  DuplicateNameError,
+  EventEndedError,
+  NotFoundError,
+  ValidationError,
+} from '@/domain/errors';
 import { hashToken } from '@/lib/crypto';
 import { createMemoryRepositories } from '@/repositories/memory';
 import { SubmitRsvpService } from './submit-rsvp';
@@ -188,5 +193,64 @@ describe('SubmitRsvpService — REQ-25 same-browser resubmission', () => {
     expect(store.rsvps).toHaveLength(1);
     expect(store.rsvps[0].id).toBe(originalId);
     expect(store.rsvps[0].name).toBe('Maria Silva');
+  });
+});
+
+describe('SubmitRsvpService — REQ-29 submission closes at the start time', () => {
+  it('REQ-29: submissions after the start are rejected', async () => {
+    const { events, rsvps, store } = await arrange();
+    const beforeService = new SubmitRsvpService({ events, rsvps, now, newToken: () => 'T' });
+    await beforeService.execute({
+      ...base,
+      values: { name: 'Maria', status: 'GOING', partySize: 3 },
+    });
+
+    const afterService = new SubmitRsvpService({
+      events,
+      rsvps,
+      now: () => new Date('2026-10-02T23:00:01.000Z'),
+    });
+
+    await expect(
+      afterService.execute({
+        ...base,
+        editToken: null,
+        values: { name: 'João', status: 'GOING', partySize: 1 },
+      }),
+    ).rejects.toBeInstanceOf(EventEndedError);
+
+    await expect(
+      afterService.execute({
+        ...base,
+        editToken: 'T',
+        values: { name: 'Maria', status: 'GOING', partySize: 5 },
+      }),
+    ).rejects.toBeInstanceOf(EventEndedError);
+
+    expect(store.rsvps).toHaveLength(1);
+    expect(store.rsvps[0].partySize).toBe(3);
+  });
+
+  it('REQ-29: a submission exactly at the start is accepted, one second later it is rejected', async () => {
+    const { events, rsvps, store } = await arrange();
+    let current = new Date('2026-10-02T23:00:00.000Z');
+    const clock = () => current;
+    const service = new SubmitRsvpService({ events, rsvps, now: clock });
+
+    const result = await service.execute({
+      ...base,
+      values: { name: 'Maria', status: 'GOING', partySize: 3 },
+    });
+    expect(result.created).toBe(true);
+
+    current = new Date('2026-10-02T23:00:01.000Z');
+    await expect(
+      service.execute({
+        ...base,
+        values: { name: 'João', status: 'GOING', partySize: 1 },
+      }),
+    ).rejects.toBeInstanceOf(EventEndedError);
+
+    expect(store.rsvps).toHaveLength(1);
   });
 });
