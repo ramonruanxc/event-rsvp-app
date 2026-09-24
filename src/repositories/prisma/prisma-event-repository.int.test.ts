@@ -84,4 +84,48 @@ describe('PrismaEventRepository', () => {
     expect(await prisma.rsvp.count({ where: { eventId: event.id } })).toBe(0);
     expect(await repo.findBySlug(event.slug)).toBeNull();
   });
+
+  it("REQ-35: lists only the owner's events with their RSVP status and party size", async () => {
+    const repo = new PrismaEventRepository(prisma);
+    const u1 = await createUser('u1@example.com');
+    const u2 = await createUser('u2@example.com');
+    const eventWithRsvps = await createEventRow(u1.id, { slug: 'eventwithrs' });
+    await createEventRow(u1.id, { slug: 'eventnorsvp' });
+    await createEventRow(u2.id, { slug: 'othersevent' });
+
+    await prisma.rsvp.create({
+      data: {
+        eventId: eventWithRsvps.id,
+        name: 'Maria',
+        nameKey: 'maria',
+        status: 'GOING',
+        partySize: 2,
+        editTokenHash: '0'.repeat(64),
+      },
+    });
+    await prisma.rsvp.create({
+      data: {
+        eventId: eventWithRsvps.id,
+        name: 'Joao',
+        nameKey: 'joao',
+        status: 'NOT_GOING',
+        partySize: 0,
+        editTokenHash: '1'.repeat(64),
+      },
+    });
+
+    const result = await repo.listByOwnerWithRsvpSummaries(u1.id);
+    const byStatus = (a: { status: string }, b: { status: string }) =>
+      a.status.localeCompare(b.status);
+
+    expect(result).toHaveLength(2);
+    expect(result.every((row) => row.event.ownerId === u1.id)).toBe(true);
+    const withRsvps = result.find((row) => row.event.id === eventWithRsvps.id);
+    expect([...(withRsvps?.rsvps ?? [])].sort(byStatus)).toEqual(
+      [
+        { status: 'GOING', partySize: 2 },
+        { status: 'NOT_GOING', partySize: 0 },
+      ].sort(byStatus),
+    );
+  });
 });
