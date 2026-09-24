@@ -237,18 +237,27 @@ BR-10's cascade).
 
 #### BR-37 — Same-browser duplicate name is treated as an edit
 **Rule:** If a guest submits a name that matches (case-insensitive, trimmed) an existing RSVP on the same event, and
-the request carries a valid edit-token cookie for that event, the submission is treated as an edit of that existing
-RSVP rather than a new one. The presence of that valid cookie is the sole basis for "same browser".
+the request carries an edit-token cookie whose SHA-256 hash equals that specific RSVP's stored edit-token hash, the
+submission is treated as an edit of that existing RSVP rather than a new one. An edit-token cookie only authorizes
+editing the RSVP it was issued for; it never authorizes editing a different guest's RSVP, even one on the same
+event.
 **Source:** design brief §2 "RSVPs"
 **Amended:** 2026-09-24 — human decision (open question 4)
+**Amended:** 2026-09-24 — human decision (DOC-Q1): clarified that "valid cookie for that event" means the cookie's
+hash matches the specific RSVP being duplicated, not merely any RSVP on the same event.
 
 #### BR-38 — Different-browser duplicate name is blocked
 **Rule:** If a guest submits a name that matches (case-insensitive, trimmed) an existing RSVP on the same event, and
-the request does not carry a valid edit-token cookie for that event (never issued, cleared, or expired), it is
-treated as coming from a different browser and blocked with the message "This name is already on the list. Use a
-different name or ask the organizer."
+the request does not carry an edit-token cookie whose SHA-256 hash equals that specific RSVP's stored edit-token
+hash (never issued, cleared, expired, or valid only for a different RSVP of the same event), the submission is
+blocked with `DUPLICATE_NAME` and the message "This name is already on the list. Use a different name or ask the
+organizer."
+**Rationale:** A cookie proving control of one RSVP must not let its holder silently take over another guest's RSVP
+by submitting that guest's name; see BR-37.
 **Source:** design brief §2 "RSVPs"
 **Amended:** 2026-09-24 — human decision (open question 4)
+**Amended:** 2026-09-24 — human decision (DOC-Q1): added the case where the cookie is valid for a different RSVP of
+the same event, which is now also blocked as a duplicate rather than treated as an edit.
 
 #### BR-39 — Name uniqueness enforced at the database level
 **Rule:** Name uniqueness per event is enforced by a database unique constraint on `(eventId, nameKey)`, not only by application-level checks.
@@ -334,10 +343,22 @@ browser timezone, and is pre-populated with 5 fictional RSVPs.
 **Source:** design brief §2 "AI feature — natural-language event creation"
 
 #### BR-55 — AI drafts a description when absent
-**Rule:** If the organizer's input text does not include a description, the AI drafts one, written in the same
-language as the organizer's input text.
+**Rule:** If the organizer's input text describes an event but does not include a description, the AI drafts one,
+written in the same language as the organizer's input text. This rule does not apply when the input text does not
+describe an event at all (see BR-96).
 **Source:** design brief §2 "AI feature — natural-language event creation"
 **Amended:** 2026-09-24 — human decision (open question 7)
+**Amended:** 2026-09-24 — human decision (DOC-Q2): scoped this rule to text that describes an event; non-event text
+is governed by BR-96 instead, which takes precedence.
+
+#### BR-96 — Non-event text yields an explicit "not found" message
+**Rule:** When "Fill with AI" receives input text that does not describe an event, the AI returns every event field
+empty and marked as missing, drafts no description (per the exception in BR-55), and the UI shows the translated
+message "Couldn't find event details in that text."
+**Rationale:** Distinguishes "text describes an event but omits some details" (ordinary missing-fields UX, BR-56/
+BR-57) from "text is not about an event at all," so the organizer gets an actionable, specific message instead of a
+form with every field flagged as missing and no explanation.
+**Source:** Human decision 2026-09-24 (DOC-Q2)
 
 #### BR-56 — AI reports fields it could not determine
 **Rule:** For any field the AI cannot determine from the input text, the AI fill action returns that field's name in a list of missing fields instead of filling it.
@@ -537,3 +558,8 @@ None open.
 8. Unauthenticated access to organizer-only routes → BR-95 (new)
 9. Meaning of "RSVP date" in the organizer's guest list → BR-42 (amended)
 10. Sample event's timezone → BR-50 (amended)
+
+**Resolved** — decided by the human (Ramon) on 2026-09-24, from `spec-writer`'s DOC failure report:
+
+- DOC-Q1 (edit-token cookie belonging to a different RSVP of the same event) → BR-37, BR-38 (amended)
+- DOC-Q2 (AI response to text that does not describe an event) → BR-55 (amended), BR-96 (new)
