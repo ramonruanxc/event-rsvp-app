@@ -1,0 +1,495 @@
+# Business Rules — Event RSVP App
+
+- **Derived from:** `docs/design/2026-09-24-design-brief.md` (Status: Approved, design sections 1–5)
+- **Owner:** `analyst` agent
+- **Traceability:** `BR-xx` → `REQ-xx` (spec) → `TASK-xx` (plan) → test named `REQ-xx: …`
+- IDs are stable and never renumbered. A superseded rule is struck through and points to its replacement,
+  e.g. `~~BR-07~~ Deprecated by BR-19`.
+
+---
+
+## Glossary
+
+| Term | Definition |
+|---|---|
+| **Organizer** | A user signed in with Google. Creates and owns events; manages only the events they own. |
+| **Guest** | An anonymous person, without an account, who submits an RSVP for an event through its invite link. |
+| **Role** | Not a stored attribute. Contextual per event: the event's owner is its Organizer; everyone else is a Guest for that event. |
+| **Event** | The entity an Organizer creates: name, description, date/time, timezone, optional location, unique slug. |
+| **Slug** | A random 10-character nanoid identifying an event in its URL, chosen to prevent enumeration. |
+| **Invite link** | The event's guest-facing URL (`/e/[slug]`), shared by the organizer for guests to RSVP. |
+| **RSVP** | A guest's response to an event: name, response (Going / Not going), and party size. |
+| **Party size** | Total number of people the RSVP covers, including the guest submitting it. 1–10 when Going; 0 when Not going. |
+| **NameKey** | The normalized form (case-insensitive, trimmed) of an RSVP's guest name, used to detect duplicate names within an event. |
+| **Edit token** | A 32-random-byte secret issued to a guest on RSVP submission, used later to identify their own RSVP in their browser. Only its SHA-256 hash is stored server-side. |
+| **Sample event** | A demo event an Organizer can generate from an empty dashboard: dated 7 days ahead, pre-populated with 5 fictional RSVPs. |
+| **Public demo event** | A seeded event linked from the signed-out home page so evaluators can see the app without signing in. |
+| **Missing field (AI)** | A form field the AI event-parsing feature could not determine from the organizer's free text; returned as missing rather than guessed. |
+| **Fill with AI** | The action that sends organizer free text to the AI parser and populates the event form; it never saves the event itself. |
+
+---
+
+## Business rules
+
+### Identity & roles
+
+#### BR-01 — Organizer authentication method
+**Rule:** An Organizer signs in with Google.
+**Rationale:** Defines the only supported identity provider for organizers.
+**Source:** design brief §2 "Actors and roles"
+
+#### BR-02 — Guest requires no account
+**Rule:** A Guest RSVPs without creating an account or signing in.
+**Rationale:** Keeps the RSVP flow frictionless for invitees.
+**Source:** design brief §2 "Actors and roles"
+
+#### BR-03 — Role is derived per event, not stored
+**Rule:** For any given event, the user who owns it is treated as its Organizer, and every other user (or anonymous visitor) is treated as a Guest for that event; role is not a stored column.
+**Rationale:** One user can be an Organizer on one event and a Guest on another; a single source of truth per event avoids inconsistent role state.
+**Source:** design brief §2 "Actors and roles"
+
+---
+
+### Events
+
+#### BR-04 — Event name required and bounded
+**Rule:** Event name is required and must be at most 120 characters.
+**Source:** design brief §2 "Events"
+
+#### BR-05 — Event description required and bounded
+**Rule:** Event description is required and must be at most 2000 characters (a short description is acceptable).
+**Source:** design brief §2 "Events"
+
+#### BR-06 — Event location optional
+**Rule:** Event location is optional.
+**Source:** design brief §2 "Events"
+
+#### BR-07 — Only the owner may edit an event
+**Rule:** Only the event's owner (Organizer) can edit the event.
+**Rationale:** Preserves event data integrity and prevents guests or other organizers from altering it.
+**Source:** design brief §2 "Events"
+
+#### BR-08 — Only the owner may delete an event
+**Rule:** Only the event's owner (Organizer) can delete the event.
+**Source:** design brief §2 "Events"
+
+#### BR-09 — Delete requires confirmation
+**Rule:** Deleting an event requires the organizer to confirm the action before it is carried out.
+**Rationale:** Deletion is destructive (removes RSVPs); confirmation prevents accidental loss.
+**Source:** design brief §2 "Events"
+
+#### BR-10 — Delete cascades to RSVPs
+**Rule:** Deleting an event removes all of that event's RSVPs.
+**Source:** design brief §2 "Events"
+
+#### BR-11 — Date changes after RSVPs exist are allowed
+**Rule:** The organizer may change an event's date/time even after guests have RSVP'd.
+**Source:** design brief §2 "Events"
+
+#### BR-12 — No guest notification on change
+**Rule:** Guests are not notified when the organizer changes the event date (email notifications are out of scope).
+**Source:** design brief §2 "Events"
+
+#### BR-13 — Events have no end time
+**Rule:** An event has a start date/time only; there is no end-time field.
+**Source:** design brief §2 "Events"
+
+#### BR-14 — Event URL uses a random slug
+**Rule:** Each event's URL uses a randomly generated 10-character nanoid slug rather than a sequential or guessable identifier.
+**Rationale:** Prevents enumeration of events by guessing URLs.
+**Source:** design brief §2 "Events"
+
+---
+
+### Event time & timezone
+
+#### BR-15 — Date and time required
+**Rule:** Event date and time are required fields.
+**Source:** design brief §2 "Events"
+
+#### BR-16 — Timezone required and in IANA format
+**Rule:** Event timezone is required and must be a valid IANA timezone identifier.
+**Source:** design brief §2 "Events"
+
+#### BR-17 — Date/time entered in the event's timezone
+**Rule:** The organizer enters the event date/time in the event's own timezone (not necessarily the organizer's current timezone).
+**Source:** design brief §2 "Events"
+
+#### BR-18 — Date/time stored as UTC instant plus timezone
+**Rule:** The event's date/time is stored as a UTC instant together with its IANA timezone identifier.
+**Source:** design brief §2 "Events"
+
+#### BR-19 — Date/time always displayed in the event's timezone with label
+**Rule:** The event's date/time is always displayed in the event's own timezone, with a timezone label (e.g. "7:00 PM EDT"), regardless of the viewer's local timezone.
+**Source:** design brief §2 "Events"
+
+#### BR-20 — Timezone field prefilled and editable
+**Rule:** The event's timezone field is prefilled from the browser's detected timezone (`Intl`) but the organizer can edit it.
+**Rationale:** The organizer may be creating an event for a location in a different timezone than their own.
+**Source:** design brief §2 "Events"
+
+#### BR-21 — Event date/time cannot be in the past
+**Rule:** An event cannot be created with a date/time earlier than the current moment.
+**Source:** design brief §2 "Events"
+
+---
+
+### RSVPs
+
+#### BR-22 — Guest name length
+**Rule:** An RSVP's guest name must be between 1 and 80 characters.
+**Source:** design brief §2 "RSVPs"
+
+#### BR-23 — Response has exactly two options
+**Rule:** An RSVP's response is either "Going" or "Not going"; there is no "Maybe" option.
+**Source:** design brief §2 "RSVPs"
+
+#### BR-24 — Party size counts the guest
+**Rule:** Party size represents the total number of people the RSVP covers, including the guest submitting it.
+**Source:** design brief §2 "RSVPs"
+
+#### BR-25 — Party size field label
+**Rule:** The party size input is labeled "How many people, including you?".
+**Source:** design brief §2 "RSVPs"
+
+#### BR-26 — Party size range when Going
+**Rule:** When the response is "Going", party size must be between 1 and 10.
+**Source:** design brief §2 "RSVPs"
+
+#### BR-27 — Party size is 0 when Not going
+**Rule:** When the response is "Not going", party size is set to 0.
+**Source:** design brief §2 "RSVPs"
+
+#### BR-28 — Edit token issued on submit
+**Rule:** When an RSVP is submitted, the server issues an edit token consisting of 32 random bytes.
+**Source:** design brief §2 "RSVPs"
+
+#### BR-29 — Only the token's hash is stored
+**Rule:** The server stores only the SHA-256 hash of the edit token, never the raw token.
+**Rationale:** Limits impact if the database is compromised; the raw token exists only in the guest's cookie.
+**Source:** design brief §2 "RSVPs"
+
+#### BR-30 — Edit token delivered via secure cookie
+**Rule:** The raw edit token is set in an httpOnly, Secure, SameSite=Lax cookie scoped to the event's path.
+**Source:** design brief §2 "RSVPs"
+
+#### BR-31 — Edit token cookie validity
+**Rule:** The edit token cookie remains valid until 30 days after the event's date/time.
+**Source:** design brief §2 "RSVPs"
+
+#### BR-32 — RSVPs close at event start
+**Rule:** RSVP submission and editing close once the event's start time has passed.
+**Source:** design brief §2 "RSVPs"
+
+#### BR-33 — Ended-event page is read-only
+**Rule:** Once RSVPs are closed, the event's guest-facing page displays "This event has ended" and accepts no further submissions or edits.
+**Source:** design brief §2 "RSVPs"
+
+#### BR-34 — No RSVP capacity limit
+**Rule:** There is no maximum number of RSVPs or total attendees an event can accept.
+**Source:** design brief §2 "RSVPs"
+
+---
+
+### Guest RSVP editing
+
+#### BR-35 — Returning guest sees their RSVP status
+**Rule:** A guest returning to the event page in the same browser (holding a valid edit-token cookie for that event) sees "You're going (N) · Change · Cancel" instead of a blank RSVP form.
+**Source:** design brief §2 "RSVPs"
+
+#### BR-36 — Cancel sets response to Not going, does not delete
+**Rule:** Using "Cancel" on an existing RSVP sets its response to "Not going" rather than deleting the RSVP record.
+**Rationale:** The organizer wants to know who declined, not just who is missing from the list.
+**Source:** design brief §2 "RSVPs"
+
+#### BR-37 — Same-browser duplicate name is treated as an edit
+**Rule:** If a guest submits a name that matches (case-insensitive, trimmed) an existing RSVP on the same event from the same browser, the submission is treated as an edit of that existing RSVP rather than a new one.
+**Source:** design brief §2 "RSVPs"
+
+#### BR-38 — Different-browser duplicate name is blocked
+**Rule:** If a guest submits a name that matches (case-insensitive, trimmed) an existing RSVP on the same event from a different browser, the submission is blocked with the message "This name is already on the list. Use a different name or ask the organizer."
+**Source:** design brief §2 "RSVPs"
+
+#### BR-39 — Name uniqueness enforced at the database level
+**Rule:** Name uniqueness per event is enforced by a database unique constraint on `(eventId, nameKey)`, not only by application-level checks.
+**Rationale:** Guarantees correctness under concurrent submissions of the same name.
+**Source:** design brief §2 "RSVPs"; §3 "Data model"
+
+#### BR-40 — No cross-device RSVP editing
+**Rule:** A guest cannot edit an existing RSVP from a device/browser other than the one it was created on.
+**Source:** design brief §2 "RSVPs"
+
+#### BR-41 — Organizer can remove any RSVP
+**Rule:** The event's organizer can remove any RSVP on their event, regardless of which guest or browser created it.
+**Source:** design brief §2 "RSVPs"
+
+---
+
+### Guest list visibility
+
+#### BR-42 — Organizer sees the full guest list
+**Rule:** The organizer's view of an event shows, for every RSVP: guest name, response, party size, RSVP date, and a control to remove it.
+**Source:** design brief §2 "Guest list visibility"
+
+#### BR-43 — Organizer sees totals
+**Rule:** The organizer's view of an event shows totals (e.g. going / declined / total people).
+**Source:** design brief §2 "Guest list visibility"
+
+#### BR-44 — Guest sees only the aggregate total and their own RSVP
+**Rule:** A guest viewing the event page sees only the aggregate total (e.g. "14 people going") and the details of their own RSVP — not other guests' names or responses.
+**Source:** design brief §2 "Guest list visibility"
+
+#### BR-45 — Guest names never sent to non-owners
+**Rule:** Guest names are never transmitted to the browser of anyone other than the event's owner.
+**Rationale:** Enforces guest-list privacy at the data-transfer level, not only in the UI.
+**Source:** design brief §2 "Guest list visibility"
+
+---
+
+### Dashboard & sample data
+
+#### BR-46 — Dashboard lists upcoming and past events
+**Rule:** The organizer dashboard ("My events") lists the organizer's events split into upcoming and past.
+**Source:** design brief §2 "Organizer dashboard"
+
+#### BR-47 — Dashboard shows per-event counts
+**Rule:** Each event listed on the dashboard shows its going / declined / total people counts.
+**Source:** design brief §2 "Organizer dashboard"
+
+#### BR-48 — Empty dashboard offers event creation
+**Rule:** When the organizer has no events, the dashboard's empty state offers a "Create event" action.
+**Source:** design brief §2 "Organizer dashboard"
+
+#### BR-49 — Empty dashboard offers a sample event
+**Rule:** When the organizer has no events, the dashboard's empty state offers a "Create sample event" action.
+**Source:** design brief §2 "Organizer dashboard"
+
+#### BR-50 — Sample event content
+**Rule:** The generated sample event is dated 7 days ahead of creation and is pre-populated with 5 fictional RSVPs.
+**Source:** design brief §2 "Organizer dashboard"
+
+#### BR-51 — Owner event page offers invite-link copy
+**Rule:** The event page, viewed by its owner, includes a "Copy invite link" action.
+**Source:** design brief §2 "Organizer dashboard"
+
+#### BR-52 — Signed-out home page content
+**Rule:** The signed-out home page is a single screen containing: an explanation of what the app does, a "Sign in with Google" action, and a link to a public (seeded) demo event.
+**Source:** design brief §2 "Home (signed out)"
+
+---
+
+### AI event creation
+
+#### BR-53 — Organizer can request AI fill from free text
+**Rule:** On the event-creation form, the organizer can enter free text describing the event and trigger the "Fill with AI" action.
+**Source:** design brief §2 "AI feature — natural-language event creation"
+
+#### BR-54 — AI fills the structured event fields
+**Rule:** The AI fill action populates the form's name, description, date, time, timezone, and location fields from the organizer's free text.
+**Source:** design brief §2 "AI feature — natural-language event creation"
+
+#### BR-55 — AI drafts a description when absent
+**Rule:** If the organizer's input text does not include a description, the AI drafts one.
+**Source:** design brief §2 "AI feature — natural-language event creation"
+
+#### BR-56 — AI reports fields it could not determine
+**Rule:** For any field the AI cannot determine from the input text, the AI fill action returns that field's name in a list of missing fields instead of filling it.
+**Source:** design brief §2 "AI feature — natural-language event creation"
+
+#### BR-57 — Missing fields are highlighted in the UI
+**Rule:** The event-creation UI visually highlights the fields the AI reported as missing.
+**Source:** design brief §2 "AI feature — natural-language event creation"
+
+#### BR-58 — AI never saves the event
+**Rule:** The AI fill action only populates the form; it never persists (saves) the event. Saving requires the organizer to review and submit the form themselves.
+**Rationale:** Keeps a human in the loop before any AI-derived data is committed, and ensures the AI has no path to writing data even under prompt injection.
+**Source:** design brief §2 "AI feature — natural-language event creation"; §4 "Errors and security"
+
+#### BR-59 — AI never invents absent data
+**Rule:** For data absent from the organizer's input text, the AI returns the corresponding field as missing rather than inferring or guessing a value.
+**Source:** design brief §2 "AI feature — natural-language event creation"
+
+#### BR-60 — Timezone resolution priority
+**Rule:** The AI fill action resolves the event's timezone in this priority order: (1) a timezone explicit in the input text (e.g. "7pm EST"); (2) otherwise, the form's current timezone field value; (3) otherwise, the timezone is reported as missing.
+**Source:** design brief §2 "AI feature — natural-language event creation"
+
+#### BR-61 — Explicit timezone in text updates the form field
+**Rule:** When the input text contains an explicit timezone, the AI fill action also updates the form's timezone field to that value.
+**Source:** design brief §2 "AI feature — natural-language event creation"
+
+#### BR-62 — Reference date/time is the organizer's local time
+**Rule:** The AI fill action resolves relative dates (e.g. "next Friday") using a reference "now" built from the organizer's own timezone, not the server's UTC day.
+**Rationale:** Prevents a relative date like "tonight" from resolving to the wrong calendar day when the server's UTC date differs from the organizer's local date.
+**Source:** design brief §2 "AI feature — natural-language event creation"
+
+#### BR-63 — Supported input languages
+**Rule:** The AI fill action understands organizer input written in English, French, or Brazilian Portuguese.
+**Source:** design brief §2 "AI feature — natural-language event creation"
+
+#### BR-64 — AI request timeout
+**Rule:** The AI fill request times out after 10 seconds.
+**Source:** design brief §2 "AI feature — natural-language event creation"
+
+#### BR-65 — Fallback message on AI timeout or error
+**Rule:** If the AI fill request times out or errors, the UI displays "Couldn't fill automatically — please fill the form."
+**Source:** design brief §2 "AI feature — natural-language event creation"
+
+#### BR-66 — Manual form always available
+**Rule:** The event-creation form can always be filled and submitted manually, independent of AI availability.
+**Source:** design brief §2 "AI feature — natural-language event creation"
+
+#### BR-67 — AI fill requires sign-in
+**Rule:** The "Fill with AI" action is available only to signed-in users.
+**Source:** design brief §2 "AI feature — natural-language event creation"
+
+#### BR-68 — AI daily call limit
+**Rule:** Each signed-in user is limited to 20 "Fill with AI" calls per day.
+**Source:** design brief §2 "AI feature — natural-language event creation"; §4 "Errors and security"
+
+#### BR-69 — AI input is delimited against prompt injection
+**Rule:** Organizer-supplied text is delimited within the AI prompt, separating it from instructions, as a prompt-injection mitigation.
+**Source:** design brief §4 "Errors and security"
+
+#### BR-70 — AI output is schema-constrained and validated
+**Rule:** The AI's output is constrained to a structured schema and validated (with zod) before it is used to populate the form.
+**Source:** design brief §4 "Errors and security"
+
+---
+
+### Calendar export
+
+#### BR-71 — Anyone can export an .ics file
+**Rule:** Both guests and organizers can download an `.ics` calendar file for an event.
+**Source:** design brief §2 "Calendar export"
+
+#### BR-72 — Exported event uses a 2-hour default duration
+**Rule:** Since events have no stored end time, the exported `.ics` file gives the event a default duration of 2 hours.
+**Source:** design brief §2 "Events"; §2 "Calendar export"
+
+---
+
+### Internationalization
+
+#### BR-73 — Supported UI languages
+**Rule:** The UI is available in English, French, and Brazilian Portuguese.
+**Source:** design brief §2 "Internationalization"
+
+#### BR-74 — Locale detected from browser
+**Rule:** The initial UI locale is detected from the visitor's browser.
+**Source:** design brief §2 "Internationalization"
+
+#### BR-75 — Manual locale switch
+**Rule:** The user can manually switch the UI locale.
+**Source:** design brief §2 "Internationalization"
+
+#### BR-76 — Locale-aware date/time formatting
+**Rule:** Dates and times are formatted according to the active UI locale.
+**Source:** design brief §2 "Internationalization"
+
+#### BR-77 — Event content is not translated
+**Rule:** Organizer-entered event content (name, description) is displayed as entered and is not machine- or auto-translated for viewers in other locales.
+**Source:** design brief §2 "Internationalization"
+
+#### BR-78 — Every message key must exist in all supported locales
+**Rule:** Every UI message key must have a translation present in each of the three supported locale files (English, French, Brazilian Portuguese).
+**Source:** design brief §2 "Internationalization"
+
+---
+
+### Abuse protection & privacy
+
+#### BR-79 — RSVP submission rate limit
+**Rule:** RSVP submissions are rate-limited to 10 per 10 minutes per IP address.
+**Source:** design brief §4 "Errors and security"
+
+#### BR-80 — IP addresses stored hashed
+**Rule:** Client IP addresses used for rate limiting are stored hashed, not in plaintext.
+**Source:** design brief §4 "Errors and security"
+
+#### BR-81 — Honeypot field on the RSVP form
+**Rule:** The RSVP form includes a honeypot field to help detect and block automated submissions.
+**Source:** design brief §4 "Errors and security"
+
+#### BR-82 — No raw HTML rendering of user content
+**Rule:** User-supplied content (e.g. event description, guest name) is rendered as plain text via React's default escaping; `dangerouslySetInnerHTML` is not used.
+**Source:** design brief §4 "Errors and security"
+
+#### BR-83 — No internal error details shown to users
+**Rule:** Users are shown mapped, translated error messages, never raw stack traces or internal error details.
+**Source:** design brief §4 "Errors and security"
+
+#### BR-84 — Unexpected errors are logged
+**Rule:** Unexpected (unmapped) errors are logged server-side even though they are not shown to the user.
+**Source:** design brief §4 "Errors and security"
+
+#### BR-85 — Authoritative server-side validation
+**Rule:** Every input validated on the client (for immediate feedback) is re-validated on the server using the same schema, and the server's validation is authoritative.
+**Source:** design brief §4 "Errors and security"
+
+#### BR-86 — Authorization enforced server-side
+**Rule:** Authorization checks (e.g. who may edit/delete an event, who may see the full guest list) are enforced in the server-side service layer, not only hidden or disabled in the UI.
+**Source:** design brief §4 "Errors and security"
+
+#### BR-87 — Security response headers
+**Rule:** Server responses include the headers `X-Frame-Options: DENY`, `Referrer-Policy`, and `X-Content-Type-Options`.
+**Source:** design brief §4 "Errors and security"
+
+---
+
+## Out of scope
+
+Per the brief's principle "Maximum with minimum": everything left out is recorded here with the reason the brief
+gives, or noted as not yet given (to be written up in the README, per the brief's own instruction that the README
+carries the one-line reason for each excluded item).
+
+| Item | Reason |
+|---|---|
+| Capacity limits on RSVPs | Explicitly decided: "No capacity limit" (design brief §2 "RSVPs"). |
+| Email notifications | Explicitly decided: guests are not notified of date changes because "email out of scope" (design brief §2 "Events"). |
+| "Maybe" RSVP response | Response is limited to Going / Not going by design (design brief §2 "RSVPs"); no reason given beyond the decision itself. |
+| CSV export | Listed in the brief's out-of-scope list (design brief §2); no reason given in the brief. |
+| Admin role | Listed in the brief's out-of-scope list (design brief §2); consistent with roles being only Organizer/Guest, contextual per event (§2 "Actors and roles"), but no explicit reason given. |
+| Multiple organizers per event | Listed in the brief's out-of-scope list (design brief §2); consistent with the data model's single `ownerId` per event (§3 "Data model"), but no explicit reason given. |
+| Cross-device RSVP editing for guests | Listed in the brief's out-of-scope list (design brief §2), and stated directly as unsupported (§2 "RSVPs"); no explicit reason given beyond the decision. |
+| Strict CSP | Listed in the brief's out-of-scope list (design brief §2); the brief notes other XSS mitigations instead (React escaping only, no `dangerouslySetInnerHTML` — §4), but does not give an explicit reason for omitting CSP itself. |
+| Observability beyond logs | Listed in the brief's out-of-scope list (design brief §2); no reason given in the brief. |
+| Per-PR preview deployments | Explicitly decided: "no per-PR previews (would migrate the production database)" (design brief §7 "Repository and delivery"). |
+
+Note: the eval accuracy gate (design brief §5, "≥ 90% overall and 100% on 'must not invent' and 'prompt injection'")
+is a process/test-quality gate on the AI feature, not a product business rule, and is intentionally not listed as a
+BR above.
+
+---
+
+## Open questions
+
+Items the brief does not decide. Per Mode 1, these are not resolved here — they are reported to the orchestrator
+for a human decision.
+
+1. **AI daily limit reset window** — Does the 20-calls-per-user-per-day AI limit (design brief §2 "AI feature") reset
+   at UTC midnight or at the organizer's local midnight? Not specified.
+2. **RSVP rate-limit UX** — What is shown to a guest whose IP has exceeded 10 submissions/10 minutes (design brief
+   §4)? The brief defines the limit but not the user-facing behavior when it is hit.
+3. **AI daily-limit UX** — What happens when an organizer requests a 21st AI fill in a day (design brief §2, §4)? Is
+   "Fill with AI" disabled, hidden, or does it fail with a message, and what message?
+4. **"Same browser" detection mechanism for duplicate names** — Design brief §2 "RSVPs" distinguishes "same browser"
+   (treated as an edit) from "different browser" (blocked), but does not state the detection mechanism. Is it
+   solely the presence of that event's edit-token cookie? If a guest's cookie is cleared or expired and they
+   resubmit the same name, is that treated as same-browser (edit) or different-browser (blocked)?
+5. **Scope of "date changes after RSVPs are allowed"** — Design brief §2 "Events" only addresses date changes after
+   RSVPs exist. Does the same permissive rule apply to editing name, description, location, or timezone after
+   RSVPs exist, or are those restricted in some way?
+6. **Organizer actions after an event has ended** — Design brief §2 "RSVPs" states the guest-facing page becomes
+   read-only ("This event has ended") once RSVPs close, but does not say whether the organizer can still edit the
+   event or remove RSVPs after that point.
+7. **Language of the AI-drafted description** — When the AI drafts a description because the organizer's input
+   lacks one (design brief §2 "AI feature"), is it written in the input's language, the organizer's current UI
+   locale, or a fixed default? Not specified.
+8. **Unauthenticated access to organizer-only routes** — The routes table (design brief §3) marks `/dashboard` and
+   `/events/new` as "Organizer" access but does not state the behavior for a signed-out visitor (redirect to
+   sign-in, 404, etc.).
+9. **Meaning of "RSVP date" in the organizer's guest list** — Design brief §2 "Guest list visibility" lists "RSVP
+   date" as a column but does not say whether it reflects the original submission time or the time of the most
+   recent edit/cancel.
+10. **Sample event's timezone** — Design brief §2 "Organizer dashboard" specifies the sample event's date (7 days
+    ahead) and RSVP content (5 fictional RSVPs) but not which timezone it is created in.
