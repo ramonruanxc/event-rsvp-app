@@ -1,3 +1,5 @@
+import type { EventRecord } from '@/domain/types';
+
 /** Escapes backslash, semicolon, comma and newline characters for an iCalendar TEXT value (REQ-41). */
 export function escapeIcsText(value: string): string {
   return value
@@ -28,4 +30,12 @@ export function foldIcsLine(line: string): string {
   parts.push(current);
 
   return parts.join('\r\n');
+}
+
+/** Builds a single-VEVENT .ics document for an event, with a 2-hour default duration (REQ-41, BR-72). */
+export function buildIcs(
+  _event: Pick<EventRecord, 'slug' | 'name' | 'description' | 'location' | 'startsAt'>,
+  _now: Date,
+): string {
+  throw new Error('not implemented');
 }
