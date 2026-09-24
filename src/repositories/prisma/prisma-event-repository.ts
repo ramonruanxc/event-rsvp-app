@@ -7,13 +7,13 @@ export class PrismaEventRepository implements EventRepository {
   constructor(private readonly prisma: PrismaClient) {}
 
   /** Stores a new event and returns the stored record. */
-  async create(_data: NewEvent): Promise<EventRecord> {
-    throw new Error('not implemented');
+  async create(data: NewEvent): Promise<EventRecord> {
+    return this.prisma.event.create({ data });
   }
 
   /** Returns the event with the given slug, or null when none exists. */
-  async findBySlug(_slug: string): Promise<EventRecord | null> {
-    throw new Error('not implemented');
+  async findBySlug(slug: string): Promise<EventRecord | null> {
+    return this.prisma.event.findUnique({ where: { slug } });
   }
 
   /** Applies the given changes to the event and returns the updated record. */
