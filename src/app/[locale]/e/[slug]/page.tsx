@@ -1,8 +1,10 @@
 import { notFound } from 'next/navigation';
+import { DeleteEventButton } from '@/components/delete-event-button';
 import { EventDetails } from '@/components/event-details';
 import { NotFoundError } from '@/domain/errors';
 import { getServices } from '@/lib/container';
 import { getCurrentUserId } from '@/lib/session';
+import { deleteEventAction } from './actions';
 
 /** An event's public page: details for guests, full guest list for the owner (REQ-33). */
 export default async function EventPage({
@@ -24,6 +26,9 @@ export default async function EventPage({
   return (
     <main>
       <EventDetails event={view.event} totals={view.totals} locale={locale} />
+      {view.role === 'owner' && (
+        <DeleteEventButton deleteAction={deleteEventAction.bind(null, slug)} />
+      )}
     </main>
   );
 }
