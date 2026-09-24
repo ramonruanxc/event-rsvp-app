@@ -7,6 +7,9 @@ import { UpdateEventService } from '@/services/update-event';
 import { DeleteEventService } from '@/services/delete-event';
 import { ListDashboardService } from '@/services/list-dashboard';
 import { GetEventPageService } from '@/services/get-event-page';
+import { SubmitRsvpService } from '@/services/submit-rsvp';
+import { CancelRsvpService } from '@/services/cancel-rsvp';
+import { RemoveRsvpService } from '@/services/remove-rsvp';
 
 /** The application's Prisma-backed services, built once per process. */
 export interface Services {
@@ -15,6 +18,9 @@ export interface Services {
   deleteEvent: DeleteEventService;
   listDashboard: ListDashboardService;
   getEventPage: GetEventPageService;
+  submitRsvp: SubmitRsvpService;
+  cancelRsvp: CancelRsvpService;
+  removeRsvp: RemoveRsvpService;
 }
 
 let services: Services | undefined;
@@ -31,6 +37,9 @@ export function getServices(): Services {
       deleteEvent: new DeleteEventService({ events }),
       listDashboard: new ListDashboardService({ events, now }),
       getEventPage: new GetEventPageService({ events, rsvps, now }),
+      submitRsvp: new SubmitRsvpService({ events, rsvps, now }),
+      cancelRsvp: new CancelRsvpService({ events, rsvps, now }),
+      removeRsvp: new RemoveRsvpService({ events, rsvps }),
     };
   }
   return services;
