@@ -80,3 +80,20 @@ test.describe('REQ-36: the organizer dashboard', () => {
     await expect(page.getByRole('link', { name: 'Create event' })).toBeVisible();
   });
 });
+
+test.describe('REQ-37: create sample event', () => {
+  test('REQ-37: an organizer with no events creates the sample event', async ({
+    page,
+    context,
+  }) => {
+    await signInAs(context, { email: 'sample1@example.com', name: 'Sample' });
+
+    await page.goto('/en/dashboard');
+    await page.getByRole('button', { name: 'Create sample event' }).click();
+
+    await expect(page).toHaveURL(/\/en\/e\/[^/]+$/);
+    await expect(page.getByText('Alex Martin')).toBeVisible();
+    await expect(page.getByText('Chloé Dubois')).toBeVisible();
+    await expect(page.getByText('Going: 4 · Declined: 1 · People: 7')).toBeVisible();
+  });
+});
