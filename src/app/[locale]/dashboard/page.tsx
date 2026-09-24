@@ -1,9 +1,11 @@
 import { getTranslations } from 'next-intl/server';
+import { CreateSampleButton } from '@/components/create-sample-button';
 import { Link } from '@/i18n/navigation';
 import { getServices } from '@/lib/container';
 import { requireUserId } from '@/lib/session';
 import { formatEventDateTime } from '@/lib/format-date';
 import type { DashboardItem } from '@/services/list-dashboard';
+import { createSampleEventAction } from './actions';
 
 /** The signed-in organizer's events, split into upcoming and past, with RSVP totals (REQ-36). */
 export default async function DashboardPage({ params }: { params: Promise<{ locale: string }> }) {
@@ -35,7 +37,10 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
       <Link href="/events/new">{t('dashboard.createEvent')}</Link>
 
       {isEmpty ? (
-        <p>{t('dashboard.empty')}</p>
+        <>
+          <p>{t('dashboard.empty')}</p>
+          <CreateSampleButton create={createSampleEventAction} />
+        </>
       ) : (
         <>
           <section aria-labelledby="upcoming-heading">

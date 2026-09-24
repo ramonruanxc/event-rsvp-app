@@ -10,6 +10,7 @@ import { GetEventPageService } from '@/services/get-event-page';
 import { SubmitRsvpService } from '@/services/submit-rsvp';
 import { CancelRsvpService } from '@/services/cancel-rsvp';
 import { RemoveRsvpService } from '@/services/remove-rsvp';
+import { CreateSampleEventService } from '@/services/create-sample-event';
 
 /** The application's Prisma-backed services, built once per process. */
 export interface Services {
@@ -21,6 +22,7 @@ export interface Services {
   submitRsvp: SubmitRsvpService;
   cancelRsvp: CancelRsvpService;
   removeRsvp: RemoveRsvpService;
+  createSampleEvent: CreateSampleEventService;
 }
 
 let services: Services | undefined;
@@ -40,6 +42,7 @@ export function getServices(): Services {
       submitRsvp: new SubmitRsvpService({ events, rsvps, now }),
       cancelRsvp: new CancelRsvpService({ events, rsvps, now }),
       removeRsvp: new RemoveRsvpService({ events, rsvps }),
+      createSampleEvent: new CreateSampleEventService({ events, rsvps, now }),
     };
   }
   return services;
