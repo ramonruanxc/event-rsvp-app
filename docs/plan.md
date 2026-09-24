@@ -1355,7 +1355,7 @@ step 4 before TASK-10 if port 3000 is busy on your machine
 Order: TASK-30 → TASK-67. Domain (30–42) → repositories (43–51) → services (52–56) → controllers and views (57–67).
 
 ### TASK-30 — Domain errors and zod-to-field-errors mapping
-**Phase:** 1 · **Requirements:** REQ-59 · **Status:** todo · **Revision:** 1
+**Phase:** 1 · **Requirements:** REQ-59 · **Status:** done · **Revision:** 1
 **Files:** src/domain/errors.ts, src/domain/errors.test.ts
 **Interface:** Contract C1 (all classes, `VALIDATION_KEYS`, `ValidationError.fromZod`)
 **Test first:** `src/domain/errors.test.ts`:
@@ -1373,7 +1373,7 @@ if `key` already set; value = `VALIDATION_KEYS.includes(issue.message) ? issue.m
 **TDD exception:** none
 
 ### TASK-31 — Map errors to action results and log unexpected ones
-**Phase:** 1 · **Requirements:** REQ-59 · **Status:** todo · **Revision:** 1
+**Phase:** 1 · **Requirements:** REQ-59 · **Status:** done · **Revision:** 1
 **Files:** src/lib/action-result.ts, src/lib/action-result.test.ts
 **Interface:** Contract C7 `ActionFailure`, `ActionResult<T>`, `toActionError(error, log = (e) => console.error('[unexpected error]', e))`
 **Test first:**
@@ -1388,7 +1388,7 @@ if `key` already set; value = `VALIDATION_KEYS.includes(issue.message) ? issue.m
 **TDD exception:** none
 
 ### TASK-32 — Event description rule
-**Phase:** 1 · **Requirements:** REQ-05 · **Status:** todo · **Revision:** 1
+**Phase:** 1 · **Requirements:** REQ-05 · **Status:** done · **Revision:** 1
 **Files:** src/domain/schemas.ts, src/domain/schemas.test.ts
 **Interface:** `eventDescriptionSchema` (C3)
 **Test first:** `describe('eventDescriptionSchema')`:
@@ -1400,7 +1400,7 @@ if `key` already set; value = `VALIDATION_KEYS.includes(issue.message) ? issue.m
 **TDD exception:** none
 
 ### TASK-33 — Optional location
-**Phase:** 1 · **Requirements:** REQ-06 · **Status:** todo · **Revision:** 1
+**Phase:** 1 · **Requirements:** REQ-06 · **Status:** done · **Revision:** 1
 **Files:** src/domain/schemas.ts, src/domain/schemas.test.ts
 **Interface:** `eventLocationSchema` (C3)
 **Test first:** `REQ-06: empty or missing location becomes null` — `undefined`, `null`, `""`, `"   "` → `null`;
@@ -1409,7 +1409,7 @@ if `key` already set; value = `VALIDATION_KEYS.includes(issue.message) ? issue.m
 **TDD exception:** none
 
 ### TASK-34 — Date and time rules
-**Phase:** 1 · **Requirements:** REQ-07 · **Status:** todo · **Revision:** 1
+**Phase:** 1 · **Requirements:** REQ-07 · **Status:** done · **Revision:** 1
 **Files:** src/domain/schemas.ts, src/domain/schemas.test.ts
 **Interface:** `isCalendarDate`, `eventDateSchema`, `eventTimeSchema` (C3)
 **Test first:**
@@ -1421,7 +1421,7 @@ if `key` already set; value = `VALIDATION_KEYS.includes(issue.message) ? issue.m
 **TDD exception:** none
 
 ### TASK-35 — IANA timezone rule
-**Phase:** 1 · **Requirements:** REQ-08 · **Status:** todo · **Revision:** 1
+**Phase:** 1 · **Requirements:** REQ-08 · **Status:** done · **Revision:** 1
 **Files:** src/domain/timezone.ts, src/domain/timezone.test.ts, src/domain/schemas.ts, src/domain/schemas.test.ts
 **Interface:** `export function isValidTimeZone(tz: string): boolean`; `timezoneSchema` (C3)
 **Test first:**
@@ -1432,7 +1432,7 @@ if `key` already set; value = `VALIDATION_KEYS.includes(issue.message) ? issue.m
 **TDD exception:** none
 
 ### TASK-36 — Local date/time ↔ UTC instant
-**Phase:** 1 · **Requirements:** REQ-09 · **Status:** todo · **Revision:** 1
+**Phase:** 1 · **Requirements:** REQ-09 · **Status:** done · **Revision:** 1
 **Files:** src/domain/event-time.ts, src/domain/event-time.test.ts
 **Interface:** `export function toStartsAt(date: string, time: string, timeZone: string): Date`;
 `export function toLocalParts(instant: Date, timeZone: string): { date: string; time: string }`
@@ -1447,7 +1447,7 @@ local date and time` — values exactly as in REQ-09.
 **TDD exception:** none
 
 ### TASK-37 — Date/time not in the past
-**Phase:** 1 · **Requirements:** REQ-10 · **Status:** todo · **Revision:** 1
+**Phase:** 1 · **Requirements:** REQ-10 · **Status:** done · **Revision:** 1
 **Files:** src/domain/policies.ts, src/domain/policies.test.ts
 **Interface:** `export function assertNotInPast(startsAt: Date, now: Date): void`
 **Test first:** `REQ-10: a start one minute before now is rejected as inPast` (expect `toThrow(ValidationError)` and
@@ -1456,7 +1456,7 @@ local date and time` — values exactly as in REQ-09.
 **TDD exception:** none
 
 ### TASK-38 — Random slug
-**Phase:** 1 · **Requirements:** REQ-11 · **Status:** todo · **Revision:** 1
+**Phase:** 1 · **Requirements:** REQ-11 · **Status:** done · **Revision:** 1
 **Files:** src/domain/slug.ts, src/domain/slug.test.ts
 **Interface:** `export function generateSlug(): string`
 **Test first:** `REQ-11: slug is 10 URL-safe characters`; `REQ-11: 1000 slugs are all different` (`new Set(...).size === 1000`).
@@ -1466,7 +1466,7 @@ Red stub returns `'x'`.
 **TDD exception:** none
 
 ### TASK-39 — Ownership policy
-**Phase:** 1 · **Requirements:** REQ-03 · **Status:** todo · **Revision:** 1
+**Phase:** 1 · **Requirements:** REQ-03 · **Status:** done · **Revision:** 1
 **Files:** src/domain/policies.ts, src/domain/policies.test.ts
 **Interface:** `export function isOwner(event: Pick<EventRecord, 'ownerId'>, userId: string | null): boolean`;
 `export function assertOwner(event: Pick<EventRecord, 'ownerId'>, userId: string | null): void`
@@ -1476,7 +1476,7 @@ Red stub returns `'x'`.
 **TDD exception:** none
 
 ### TASK-40 — Event ended policy
-**Phase:** 1 · **Requirements:** REQ-16, REQ-29 · **Status:** todo · **Revision:** 1
+**Phase:** 1 · **Requirements:** REQ-16, REQ-29 · **Status:** done · **Revision:** 1
 **Files:** src/domain/policies.ts, src/domain/policies.test.ts
 **Interface:** `export function hasEnded(event: Pick<EventRecord, 'startsAt'>, now: Date): boolean`;
 `export function assertNotEnded(event: Pick<EventRecord, 'startsAt'>, now: Date): void` (throws `EventEndedError`)
@@ -1488,7 +1488,7 @@ Red stub returns `'x'`.
 **TDD exception:** none
 
 ### TASK-41 — Date/time display in the event timezone
-**Phase:** 1 · **Requirements:** REQ-12 · **Status:** todo · **Revision:** 1
+**Phase:** 1 · **Requirements:** REQ-12 · **Status:** done · **Revision:** 1
 **Files:** src/lib/format-date.ts, src/lib/format-date.test.ts
 **Interface:** `export function formatEventDateTime(instant: Date, timeZone: string, locale: string): string`
 **Test first:** the three locale cases of REQ-12, plus `REQ-12: output does not depend on the machine timezone`
@@ -1499,7 +1499,7 @@ Red stub returns `'x'`.
 **TDD exception:** none
 
 ### TASK-42 — RSVP totals
-**Phase:** 1 · **Requirements:** REQ-32 · **Status:** todo · **Revision:** 1
+**Phase:** 1 · **Requirements:** REQ-32 · **Status:** done · **Revision:** 1
 **Files:** src/domain/rsvp.ts, src/domain/rsvp.test.ts, src/domain/types.ts
 **Interface:** `export function computeTotals(rsvps: ReadonlyArray<Pick<RsvpRecord, 'status' | 'partySize'>>): Totals`
 **Test first:** `REQ-32: counts going and declined RSVPs and sums going party sizes`; `REQ-32: an empty list gives zeros`
@@ -1508,7 +1508,7 @@ Red stub returns `'x'`.
 **TDD exception:** none
 
 ### TASK-43 — Repository interfaces
-**Phase:** 1 · **Requirements:** — · **Status:** todo · **Revision:** 1
+**Phase:** 1 · **Requirements:** — · **Status:** done · **Revision:** 1
 **Files:** src/repositories/interfaces.ts
 **Interface:** Contract C4 (verbatim)
 **Test first:** — (types only)
@@ -1516,7 +1516,7 @@ Red stub returns `'x'`.
 **TDD exception:** chore — type declarations only
 
 ### TASK-44 — In-memory repositories for unit tests
-**Phase:** 1 · **Requirements:** — · **Status:** todo · **Revision:** 1
+**Phase:** 1 · **Requirements:** — · **Status:** done · **Revision:** 1
 **Files:** src/repositories/memory/memory-store.ts, src/repositories/memory/memory-event-repository.ts,
 src/repositories/memory/memory-rsvp-repository.ts, src/repositories/memory/memory-rate-limit-repository.ts,
 src/repositories/memory/index.ts
@@ -1531,7 +1531,7 @@ All methods return copies (`{ ...record }`), never the stored objects. `update`/
 **TDD exception:** chore — test infrastructure (fakes)
 
 ### TASK-45 — Integration test helpers
-**Phase:** 1 · **Requirements:** — · **Status:** todo · **Revision:** 1
+**Phase:** 1 · **Requirements:** — · **Status:** done · **Revision:** 1
 **Files:** src/test/db.ts
 **Interface:** `export async function resetDatabase(): Promise<void>` (same TRUNCATE statement as `e2e/helpers/db.ts`,
 using `prisma` from `@/lib/prisma`); `export async function createUser(email = 'owner@example.com'): Promise<{ id: string }>`;
@@ -1543,7 +1543,7 @@ using `prisma` from `@/lib/prisma`); `export async function createUser(email = '
 **TDD exception:** chore — test infrastructure
 
 ### TASK-46 — Prisma event repository: create and find
-**Phase:** 1 · **Requirements:** REQ-14 · **Status:** todo · **Revision:** 1
+**Phase:** 1 · **Requirements:** REQ-14 · **Status:** done · **Revision:** 1
 **Files:** src/repositories/prisma/prisma-event-repository.ts, src/repositories/prisma/prisma-event-repository.int.test.ts, package.json
 **Interface:** `export class PrismaEventRepository implements EventRepository { constructor(private readonly prisma: PrismaClient) }`
 (other methods: stubs throwing `Error('not implemented')` until TASK-47/48)
@@ -1557,7 +1557,7 @@ Also remove `--passWithNoTests` from the `test:int` script (C9 form).
 **TDD exception:** none
 
 ### TASK-47 — Prisma event repository: update and delete with cascade
-**Phase:** 1 · **Requirements:** REQ-18 · **Status:** todo · **Revision:** 1
+**Phase:** 1 · **Requirements:** REQ-18 · **Status:** done · **Revision:** 1
 **Files:** src/repositories/prisma/prisma-event-repository.ts, …int.test.ts
 **Test first:**
 - `REQ-18: update changes the editable fields` — update name/description/location/startsAt/timezone → `findBySlug` reflects them
@@ -1568,7 +1568,7 @@ Also remove `--passWithNoTests` from the `test:int` script (C9 form).
 **TDD exception:** none
 
 ### TASK-48 — Prisma event repository: owner's events with RSVP summaries
-**Phase:** 1 · **Requirements:** REQ-35 · **Status:** todo · **Revision:** 1
+**Phase:** 1 · **Requirements:** REQ-35 · **Status:** done · **Revision:** 1
 **Files:** src/repositories/prisma/prisma-event-repository.ts, …int.test.ts
 **Test first:** `REQ-35: lists only the owner's events with their RSVP status and party size` — users u1, u2; u1 has
 2 events (one with RSVPs GOING 2 and NOT_GOING 0), u2 has 1 → result has 2 items, the RSVP summaries equal
@@ -1579,7 +1579,7 @@ then map to `{ event: <event without rsvps>, rsvps }`.
 **TDD exception:** none
 
 ### TASK-49 — Prisma RSVP repository: create/update with duplicate-name mapping
-**Phase:** 1 · **Requirements:** REQ-27 · **Status:** todo · **Revision:** 1
+**Phase:** 1 · **Requirements:** REQ-27 · **Status:** done · **Revision:** 1
 **Files:** src/repositories/prisma/prisma-rsvp-repository.ts, src/repositories/prisma/prisma-rsvp-repository.int.test.ts
 **Interface:** `export class PrismaRsvpRepository implements RsvpRepository { constructor(private readonly prisma: PrismaClient) }`
 **Test first:**
@@ -1601,7 +1601,7 @@ Other methods: stubs until TASK-50/51.
 **TDD exception:** none
 
 ### TASK-50 — Prisma RSVP repository: reads
-**Phase:** 1 · **Requirements:** REQ-33 · **Status:** todo · **Revision:** 1
+**Phase:** 1 · **Requirements:** REQ-33 · **Status:** done · **Revision:** 1
 **Files:** src/repositories/prisma/prisma-rsvp-repository.ts, …int.test.ts
 **Test first:**
 - `REQ-33: listByEvent returns the event's RSVPs oldest first` — create "b" then "a" (insert "b" first) → names `['b','a']`;
@@ -1614,14 +1614,14 @@ with both `eventId` and the key.
 **TDD exception:** none
 
 ### TASK-51 — Prisma RSVP repository: delete and bulk create
-**Phase:** 1 · **Requirements:** REQ-30, REQ-37 · **Status:** todo · **Revision:** 1
+**Phase:** 1 · **Requirements:** REQ-30, REQ-37 · **Status:** done · **Revision:** 1
 **Files:** src/repositories/prisma/prisma-rsvp-repository.ts, …int.test.ts
 **Test first:** `REQ-30: delete removes one RSVP`; `REQ-37: createMany stores all given RSVPs` (5 rows → `listByEvent` length 5).
 **Done when:** tests pass; no method of the class throws `not implemented` any more.
 **TDD exception:** none
 
 ### TASK-52 — CreateEventService
-**Phase:** 1 · **Requirements:** REQ-14 · **Status:** todo · **Revision:** 1
+**Phase:** 1 · **Requirements:** REQ-14 · **Status:** done · **Revision:** 1
 **Files:** src/services/create-event.ts, src/services/create-event.test.ts, src/domain/schemas.ts
 **Interface:** C5 `CreateEventService`; add `eventInputSchema`, `EventFormValues`, `EventInput` (C3) to schemas.ts
 **Test first:** memory repositories, `now = () => new Date('2026-09-24T15:00:00.000Z')`, `newSlug = () => 'abcdefghij'`:
@@ -1638,7 +1638,7 @@ with both `eventId` and the key.
 **TDD exception:** none
 
 ### TASK-53 — UpdateEventService
-**Phase:** 1 · **Requirements:** REQ-16 · **Status:** todo · **Revision:** 1
+**Phase:** 1 · **Requirements:** REQ-16 · **Status:** done · **Revision:** 1
 **Files:** src/services/update-event.ts, src/services/update-event.test.ts
 **Interface:** C5 `UpdateEventService`
 **Test first:** arrange event `abc` (owner `u1`, start `2026-10-02T23:00:00.000Z`) with 2 RSVPs in the memory store;
@@ -1654,7 +1654,7 @@ with both `eventId` and the key.
 **TDD exception:** none
 
 ### TASK-54 — DeleteEventService
-**Phase:** 1 · **Requirements:** REQ-18 · **Status:** todo · **Revision:** 1
+**Phase:** 1 · **Requirements:** REQ-18 · **Status:** done · **Revision:** 1
 **Files:** src/services/delete-event.ts, src/services/delete-event.test.ts
 **Test first:** `REQ-18: the owner deletes the event and its RSVPs` (memory store: event + 2 RSVPs → both gone);
 `REQ-18: another user gets NotOwnerError and nothing is deleted`; `REQ-18: unknown slug gets NotFoundError`;
@@ -1663,7 +1663,7 @@ with both `eventId` and the key.
 **TDD exception:** none
 
 ### TASK-55 — ListDashboardService
-**Phase:** 1 · **Requirements:** REQ-35 · **Status:** todo · **Revision:** 1
+**Phase:** 1 · **Requirements:** REQ-35 · **Status:** done · **Revision:** 1
 **Files:** src/services/list-dashboard.ts, src/services/list-dashboard.test.ts
 **Test first:** `REQ-35: splits the owner's events into upcoming (soonest first) and past (latest first) with totals`
 — exact arrangement and expectations of REQ-35 (events A, B, C for `u1`, D for `u2`).
@@ -1672,7 +1672,7 @@ with both `eventId` and the key.
 **TDD exception:** none
 
 ### TASK-56 — GetEventPageService (roles)
-**Phase:** 1 · **Requirements:** REQ-33 · **Status:** todo · **Revision:** 1
+**Phase:** 1 · **Requirements:** REQ-33 · **Status:** done · **Revision:** 1
 **Files:** src/services/get-event-page.ts, src/services/get-event-page.test.ts
 **Interface:** C5 `GetEventPageService`, `EventPageView`
 **Test first:** arrangement of REQ-33 (Maria GOING 3, João NOT_GOING, created in that order):
@@ -1687,7 +1687,7 @@ with both `eventId` and the key.
 **TDD exception:** none
 
 ### TASK-57 — Safe sign-in redirect paths
-**Phase:** 1 · **Requirements:** REQ-02 · **Status:** todo · **Revision:** 1
+**Phase:** 1 · **Requirements:** REQ-02 · **Status:** done · **Revision:** 1
 **Files:** src/lib/auth-redirect.ts, src/lib/auth-redirect.test.ts
 **Interface:** C7 `sanitizeCallbackUrl`, `signInRedirectPath`
 **Test first:** `REQ-02: sanitizeCallbackUrl keeps local paths and rejects everything else` (the four cases of REQ-02
@@ -1697,7 +1697,7 @@ plus `"/\\evil.com"` → `"/"`); `REQ-02: signInRedirectPath builds the login UR
 **TDD exception:** none
 
 ### TASK-58 — Service container and session helpers
-**Phase:** 1 · **Requirements:** — · **Status:** todo · **Revision:** 1
+**Phase:** 1 · **Requirements:** — · **Status:** done · **Revision:** 1
 **Files:** src/lib/container.ts, src/lib/session.ts
 **Interface:**
 ```ts
@@ -1743,7 +1743,7 @@ Later phases add entries to `Services` and `getServices()`.
 **TDD exception:** chore — dependency wiring
 
 ### TASK-59 — Protected routes send signed-out visitors to Google
-**Phase:** 1 · **Requirements:** REQ-02 · **Status:** todo · **Revision:** 1
+**Phase:** 1 · **Requirements:** REQ-02 · **Status:** done · **Revision:** 1
 **Files:** e2e/auth.spec.ts, src/app/api/login/route.ts, src/app/[locale]/dashboard/page.tsx
 **Interface:** `GET /api/login?callbackUrl=<path>`
 **Test first:** `e2e/auth.spec.ts`:
@@ -1774,7 +1774,7 @@ test('REQ-02: a signed-out visitor to /en/dashboard is sent to Google and asked 
 **TDD exception:** none
 
 ### TASK-60 — Event form component
-**Phase:** 1 · **Requirements:** REQ-15 · **Status:** todo · **Revision:** 1
+**Phase:** 1 · **Requirements:** REQ-15 · **Status:** done · **Revision:** 1
 **Files:** src/components/event-form.tsx, src/components/event-form.test.tsx, src/lib/browser-timezone.ts
 **Interface:**
 ```ts
@@ -1809,7 +1809,7 @@ Use `fireEvent.change(getByLabelText('Name'), { target: { value: 'Team dinner' }
 **TDD exception:** none
 
 ### TASK-61 — Timezone prefilled from the browser
-**Phase:** 1 · **Requirements:** REQ-13 · **Status:** todo · **Revision:** 1
+**Phase:** 1 · **Requirements:** REQ-13 · **Status:** done · **Revision:** 1
 **Files:** src/components/event-form.tsx, src/components/event-form.test.tsx
 **Test first:** with `detectBrowserTimeZone` mocked to return `'America/Sao_Paulo'`:
 - `REQ-13: the timezone select starts with the browser timezone` — `(getByLabelText('Timezone') as HTMLSelectElement).value === 'America/Sao_Paulo'`
@@ -1820,7 +1820,7 @@ Use `fireEvent.change(getByLabelText('Name'), { target: { value: 'Team dinner' }
 **TDD exception:** none
 
 ### TASK-62 — Create-event action, new-event page and event page
-**Phase:** 1 · **Requirements:** REQ-15 · **Status:** todo · **Revision:** 1
+**Phase:** 1 · **Requirements:** REQ-15 · **Status:** done · **Revision:** 1
 **Files:** src/app/[locale]/events/new/page.tsx, src/app/[locale]/events/new/actions.ts,
 src/app/[locale]/e/[slug]/page.tsx, src/components/event-details.tsx, e2e/events.spec.ts, e2e/helpers/dates.ts
 **Interface:**
@@ -1859,7 +1859,7 @@ vi.mock('@/lib/container', () => ({ getServices: () => ({ createEvent: { execute
 **TDD exception:** none
 
 ### TASK-63 — Site header with language switcher
-**Phase:** 1 · **Requirements:** REQ-54 · **Status:** todo · **Revision:** 1
+**Phase:** 1 · **Requirements:** REQ-54 · **Status:** done · **Revision:** 1
 **Files:** src/components/site-header.tsx, src/components/locale-switcher.tsx, src/app/[locale]/layout.tsx,
 src/app/[locale]/actions.ts, e2e/i18n.spec.ts
 **Interface:** `export function LocaleSwitcher(): JSX.Element` ('use client');
@@ -1879,7 +1879,7 @@ src/app/[locale]/actions.ts, e2e/i18n.spec.ts
 **TDD exception:** none
 
 ### TASK-64 — Timezone prefill end-to-end
-**Phase:** 1 · **Requirements:** REQ-13 · **Status:** todo · **Revision:** 1
+**Phase:** 1 · **Requirements:** REQ-13 · **Status:** done · **Revision:** 1
 **Files:** e2e/events.spec.ts
 **Test first (characterization test — behavior delivered by TASK-61):**
 `REQ-13: the timezone is prefilled from the browser and can be changed` — `test.use({ timezoneId: 'America/Sao_Paulo' })`;
@@ -1889,7 +1889,7 @@ rest, save → `await db.event.findFirst()` has `timezone 'Europe/Paris'`.
 **TDD exception:** none (characterization test, convention 13)
 
 ### TASK-65 — Dashboard page
-**Phase:** 1 · **Requirements:** REQ-36 · **Status:** todo · **Revision:** 1
+**Phase:** 1 · **Requirements:** REQ-36 · **Status:** done · **Revision:** 1
 **Files:** src/app/[locale]/dashboard/page.tsx, e2e/dashboard.spec.ts
 **Test first:** `e2e/dashboard.spec.ts`:
 - `REQ-36: lists upcoming and past events with counts` — signed in as Ana; db rows: upcoming "Team dinner" (start
@@ -1904,7 +1904,7 @@ rest, save → `await db.event.findFirst()` has `timezone 'Europe/Paris'`.
 **TDD exception:** none
 
 ### TASK-66 — Delete event with confirmation
-**Phase:** 1 · **Requirements:** REQ-19, REQ-18 · **Status:** todo · **Revision:** 1
+**Phase:** 1 · **Requirements:** REQ-19, REQ-18 · **Status:** done · **Revision:** 1
 **Files:** src/components/delete-event-button.tsx, src/components/delete-event-button.test.tsx,
 src/app/[locale]/e/[slug]/actions.ts, src/app/[locale]/e/[slug]/page.tsx, e2e/events.spec.ts
 **Interface:** `DeleteEventButton({ deleteAction }: { deleteAction: () => Promise<ActionResult<null>> })` ('use client');
@@ -1923,7 +1923,7 @@ only when `view.role === 'owner'`.
 **TDD exception:** none
 
 ### TASK-67 — Edit event page
-**Phase:** 1 · **Requirements:** REQ-17 · **Status:** todo · **Revision:** 1
+**Phase:** 1 · **Requirements:** REQ-17 · **Status:** done · **Revision:** 1
 **Files:** src/app/[locale]/e/[slug]/edit/page.tsx, src/app/[locale]/e/[slug]/actions.ts,
 src/app/[locale]/e/[slug]/page.tsx, e2e/events.spec.ts
 **Interface:** `updateEventAction(slug: string, values: unknown): Promise<ActionResult<{ slug: string }>>`
