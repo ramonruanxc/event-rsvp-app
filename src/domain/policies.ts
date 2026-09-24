@@ -19,3 +19,13 @@ export function assertOwner(event: Pick<EventRecord, 'ownerId'>, userId: string 
     throw new NotOwnerError();
   }
 }
+
+/** True once now is strictly after the event's start time; equal to start is still open (BR-32, BR-33). */
+export function hasEnded(_event: Pick<EventRecord, 'startsAt'>, _now: Date): boolean {
+  throw new Error('not implemented');
+}
+
+/** Throws EventEndedError once the event has started. */
+export function assertNotEnded(_event: Pick<EventRecord, 'startsAt'>, _now: Date): void {
+  throw new Error('not implemented');
+}
