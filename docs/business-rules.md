@@ -48,6 +48,11 @@
 **Rationale:** One user can be an Organizer on one event and a Guest on another; a single source of truth per event avoids inconsistent role state.
 **Source:** design brief §2 "Actors and roles"
 
+#### BR-95 — Signed-out access to organizer-only routes
+**Rule:** A signed-out visitor requesting an organizer-only route (e.g. `/dashboard`, `/events/new`) is redirected
+to Google sign-in, and returned to the originally requested page after signing in.
+**Source:** Human decision 2026-09-24 (open question 8)
+
 ---
 
 ### Events
@@ -82,13 +87,17 @@
 **Rule:** Deleting an event removes all of that event's RSVPs.
 **Source:** design brief §2 "Events"
 
-#### BR-11 — Date changes after RSVPs exist are allowed
-**Rule:** The organizer may change an event's date/time even after guests have RSVP'd.
+#### BR-11 — Field changes after RSVPs exist are allowed
+**Rule:** The organizer may edit any event field — name, description, date/time, timezone, or location — even
+after guests have RSVP'd, as long as the event has not yet ended (see BR-94).
 **Source:** design brief §2 "Events"
+**Amended:** 2026-09-24 — human decision (open question 5)
 
 #### BR-12 — No guest notification on change
-**Rule:** Guests are not notified when the organizer changes the event date (email notifications are out of scope).
+**Rule:** Guests are not notified when the organizer changes any event field, including date/time (email
+notifications are out of scope).
 **Source:** design brief §2 "Events"
+**Amended:** 2026-09-24 — human decision (open question 5)
 
 #### BR-13 — Events have no end time
 **Rule:** An event has a start date/time only; there is no end-time field.
@@ -131,6 +140,11 @@
 #### BR-21 — Event date/time cannot be in the past
 **Rule:** An event cannot be created with a date/time earlier than the current moment.
 **Source:** design brief §2 "Events"
+
+#### BR-90 — Edited date/time cannot be in the past
+**Rule:** When the organizer edits an existing event's date/time (see BR-11), the new value cannot be earlier than
+the current moment.
+**Source:** Human decision 2026-09-24 (open question 5)
 
 ---
 
@@ -182,8 +196,27 @@
 **Source:** design brief §2 "RSVPs"
 
 #### BR-33 — Ended-event page is read-only
-**Rule:** Once RSVPs are closed, the event's guest-facing page displays "This event has ended" and accepts no further submissions or edits.
+**Rule:** Once RSVPs are closed, the event's guest-facing page displays "This event has ended" and accepts no further submissions or edits. This restriction applies only to the guest-facing page; for the organizer's own
+capabilities after an event has ended, see BR-91–BR-94.
 **Source:** design brief §2 "RSVPs"
+**Amended:** 2026-09-24 — human decision (open question 6)
+
+#### BR-91 — Organizer can view the guest list after an event has ended
+**Rule:** After an event has ended, its organizer can still view the event's full guest list.
+**Source:** Human decision 2026-09-24 (open question 6)
+
+#### BR-92 — Organizer can remove RSVPs after an event has ended
+**Rule:** After an event has ended, its organizer can still remove RSVPs from the event.
+**Source:** Human decision 2026-09-24 (open question 6)
+
+#### BR-93 — Organizer can delete the event after it has ended
+**Rule:** After an event has ended, its organizer can still delete the event (subject to BR-09's confirmation and
+BR-10's cascade).
+**Source:** Human decision 2026-09-24 (open question 6)
+
+#### BR-94 — Organizer cannot edit the event after it has ended
+**Rule:** After an event has ended, its organizer can no longer edit the event's fields.
+**Source:** Human decision 2026-09-24 (open question 6)
 
 #### BR-34 — No RSVP capacity limit
 **Rule:** There is no maximum number of RSVPs or total attendees an event can accept.
@@ -203,12 +236,19 @@
 **Source:** design brief §2 "RSVPs"
 
 #### BR-37 — Same-browser duplicate name is treated as an edit
-**Rule:** If a guest submits a name that matches (case-insensitive, trimmed) an existing RSVP on the same event from the same browser, the submission is treated as an edit of that existing RSVP rather than a new one.
+**Rule:** If a guest submits a name that matches (case-insensitive, trimmed) an existing RSVP on the same event, and
+the request carries a valid edit-token cookie for that event, the submission is treated as an edit of that existing
+RSVP rather than a new one. The presence of that valid cookie is the sole basis for "same browser".
 **Source:** design brief §2 "RSVPs"
+**Amended:** 2026-09-24 — human decision (open question 4)
 
 #### BR-38 — Different-browser duplicate name is blocked
-**Rule:** If a guest submits a name that matches (case-insensitive, trimmed) an existing RSVP on the same event from a different browser, the submission is blocked with the message "This name is already on the list. Use a different name or ask the organizer."
+**Rule:** If a guest submits a name that matches (case-insensitive, trimmed) an existing RSVP on the same event, and
+the request does not carry a valid edit-token cookie for that event (never issued, cleared, or expired), it is
+treated as coming from a different browser and blocked with the message "This name is already on the list. Use a
+different name or ask the organizer."
 **Source:** design brief §2 "RSVPs"
+**Amended:** 2026-09-24 — human decision (open question 4)
 
 #### BR-39 — Name uniqueness enforced at the database level
 **Rule:** Name uniqueness per event is enforced by a database unique constraint on `(eventId, nameKey)`, not only by application-level checks.
@@ -228,8 +268,11 @@
 ### Guest list visibility
 
 #### BR-42 — Organizer sees the full guest list
-**Rule:** The organizer's view of an event shows, for every RSVP: guest name, response, party size, RSVP date, and a control to remove it.
+**Rule:** The organizer's view of an event shows, for every RSVP: guest name, response, party size, a date labeled
+"Last updated" (the time of the RSVP's most recent change — submission, edit, or cancel), and a control to remove
+it.
 **Source:** design brief §2 "Guest list visibility"
+**Amended:** 2026-09-24 — human decision (open question 9)
 
 #### BR-43 — Organizer sees totals
 **Rule:** The organizer's view of an event shows totals (e.g. going / declined / total people).
@@ -265,8 +308,10 @@
 **Source:** design brief §2 "Organizer dashboard"
 
 #### BR-50 — Sample event content
-**Rule:** The generated sample event is dated 7 days ahead of creation and is pre-populated with 5 fictional RSVPs.
+**Rule:** The generated sample event is dated 7 days ahead of creation at 19:00 local time in the organizer's
+browser timezone, and is pre-populated with 5 fictional RSVPs.
 **Source:** design brief §2 "Organizer dashboard"
+**Amended:** 2026-09-24 — human decision (open question 10)
 
 #### BR-51 — Owner event page offers invite-link copy
 **Rule:** The event page, viewed by its owner, includes a "Copy invite link" action.
@@ -289,8 +334,10 @@
 **Source:** design brief §2 "AI feature — natural-language event creation"
 
 #### BR-55 — AI drafts a description when absent
-**Rule:** If the organizer's input text does not include a description, the AI drafts one.
+**Rule:** If the organizer's input text does not include a description, the AI drafts one, written in the same
+language as the organizer's input text.
 **Source:** design brief §2 "AI feature — natural-language event creation"
+**Amended:** 2026-09-24 — human decision (open question 7)
 
 #### BR-56 — AI reports fields it could not determine
 **Rule:** For any field the AI cannot determine from the input text, the AI fill action returns that field's name in a list of missing fields instead of filling it.
@@ -343,8 +390,16 @@
 **Source:** design brief §2 "AI feature — natural-language event creation"
 
 #### BR-68 — AI daily call limit
-**Rule:** Each signed-in user is limited to 20 "Fill with AI" calls per day.
+**Rule:** Each signed-in user is limited to 20 "Fill with AI" calls per day. The daily window is fixed and resets
+at 00:00 UTC, regardless of the user's local timezone.
 **Source:** design brief §2 "AI feature — natural-language event creation"; §4 "Errors and security"
+**Amended:** 2026-09-24 — human decision (open question 1)
+
+#### BR-89 — AI daily-limit UX
+**Rule:** When an organizer has exceeded the AI daily call limit (BR-68), "Fill with AI" remains visible; using it
+shows the message "Daily AI limit reached — fill the form manually." instead of calling the AI, and the manual
+form continues to work as normal.
+**Source:** Human decision 2026-09-24 (open question 3)
 
 #### BR-69 — AI input is delimited against prompt injection
 **Rule:** Organizer-supplied text is delimited within the AI prompt, separating it from instructions, as a prompt-injection mitigation.
@@ -401,6 +456,11 @@
 #### BR-79 — RSVP submission rate limit
 **Rule:** RSVP submissions are rate-limited to 10 per 10 minutes per IP address.
 **Source:** design brief §4 "Errors and security"
+
+#### BR-88 — RSVP rate-limit UX
+**Rule:** When a guest exceeds the RSVP rate limit (BR-79), the form displays the translated message "Too many
+submissions — please try again in a few minutes." and preserves the values the guest had entered.
+**Source:** Human decision 2026-09-24 (open question 2)
 
 #### BR-80 — IP addresses stored hashed
 **Rule:** Client IP addresses used for rate limiting are stored hashed, not in plaintext.
@@ -463,33 +523,17 @@ BR above.
 
 ## Open questions
 
-Items the brief does not decide. Per Mode 1, these are not resolved here — they are reported to the orchestrator
-for a human decision.
+None open.
 
-1. **AI daily limit reset window** — Does the 20-calls-per-user-per-day AI limit (design brief §2 "AI feature") reset
-   at UTC midnight or at the organizer's local midnight? Not specified.
-2. **RSVP rate-limit UX** — What is shown to a guest whose IP has exceeded 10 submissions/10 minutes (design brief
-   §4)? The brief defines the limit but not the user-facing behavior when it is hit.
-3. **AI daily-limit UX** — What happens when an organizer requests a 21st AI fill in a day (design brief §2, §4)? Is
-   "Fill with AI" disabled, hidden, or does it fail with a message, and what message?
-4. **"Same browser" detection mechanism for duplicate names** — Design brief §2 "RSVPs" distinguishes "same browser"
-   (treated as an edit) from "different browser" (blocked), but does not state the detection mechanism. Is it
-   solely the presence of that event's edit-token cookie? If a guest's cookie is cleared or expired and they
-   resubmit the same name, is that treated as same-browser (edit) or different-browser (blocked)?
-5. **Scope of "date changes after RSVPs are allowed"** — Design brief §2 "Events" only addresses date changes after
-   RSVPs exist. Does the same permissive rule apply to editing name, description, location, or timezone after
-   RSVPs exist, or are those restricted in some way?
-6. **Organizer actions after an event has ended** — Design brief §2 "RSVPs" states the guest-facing page becomes
-   read-only ("This event has ended") once RSVPs close, but does not say whether the organizer can still edit the
-   event or remove RSVPs after that point.
-7. **Language of the AI-drafted description** — When the AI drafts a description because the organizer's input
-   lacks one (design brief §2 "AI feature"), is it written in the input's language, the organizer's current UI
-   locale, or a fixed default? Not specified.
-8. **Unauthenticated access to organizer-only routes** — The routes table (design brief §3) marks `/dashboard` and
-   `/events/new` as "Organizer" access but does not state the behavior for a signed-out visitor (redirect to
-   sign-in, 404, etc.).
-9. **Meaning of "RSVP date" in the organizer's guest list** — Design brief §2 "Guest list visibility" lists "RSVP
-   date" as a column but does not say whether it reflects the original submission time or the time of the most
-   recent edit/cancel.
-10. **Sample event's timezone** — Design brief §2 "Organizer dashboard" specifies the sample event's date (7 days
-    ahead) and RSVP content (5 fictional RSVPs) but not which timezone it is created in.
+**Resolved** — decided by the human (Ramon) on 2026-09-24:
+
+1. AI daily limit reset window → BR-68 (amended)
+2. RSVP rate-limit UX → BR-88 (new)
+3. AI daily-limit UX → BR-89 (new)
+4. "Same browser" detection mechanism for duplicate names → BR-37, BR-38 (amended)
+5. Scope of "date changes after RSVPs are allowed" → BR-11, BR-12 (amended), BR-90 (new)
+6. Organizer actions after an event has ended → BR-33 (amended), BR-91, BR-92, BR-93, BR-94 (new)
+7. Language of the AI-drafted description → BR-55 (amended)
+8. Unauthenticated access to organizer-only routes → BR-95 (new)
+9. Meaning of "RSVP date" in the organizer's guest list → BR-42 (amended)
+10. Sample event's timezone → BR-50 (amended)
