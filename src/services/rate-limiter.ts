@@ -14,8 +14,8 @@ export const RSVP_RULE: RateLimitRule = { name: 'rsvp', limit: 10, windowMs: 600
 export const AI_RULE: RateLimitRule = { name: 'ai', limit: 20, windowMs: 86_400_000 };
 
 /** Aligns `now` to the start of its fixed window of size `windowMs`. */
-export function windowStart(_now: Date, _windowMs: number): Date {
-  throw new Error('not implemented');
+export function windowStart(now: Date, windowMs: number): Date {
+  return new Date(Math.floor(now.getTime() / windowMs) * windowMs);
 }
 
 /** Fixed-window rate limiter backed by a RateLimitRepository counter. */
@@ -24,9 +24,13 @@ export class RateLimiter {
 
   /** Increments the counter for (rule, subject) in the current window and reports whether it is still allowed. */
   async consume(
-    _rule: RateLimitRule,
-    _subject: string,
+    rule: RateLimitRule,
+    subject: string,
   ): Promise<{ allowed: boolean; count: number }> {
-    throw new Error('not implemented');
+    const count = await this.deps.repo.increment(
+      `${rule.name}:${subject}`,
+      windowStart(this.deps.now(), rule.windowMs),
+    );
+    return { allowed: count <= rule.limit, count };
   }
 }
