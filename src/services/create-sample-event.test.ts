@@ -35,9 +35,9 @@ describe('CreateSampleEventService', () => {
 
     const stored = store.rsvps.filter((rsvp) => rsvp.eventId === event.id);
     expect(stored).toHaveLength(5);
-    expect(
-      stored.map(({ name, status, partySize }) => ({ name, status, partySize })),
-    ).toEqual(expectedGuests);
+    expect(stored.map(({ name, status, partySize }) => ({ name, status, partySize }))).toEqual(
+      expectedGuests,
+    );
 
     expect(computeTotals(stored)).toEqual({ going: 4, declined: 1, people: 7 });
   });
