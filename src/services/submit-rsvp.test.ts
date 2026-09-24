@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { NotFoundError, ValidationError } from '@/domain/errors';
+import { DuplicateNameError, NotFoundError, ValidationError } from '@/domain/errors';
 import { hashToken } from '@/lib/crypto';
 import { createMemoryRepositories } from '@/repositories/memory';
 import { SubmitRsvpService } from './submit-rsvp';
@@ -93,6 +93,62 @@ describe('SubmitRsvpService', () => {
 
     expect(result.created).toBe(true);
     expect(store.rsvps).toHaveLength(201);
+  });
+
+  async function arrangeMariaAndJoao() {
+    const repos = await arrange();
+    const tokens = ['T', 'U'];
+    const service = new SubmitRsvpService({
+      events: repos.events,
+      rsvps: repos.rsvps,
+      now,
+      newToken: () => tokens.shift() ?? 'unused',
+    });
+    await service.execute({ ...base, values: { name: 'Maria', status: 'GOING', partySize: 3 } }); // token 'T'
+    await service.execute({ ...base, values: { name: 'João', status: 'GOING', partySize: 1 } }); // token 'U'
+    return { ...repos, service, before: structuredClone(repos.store.rsvps) };
+  }
+
+  it('REQ-26: a duplicate name without a token is blocked', async () => {
+    const { service, store, before } = await arrangeMariaAndJoao();
+
+    await expect(
+      service.execute({
+        ...base,
+        editToken: null,
+        values: { name: '  maria ', status: 'GOING', partySize: 2 },
+      }),
+    ).rejects.toBeInstanceOf(DuplicateNameError);
+
+    expect(store.rsvps).toEqual(before);
+  });
+
+  it('REQ-26: a token that matches no RSVP does not count', async () => {
+    const { service, store, before } = await arrangeMariaAndJoao();
+
+    await expect(
+      service.execute({
+        ...base,
+        editToken: 'not-a-real-token',
+        values: { name: 'Maria', status: 'GOING', partySize: 2 },
+      }),
+    ).rejects.toBeInstanceOf(DuplicateNameError);
+
+    expect(store.rsvps).toEqual(before);
+  });
+
+  it("REQ-26: another RSVP's token does not allow taking a name", async () => {
+    const { service, store, before } = await arrangeMariaAndJoao();
+
+    await expect(
+      service.execute({
+        ...base,
+        editToken: 'U',
+        values: { name: 'Maria', status: 'GOING', partySize: 2 },
+      }),
+    ).rejects.toBeInstanceOf(DuplicateNameError);
+
+    expect(store.rsvps).toEqual(before);
   });
 });
 
