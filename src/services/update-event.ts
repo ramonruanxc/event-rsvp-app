@@ -1,3 +1,7 @@
+import { NotFoundError, ValidationError } from '@/domain/errors';
+import { toStartsAt } from '@/domain/event-time';
+import { assertNotEnded, assertNotInPast, assertOwner } from '@/domain/policies';
+import { eventInputSchema } from '@/domain/schemas';
 import type { EventRecord, Clock } from '@/domain/types';
 import type { EventRepository } from '@/repositories/interfaces';
 
@@ -11,7 +15,25 @@ export class UpdateEventService {
     slug: string;
     values: unknown;
   }): Promise<EventRecord> {
-    void input;
-    throw new Error('not implemented');
+    const event = await this.deps.events.findBySlug(input.slug);
+    if (!event) throw new NotFoundError();
+    assertOwner(event, input.userId);
+    const now = this.deps.now();
+    assertNotEnded(event, now);
+
+    const parsed = eventInputSchema.safeParse(input.values);
+    if (!parsed.success) throw ValidationError.fromZod(parsed.error);
+
+    const { name, description, date, time, timezone, location } = parsed.data;
+    const startsAt = toStartsAt(date, time, timezone);
+    assertNotInPast(startsAt, now);
+
+    return this.deps.events.update(event.id, {
+      name,
+      description,
+      location,
+      startsAt,
+      timezone,
+    });
   }
 }
