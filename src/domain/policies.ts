@@ -1,4 +1,4 @@
-import { NotOwnerError, ValidationError } from './errors';
+import { EventEndedError, NotOwnerError, ValidationError } from './errors';
 import type { EventRecord } from './types';
 
 /** Throws ValidationError({ date: 'inPast' }) when startsAt is strictly before now (BR-21, BR-90). */
@@ -21,11 +21,13 @@ export function assertOwner(event: Pick<EventRecord, 'ownerId'>, userId: string 
 }
 
 /** True once now is strictly after the event's start time; equal to start is still open (BR-32, BR-33). */
-export function hasEnded(_event: Pick<EventRecord, 'startsAt'>, _now: Date): boolean {
-  throw new Error('not implemented');
+export function hasEnded(event: Pick<EventRecord, 'startsAt'>, now: Date): boolean {
+  return now.getTime() > event.startsAt.getTime();
 }
 
 /** Throws EventEndedError once the event has started. */
-export function assertNotEnded(_event: Pick<EventRecord, 'startsAt'>, _now: Date): void {
-  throw new Error('not implemented');
+export function assertNotEnded(event: Pick<EventRecord, 'startsAt'>, now: Date): void {
+  if (hasEnded(event, now)) {
+    throw new EventEndedError();
+  }
 }
