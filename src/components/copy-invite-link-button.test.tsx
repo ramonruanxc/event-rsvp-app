@@ -16,6 +16,6 @@ describe('CopyInviteLinkButton', () => {
     await waitFor(() =>
       expect(writeText).toHaveBeenCalledWith(buildInviteUrl(window.location.origin, 'abc')),
     );
-    expect(screen.getByText('Link copied')).toBeInTheDocument();
+    expect(screen.getByText('Link copied')).toBeTruthy();
   });
 });
