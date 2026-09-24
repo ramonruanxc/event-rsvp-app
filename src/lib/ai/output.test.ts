@@ -32,4 +32,31 @@ describe('normalizeAiOutput', () => {
       normalizeAiOutput({ ...VALID_RAW, description: 'a'.repeat(2001) }, null).fields.description,
     ).toBeNull();
   });
+
+  it('REQ-46: without a text timezone the form timezone is used, and with neither the timezone is null', () => {
+    const r1 = normalizeAiOutput({ ...VALID_RAW, timezone: null }, 'America/Sao_Paulo');
+    expect(r1.fields.timezone).toBe('America/Sao_Paulo');
+    expect(r1.timezoneFromText).toBe(false);
+
+    const r2 = normalizeAiOutput({ ...VALID_RAW, timezone: null }, null);
+    expect(r2.fields.timezone).toBeNull();
+    expect(r2.timezoneFromText).toBe(false);
+
+    const r3 = normalizeAiOutput({ ...VALID_RAW, timezone: null }, '');
+    expect(r3.fields.timezone).toBeNull();
+    expect(r3.timezoneFromText).toBe(false);
+  });
+
+  it('REQ-46: a valid text timezone wins over the form; an invalid one falls back to the form', () => {
+    const r1 = normalizeAiOutput({ ...VALID_RAW, timezone: 'Mars/Olympus' }, 'America/Sao_Paulo');
+    expect(r1.fields.timezone).toBe('America/Sao_Paulo');
+    expect(r1.timezoneFromText).toBe(false);
+
+    const r2 = normalizeAiOutput(
+      { ...VALID_RAW, timezone: 'America/New_York' },
+      'America/Sao_Paulo',
+    );
+    expect(r2.fields.timezone).toBe('America/New_York');
+    expect(r2.timezoneFromText).toBe(true);
+  });
 });
