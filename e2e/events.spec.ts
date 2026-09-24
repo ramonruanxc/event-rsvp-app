@@ -111,7 +111,7 @@ test.describe('REQ-17: editing an event', () => {
     await page.getByRole('button', { name: 'Save event' }).click();
 
     await expect(page).toHaveURL(`/en/e/${event.slug}`);
-    await expect(page.getByText('Team lunch')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Team lunch' })).toBeVisible();
   });
 
   test('REQ-17: another organizer gets a 404 on the edit page', async ({ page, context }) => {
