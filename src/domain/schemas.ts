@@ -1,5 +1,8 @@
 import { z } from 'zod';
 
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
+
 const requiredText = (max: number) =>
   z.string({ error: 'required' }).trim().min(1, 'required').max(max, 'tooLong');
 
@@ -12,9 +15,20 @@ export const eventLocationSchema = z
   .transform((v) => (v ? v : null));
 
 /** True for an existing calendar date written yyyy-MM-dd. */
-export function isCalendarDate(_value: string): boolean {
-  return true;
+export function isCalendarDate(value: string): boolean {
+  if (!DATE_RE.test(value)) return false;
+  const [y, m, d] = value.split('-').map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  return dt.getUTCFullYear() === y && dt.getUTCMonth() === m - 1 && dt.getUTCDate() === d;
 }
 
-export const eventDateSchema = z.string();
-export const eventTimeSchema = z.string();
+export const eventDateSchema = z
+  .string({ error: 'required' })
+  .trim()
+  .min(1, 'required')
+  .refine(isCalendarDate, 'invalidFormat');
+export const eventTimeSchema = z
+  .string({ error: 'required' })
+  .trim()
+  .min(1, 'required')
+  .regex(TIME_RE, 'invalidFormat');
