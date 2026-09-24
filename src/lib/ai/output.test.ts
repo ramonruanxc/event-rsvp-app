@@ -76,4 +76,30 @@ describe('normalizeAiOutput', () => {
     expect(normalizeAiOutput(VALID_RAW, null).missing).toEqual(['timezone']);
     expect(normalizeAiOutput(VALID_RAW, '').missing).toEqual(['timezone']);
   });
+
+  it('REQ-45: non-event text returns notAnEvent with every field empty and missing', () => {
+    const raw = {
+      isEvent: false,
+      name: 'Weather',
+      description: 'A forecast.',
+      date: '2026-09-25',
+      time: '09:00',
+      timezone: 'Europe/Paris',
+      location: 'Paris',
+    };
+
+    expect(normalizeAiOutput(raw, 'America/New_York')).toEqual({
+      fields: {
+        name: null,
+        description: null,
+        date: null,
+        time: null,
+        timezone: null,
+        location: null,
+      },
+      missing: ['name', 'description', 'date', 'time', 'timezone', 'location'],
+      timezoneFromText: false,
+      notAnEvent: true,
+    });
+  });
 });
