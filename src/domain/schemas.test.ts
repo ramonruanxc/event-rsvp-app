@@ -5,6 +5,7 @@ import {
   eventLocationSchema,
   eventNameSchema,
   eventTimeSchema,
+  timezoneSchema,
 } from './schemas';
 
 describe('eventNameSchema', () => {
@@ -110,6 +111,22 @@ describe('eventDateSchema and eventTimeSchema', () => {
       if (!result.success) {
         expect(result.error.issues[0].message).toBe('invalidFormat');
       }
+    }
+  });
+});
+
+describe('timezoneSchema', () => {
+  it('REQ-08: timezone field is required and must be valid', () => {
+    const emptyResult = timezoneSchema.safeParse('');
+    expect(emptyResult.success).toBe(false);
+    if (!emptyResult.success) {
+      expect(emptyResult.error.issues[0].message).toBe('required');
+    }
+
+    const invalidResult = timezoneSchema.safeParse('Mars/Olympus');
+    expect(invalidResult.success).toBe(false);
+    if (!invalidResult.success) {
+      expect(invalidResult.error.issues[0].message).toBe('invalidTimezone');
     }
   });
 });

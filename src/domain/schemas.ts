@@ -32,3 +32,5 @@ export const eventTimeSchema = z
   .trim()
   .min(1, 'required')
   .regex(TIME_RE, 'invalidFormat');
+
+export const timezoneSchema = z.string();
