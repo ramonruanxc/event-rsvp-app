@@ -38,3 +38,28 @@ test.describe('REQ-15: an organizer creates an event', () => {
     expect(await db.event.count()).toBe(0);
   });
 });
+
+test.describe('REQ-13: timezone prefill', () => {
+  test.use({ timezoneId: 'America/Sao_Paulo' });
+
+  test('REQ-13: the timezone is prefilled from the browser and can be changed', async ({
+    page,
+    context,
+  }) => {
+    await signInAs(context, { email: 'tz@example.com', name: 'TZ' });
+
+    await page.goto('/en/events/new');
+    await expect(page.getByLabel('Timezone')).toHaveValue('America/Sao_Paulo');
+
+    await page.getByLabel('Name').fill('Team dinner');
+    await page.getByLabel('Description').fill('Pasta night');
+    await page.getByLabel('Date').fill(futureDate(7));
+    await page.getByLabel('Time', { exact: true }).fill('19:00');
+    await page.getByLabel('Timezone').selectOption('Europe/Paris');
+    await page.getByRole('button', { name: 'Save event' }).click();
+
+    await expect(page).toHaveURL(/\/en\/e\/[A-Za-z0-9_-]{10}$/);
+    const event = await db.event.findFirst();
+    expect(event?.timezone).toBe('Europe/Paris');
+  });
+});
