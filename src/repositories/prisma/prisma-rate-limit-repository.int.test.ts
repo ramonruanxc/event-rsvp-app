@@ -14,9 +14,7 @@ describe('PrismaRateLimitRepository', () => {
       Array.from({ length: 15 }, () => repo.increment('rsvp:h1', ws)),
     );
 
-    expect([...counts].sort((a, b) => a - b)).toEqual(
-      Array.from({ length: 15 }, (_, i) => i + 1),
-    );
+    expect([...counts].sort((a, b) => a - b)).toEqual(Array.from({ length: 15 }, (_, i) => i + 1));
 
     const otherWindow = await repo.increment('rsvp:h1', new Date(ws.getTime() + 600_000));
     expect(otherWindow).toBe(1);
