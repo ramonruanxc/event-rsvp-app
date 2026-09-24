@@ -44,8 +44,21 @@ export class SubmitRsvpService {
     const { name, status, partySize } = parsed.data;
     const nameKey = toNameKey(name);
 
-    // TASK-77 will resolve the guest's own RSVP from input.editToken and edit it here.
+    const own = input.editToken
+      ? await this.deps.rsvps.findByTokenHash(event.id, hashToken(input.editToken))
+      : null;
+
     // TASK-78 will block a nameKey collision with a different RSVP as DuplicateNameError.
+
+    if (own) {
+      const updated = await this.deps.rsvps.update(own.id, { name, nameKey, status, partySize });
+      return {
+        created: false,
+        editToken: input.editToken as string,
+        cookieExpires: editTokenExpiry(event.startsAt),
+        rsvp: { name: updated.name, status: updated.status, partySize: updated.partySize },
+      };
+    }
 
     const newToken = this.deps.newToken ?? generateEditToken;
     const token = newToken();
