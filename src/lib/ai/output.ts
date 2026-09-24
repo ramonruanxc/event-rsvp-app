@@ -68,6 +68,15 @@ export function normalizeAiOutput(raw: unknown, formTimezone: string | null): Pa
   if (!parsed.success) throw new AiUnavailableError();
   const data = parsed.data;
 
+  if (data.isEvent === false) {
+    return {
+      fields: Object.fromEntries(AI_FIELDS.map((field) => [field, null])) as Record<AiField, null>,
+      missing: [...AI_FIELDS],
+      timezoneFromText: false,
+      notAnEvent: true,
+    };
+  }
+
   const { timezone, fromText } = resolveTimezone(data.timezone, formTimezone);
 
   const fields: Record<AiField, string | null> = {
