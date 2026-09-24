@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { toLocalParts, toStartsAt } from './event-time';
+import { addDaysToDateString, toLocalParts, toStartsAt } from './event-time';
 
 describe('toStartsAt', () => {
   it('REQ-09: 19:00 in New York in October is 23:00 UTC', () => {
@@ -27,5 +27,12 @@ describe('toLocalParts', () => {
       date: '2026-10-02',
       time: '19:00',
     });
+  });
+});
+
+describe('addDaysToDateString', () => {
+  it('REQ-37: addDaysToDateString crosses month ends', () => {
+    expect(addDaysToDateString('2026-09-24', 7)).toBe('2026-10-01');
+    expect(addDaysToDateString('2026-12-28', 7)).toBe('2027-01-04');
   });
 });
