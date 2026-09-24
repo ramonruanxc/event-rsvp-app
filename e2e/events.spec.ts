@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { fromZonedTime } from 'date-fns-tz';
 import { resetDatabase, db } from './helpers/db';
 import { signInAs } from './helpers/auth';
 import { futureDate } from './helpers/dates';
@@ -84,5 +85,71 @@ test.describe('REQ-18: deleting an event', () => {
 
     await expect(page).toHaveURL(/\/en\/dashboard$/);
     expect(await db.event.count()).toBe(0);
+  });
+});
+
+test.describe('REQ-17: editing an event', () => {
+  test('REQ-17: the owner edits an event from a prefilled form', async ({ page, context }) => {
+    const { id: ownerId } = await signInAs(context, { email: 'edit@example.com', name: 'Editor' });
+    const event = await db.event.create({
+      data: {
+        slug: 'evt-edit0001',
+        ownerId,
+        name: 'Team dinner',
+        description: 'Pasta night',
+        startsAt: fromZonedTime(`${futureDate(7)}T19:00:00`, 'America/New_York'),
+        timezone: 'America/New_York',
+      },
+    });
+
+    await page.goto(`/en/e/${event.slug}/edit`);
+    await expect(page.getByLabel('Name')).toHaveValue('Team dinner');
+    await expect(page.getByLabel('Time', { exact: true })).toHaveValue('19:00');
+    await expect(page.getByLabel('Timezone')).toHaveValue('America/New_York');
+
+    await page.getByLabel('Name').fill('Team lunch');
+    await page.getByRole('button', { name: 'Save event' }).click();
+
+    await expect(page).toHaveURL(`/en/e/${event.slug}`);
+    await expect(page.getByText('Team lunch')).toBeVisible();
+  });
+
+  test('REQ-17: another organizer gets a 404 on the edit page', async ({ page, context }) => {
+    const owner = await db.user.create({ data: { email: 'owner2@example.com', name: 'Owner2' } });
+    const event = await db.event.create({
+      data: {
+        slug: 'evt-edit0002',
+        ownerId: owner.id,
+        name: 'Team dinner',
+        description: 'Pasta night',
+        startsAt: fromZonedTime(`${futureDate(7)}T19:00:00`, 'America/New_York'),
+        timezone: 'America/New_York',
+      },
+    });
+    await signInAs(context, { email: 'other@example.com', name: 'Other' });
+
+    const res = await page.goto(`/en/e/${event.slug}/edit`);
+    expect(res?.status()).toBe(404);
+  });
+
+  test('REQ-17: an ended event cannot be edited', async ({ page, context }) => {
+    const { id: ownerId } = await signInAs(context, { email: 'ended@example.com', name: 'Ended' });
+    const event = await db.event.create({
+      data: {
+        slug: 'evt-edit0003',
+        ownerId,
+        name: 'Old party',
+        description: 'It happened',
+        startsAt: new Date('2020-01-01T00:00:00.000Z'),
+        timezone: 'America/New_York',
+      },
+    });
+
+    await page.goto(`/en/e/${event.slug}/edit`);
+    await expect(page.getByText('This event has ended')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Save event' })).toHaveCount(0);
+
+    await page.goto(`/en/e/${event.slug}`);
+    await expect(page.getByRole('link', { name: 'Edit' })).toHaveCount(0);
   });
 });

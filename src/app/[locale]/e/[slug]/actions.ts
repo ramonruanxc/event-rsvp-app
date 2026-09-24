@@ -14,3 +14,11 @@ export async function deleteEventAction(slug: string): Promise<ActionResult<null
     return toActionError(error);
   }
 }
+
+/** Updates an event; only its owner may edit it, and only before it starts (REQ-17). */
+export async function updateEventAction(
+  _slug: string,
+  _values: unknown,
+): Promise<ActionResult<{ slug: string }>> {
+  throw new Error('not implemented');
+}
