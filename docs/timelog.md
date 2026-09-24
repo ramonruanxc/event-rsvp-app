@@ -21,6 +21,19 @@ Event times are taken from session timestamps. All times in America/Fortaleza (U
 | # | Phase | Start | End | Duration | Note |
 |---|---|---|---|---|---|
 | 1 | 1 — Spec definition | 2026-09-24 12:32:29 | 2026-09-24 13:11:44 | 39m 15s | Personal break |
+| 2 | 2 — Pipeline bootstrap + spec | 2026-09-24 14:04:38 | 2026-09-24 14:39:47 | 35m 09s | Human away; spec-writer agent ran meanwhile (see Agent runs) |
+
+## Agent runs
+
+Pipeline agents working autonomously. Reported separately from human active time.
+
+| Agent | Model | Start | End | Duration | Result |
+|---|---|---|---|---|---|
+| analyst (Mode 1) | sonnet | 2026-09-24 13:40:20 | 2026-09-24 13:44:02 | 3m 43s | 87 BRs, 10 open questions |
+| analyst (Mode 2) | sonnet | 2026-09-24 13:55:10 | 2026-09-24 13:57:40 | 2m 30s | BR-88–BR-95, 9 amended |
+| spec-writer | opus | 2026-09-24 13:58:20 | 2026-09-24 14:39:10 | 40m 50s | 64 REQs, 120 tasks, DOC_FAILURE (2 questions) |
+| analyst (Mode 2, DOC-Q1/Q2) | sonnet | 2026-09-24 14:43:40 | 2026-09-24 14:45:25 | 1m 45s | BR-37/38/55 amended, BR-96 new |
+| spec-writer (DOC resolution) | opus | 2026-09-24 14:45:40 | 2026-09-24 14:49:13 | 3m 33s | 6 REQs + 8 tasks updated; 122 tasks total |
 
 ## Events
 
@@ -44,3 +57,9 @@ Event times are taken from session timestamps. All times in America/Fortaleza (U
 | 2026-09-24 13:28:58 | Execution loop redefined: execution failure → spec failure → documentation failure |
 | 2026-09-24 13:34:18 | Doc ownership defined: analyst doc-sync before merge + CI traceability check |
 | 2026-09-24 13:35:54 | Design section 5 (pipeline, repo, delivery) approved — phase 2 starts |
+| 2026-09-24 13:39:30 | Repository created and protected (merge commits only, commitlint required) |
+| 2026-09-24 13:44:02 | analyst: 87 business rules derived, 10 open questions for human decision |
+| 2026-09-24 13:52:37 | Human decided all 10 open questions; analyst recorded BR-88–BR-95 and amended 9 BRs |
+| 2026-09-24 14:39:31 | spec-writer: 64 REQs + 120 tasks (+5 human); returned DOC_FAILURE with 2 ambiguous rules |
+| 2026-09-24 14:42:13 | Human resolved DOC-Q1/Q2 and approved spec + plan |
+| 2026-09-24 14:48:45 | DOC failure #1 resolved; spec + plan final (96/96 BRs covered) |
