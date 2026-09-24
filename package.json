@@ -9,15 +9,19 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "vercel-build": "prisma generate && prisma migrate deploy && next build",
     "lint": "eslint . --max-warnings=0",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "typecheck": "tsc --noEmit",
     "test:unit": "vitest run --project unit",
     "pretest:int": "dotenv -e .env.test -- prisma migrate deploy",
-    "test:int": "dotenv -e .env.test -- vitest run --project integration --passWithNoTests"
+    "test:int": "dotenv -e .env.test -- vitest run --project integration --passWithNoTests",
+    "db:migrate": "prisma migrate dev",
+    "postinstall": "prisma generate"
   },
   "dependencies": {
+    "@prisma/client": "^6.19.3",
     "next": "15.5.26",
     "react": "19.1.0",
     "react-dom": "19.1.0"
@@ -36,6 +40,7 @@
     "eslint-config-next": "15.5.26",
     "jsdom": "^30.1.1",
     "prettier": "^3.9.9",
+    "prisma": "^6.19.3",
     "tailwindcss": "^4",
     "tsx": "^4.23.15",
     "typescript": "^5",
