@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { eventDescriptionSchema, eventNameSchema } from './schemas';
+import { eventDescriptionSchema, eventLocationSchema, eventNameSchema } from './schemas';
 
 describe('eventNameSchema', () => {
   it('REQ-04: accepts and trims a normal name', () => {
@@ -50,5 +50,17 @@ describe('eventDescriptionSchema', () => {
 
   it('REQ-05: keeps inner line breaks', () => {
     expect(eventDescriptionSchema.parse('  Line 1\nLine 2 ')).toBe('Line 1\nLine 2');
+  });
+});
+
+describe('eventLocationSchema', () => {
+  it('REQ-06: empty or missing location becomes null', () => {
+    for (const value of [undefined, null, '', '   ']) {
+      expect(eventLocationSchema.parse(value)).toBe(null);
+    }
+  });
+
+  it('REQ-06: location is trimmed', () => {
+    expect(eventLocationSchema.parse(" Mario's ")).toBe("Mario's");
   });
 });
