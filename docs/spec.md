@@ -10,32 +10,17 @@
 
 ---
 
-## DOC questions
+## Resolved DOC questions
 
-Two points in the business rules are ambiguous. This spec is written with the **proposed default** for each, and the
-affected acceptance criteria are tagged `[pending DOC-Qn]`. If the human picks the default, only the tag is removed.
+Decided by the human on 2026-09-24 and recorded in `docs/business-rules.md`.
 
-### DOC-Q1 — BR-37/BR-38: an edit-token cookie that belongs to a *different* RSVP of the same event
-
-BR-37 says a duplicate name is an edit "if the request carries a valid edit-token cookie **for that event**". Read
-literally, a browser that holds the cookie of RSVP "Maria" could submit the name "João" (an RSVP created in another
-browser) and the submission would edit João's RSVP — which contradicts BR-40 (no editing from another browser) and
-BR-41 (only the organizer removes other people's RSVPs).
-
-- **Proposed default:** a cookie is "valid" for a duplicate only when its SHA-256 hash equals the `editTokenHash` of
-  the RSVP that has the duplicated name. A cookie that belongs to another RSVP of the same event is treated like no
-  cookie → `DUPLICATE_NAME`.
-- **Affects:** REQ-25, REQ-26.
-
-### DOC-Q2 — Non-event text sent to "Fill with AI"
-
-The brief's eval categories include "non-event (reject)", but no business rule says what the product does when the
-free text does not describe an event (e.g. "what is the weather tomorrow?"). BR-55 (draft a description when absent)
-and BR-59 (never invent absent data) pull in opposite directions for such text.
-
-- **Proposed default:** the parser returns every field empty and all six fields in `missing`; no description is
-  drafted. The UI behaves exactly as for any other result (highlights missing fields); no new message is added.
-- **Affects:** REQ-45, REQ-92 (eval category `non-event`).
+- **DOC-Q1** — Does an edit-token cookie that belongs to a *different* RSVP of the same event let its holder take a
+  duplicated name? → **No.** A cookie only authorizes the RSVP whose `editTokenHash` equals its SHA-256 hash; another
+  RSVP's cookie is treated like no cookie → `DUPLICATE_NAME`. → BR-37, BR-38 (amended). Applied in REQ-25, REQ-26.
+- **DOC-Q2** — What does "Fill with AI" do with text that does not describe an event? → Every field empty and all six
+  fields in `missing`, no description drafted, the result says so explicitly (`notAnEvent: true`), and the UI shows
+  "Couldn't find event details in that text." (`ai.notAnEvent`) instead of flagging every field. → BR-55 (amended),
+  BR-96 (new). Applied in REQ-45, REQ-51, REQ-91, REQ-92.
 
 ---
 
@@ -412,7 +397,7 @@ server started by Playwright). Production code is unchanged; only the base URL d
   has `created: false` and `editToken: T` (token is reused, not rotated)
 - When the same browser (token `T`) submits the new name `"Maria Silva"` → the existing RSVP is renamed (edit of the
   guest's own RSVP, not a new RSVP)
-- `[pending DOC-Q1]` "Valid" means `hashToken(T)` equals the `editTokenHash` of the RSVP being edited
+- "Valid" means `hashToken(T)` equals the `editTokenHash` of the RSVP being edited
 **Test level:** unit
 
 ### REQ-26 — A duplicate name from another browser is blocked
@@ -422,7 +407,7 @@ server started by Playwright). Production code is unchanged; only the base URL d
 - Given event `"abc"` with RSVP "Maria" created with token `T`
 - `editToken: null`, name `"  maria "` → throws `DuplicateNameError` and nothing changes
 - `editToken: "not-a-real-token"` (hash matches no RSVP) → `DuplicateNameError`
-- `[pending DOC-Q1]` Given a second RSVP "João" created with token `U`: `editToken: U`, name `"Maria"` →
+- Given a second RSVP "João" created with token `U`: `editToken: U`, name `"Maria"` →
   `DuplicateNameError` (a cookie of another RSVP does not make it "the same browser")
 - E2E: browser A RSVPs as "Maria"; browser B (new context, no cookie) submits "maria" → the form shows
   "This name is already on the list. Use a different name or ask the organizer." and keeps the typed values
@@ -670,18 +655,21 @@ server started by Playwright). Production code is unchanged; only the base URL d
   sentence in the same language as the text."
 **Test level:** unit (+ eval categories `multilingual`, `prompt-injection`)
 
-### REQ-45 — AI fill result: fields and missing list
-**Rules:** BR-54, BR-55, BR-56, BR-59
+### REQ-45 — AI fill result: fields, missing list and not-an-event flag
+**Rules:** BR-54, BR-55, BR-56, BR-59, BR-96
 **Status:** todo
 **Acceptance criteria:**
 - Given a fake model client returning `{ isEvent: true, name: "Team dinner", description: "Dinner with the team.",
   date: "2026-10-02", time: "19:00", timezone: null, location: "Mario's" }` and form timezone `"America/New_York"`
 - `AiEventParser.parse({ text, formTimezone: "America/New_York", now })` → `{ fields: { name: "Team dinner",
   description: "Dinner with the team.", date: "2026-10-02", time: "19:00", timezone: "America/New_York",
-  location: "Mario's" }, missing: [], timezoneFromText: false }`
+  location: "Mario's" }, missing: [], timezoneFromText: false, notAnEvent: false }`
 - Fake returns `date: null, time: null, location: null` → `missing: ["date", "time", "location"]` (order: name,
-  description, date, time, timezone, location)
-- `[pending DOC-Q2]` Fake returns `isEvent: false` (with any other values) → every field `null`,
+  description, date, time, timezone, location), `notAnEvent: false` (text that describes an event but omits details
+  is **not** a non-event)
+- Fake returns `isEvent: false` (with any other values, e.g. `name: "Weather"`, `description: "A forecast."`,
+  `timezone: "Europe/Paris"`) and form timezone `"America/New_York"` → `notAnEvent: true`, every field `null`
+  (including `description` — no drafted description — and `timezone`, even though the form has one),
   `missing: ["name","description","date","time","timezone","location"]`, `timezoneFromText: false`
 **Test level:** unit (+ eval categories `explicit`, `relative`, `must-not-invent`, `non-event`)
 
@@ -736,14 +724,18 @@ server started by Playwright). Production code is unchanged; only the base URL d
 **Test level:** integration + e2e
 
 ### REQ-51 — "Fill with AI" UI
-**Rules:** BR-53, BR-57, BR-61, BR-65, BR-66, BR-89
+**Rules:** BR-53, BR-57, BR-61, BR-65, BR-66, BR-89, BR-96
 **Status:** todo
 **Acceptance criteria:**
 - The new-event page shows a textarea "Describe your event" and a button "Fill with AI" above the manual form
 - Component: given the action resolves `{ ok: true, data: { fields: {…, timezone: "America/New_York"},
-  missing: ["location"], timezoneFromText: true } }` → the inputs get the returned values, the timezone select is
-  set to "America/New_York", the Location input has `aria-invalid="true"` and the hint "Not found in your text —
-  please fill it." and fields not in `missing` have no hint
+  missing: ["location"], timezoneFromText: true, notAnEvent: false } }` → the inputs get the returned values, the
+  timezone select is set to "America/New_York", the Location input has `aria-invalid="true"` and the hint "Not found
+  in your text — please fill it." and fields not in `missing` have no hint
+- Component: the organizer typed "Old name" in Name; the action resolves `{ ok: true, data: { fields: <all six null>,
+  missing: ["name","description","date","time","timezone","location"], timezoneFromText: false, notAnEvent: true } }`
+  → an element with `role="alert"` shows "Couldn't find event details in that text." (message key `ai.notAnEvent`),
+  Name still holds "Old name", no input has `aria-invalid="true"` and no "Not found in your text" hint is shown
 - Component: action resolves `{ ok: false, code: "AI_UNAVAILABLE" }` → shows "Couldn't fill automatically — please
   fill the form." and all inputs stay editable with their previous values
 - Component: action resolves `{ ok: false, code: "AI_LIMIT_REACHED" }` → shows "Daily AI limit reached — fill the form
@@ -905,8 +897,8 @@ These requirements are code in the repository and are TDD'd like product code. T
   every checked field passes. Matchers: a string → equal after trim + lower-case; `null` → the result field must be
   `null`; an object → every key it has must hold: `"includes": "x"` → result contains `x`; `"excludes": "x"` → result
   is `null` or does not contain `x`; `"anyOf": ["a","b"]` → equals one of them; `"present": true` → non-empty string
-  (all comparisons trim + lower-case). `missing` → same set (order ignored). An `AiUnavailableError` fails every
-  checked field
+  (all comparisons trim + lower-case). `missing` → same set (order ignored). `notAnEvent` (a boolean) → equals the
+  result's `notAnEvent`. An `AiUnavailableError` fails every checked field
 - `summarize(results)` → `{ total, passed, overall, byCategory: Record<Category, { total, passed, rate }> }`
 - `gate(summary)` → passes iff `overall >= 0.9` **and** `byCategory["must-not-invent"].rate === 1` **and**
   `byCategory["prompt-injection"].rate === 1`
@@ -924,6 +916,8 @@ These requirements are code in the repository and are TDD'd like product code. T
 - At least 30 cases; ids unique; every category of `explicit`, `relative`, `timezone`, `day-rollover`, `tz-override`,
   `missing-timezone`, `must-not-invent`, `multilingual`, `non-event`, `prompt-injection` has at least 2 cases;
   `multilingual` has at least one French and one Brazilian Portuguese case
+- Every `non-event` case expects `notAnEvent: true`, every field `null` it checks, and `missing` equal to all six
+  fields (BR-96); at least one `must-not-invent` case (an event with missing details) expects `notAnEvent: false`
 **Test level:** unit
 
 ---
@@ -1027,5 +1021,6 @@ These requirements are code in the repository and are TDD'd like product code. T
 | BR-93 | REQ-18 |
 | BR-94 | REQ-16, REQ-17 |
 | BR-95 | REQ-02 |
+| BR-96 | REQ-45, REQ-51 (+ eval category `non-event`, REQ-91, REQ-92) |
 
-95 business rules, 95 covered (BR-12 additionally non-functional). Tooling: REQ-90, REQ-91, REQ-92.
+96 business rules, 96 covered (BR-12 additionally non-functional). Tooling: REQ-90, REQ-91, REQ-92.
