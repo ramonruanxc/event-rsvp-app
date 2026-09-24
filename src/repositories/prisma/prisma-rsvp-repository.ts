@@ -38,23 +38,26 @@ export class PrismaRsvpRepository implements RsvpRepository {
   }
 
   /** Returns the RSVP with the given id, or null when none exists. */
-  async findById(_id: string): Promise<RsvpRecord | null> {
-    throw new Error('not implemented');
+  async findById(id: string): Promise<RsvpRecord | null> {
+    return this.prisma.rsvp.findUnique({ where: { id } });
   }
 
   /** Returns the RSVP with the given event id and name key, or null when none exists. */
-  async findByNameKey(_eventId: string, _nameKey: string): Promise<RsvpRecord | null> {
-    throw new Error('not implemented');
+  async findByNameKey(eventId: string, nameKey: string): Promise<RsvpRecord | null> {
+    return this.prisma.rsvp.findFirst({ where: { eventId, nameKey } });
   }
 
   /** Returns the RSVP with the given event id and edit token hash, or null when none exists. */
-  async findByTokenHash(_eventId: string, _editTokenHash: string): Promise<RsvpRecord | null> {
-    throw new Error('not implemented');
+  async findByTokenHash(eventId: string, editTokenHash: string): Promise<RsvpRecord | null> {
+    return this.prisma.rsvp.findFirst({ where: { eventId, editTokenHash } });
   }
 
   /** Ordered by createdAt ascending. */
-  async listByEvent(_eventId: string): Promise<RsvpRecord[]> {
-    throw new Error('not implemented');
+  async listByEvent(eventId: string): Promise<RsvpRecord[]> {
+    return this.prisma.rsvp.findMany({
+      where: { eventId },
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+    });
   }
 
   /** Stores every given RSVP. */
