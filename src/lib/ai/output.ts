@@ -2,8 +2,8 @@ import { z } from 'zod';
 import { AiUnavailableError } from '@/domain/errors';
 import { eventDescriptionSchema, eventNameSchema, isCalendarDate } from '@/domain/schemas';
 import { isValidTimeZone } from '@/domain/timezone';
-import type { AiField } from './types';
-import type { ParseEventResult } from './types';
+import { AI_FIELDS } from './types';
+import type { AiField, ParseEventResult } from './types';
 
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
 
@@ -79,5 +79,7 @@ export function normalizeAiOutput(raw: unknown, formTimezone: string | null): Pa
     location: normalizeLocation(data.location),
   };
 
-  return { fields, missing: [], timezoneFromText: fromText, notAnEvent: false };
+  const missing = AI_FIELDS.filter((field) => fields[field] === null);
+
+  return { fields, missing, timezoneFromText: fromText, notAnEvent: false };
 }
