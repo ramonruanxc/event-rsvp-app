@@ -1950,7 +1950,7 @@ the owner only while `!view.ended`.
 Order: TASK-70 → TASK-89.
 
 ### TASK-70 — RSVP input rules
-**Phase:** 2 · **Requirements:** REQ-20 · **Status:** todo · **Revision:** 1
+**Phase:** 2 · **Requirements:** REQ-20 · **Status:** done · **Revision:** 1
 **Files:** src/domain/schemas.ts, src/domain/schemas.test.ts
 **Interface:** `rsvpInputSchema`, `RsvpInput` (C3)
 **Test first:** `describe('rsvpInputSchema')` with `REQ-20: trims the name`; `REQ-20: a blank name is required`;
@@ -1962,7 +1962,7 @@ Check error keys with `ValidationError.fromZod(result.error).fieldErrors`.
 **TDD exception:** none
 
 ### TASK-71 — Name key
-**Phase:** 2 · **Requirements:** REQ-21 · **Status:** todo · **Revision:** 1
+**Phase:** 2 · **Requirements:** REQ-21 · **Status:** done · **Revision:** 1
 **Files:** src/domain/name-key.ts, src/domain/name-key.test.ts
 **Interface:** `export function toNameKey(name: string): string`
 **Test first:** `REQ-21: trims and lower-cases the name`; `REQ-21: composed and decomposed accents give the same key`;
@@ -1972,7 +1972,7 @@ Check error keys with `ValidationError.fromZod(result.error).fieldErrors`.
 **TDD exception:** none
 
 ### TASK-72 — Edit token and hashing
-**Phase:** 2 · **Requirements:** REQ-22 · **Status:** todo · **Revision:** 1
+**Phase:** 2 · **Requirements:** REQ-22 · **Status:** done · **Revision:** 1
 **Files:** src/lib/crypto.ts, src/lib/crypto.test.ts
 **Interface:** `export function generateEditToken(): string`; `export function hashToken(value: string): string`
 **Test first:** `REQ-22: an edit token is 32 random bytes in base64url` (length 43,
@@ -1982,7 +1982,7 @@ Check error keys with `ValidationError.fromZod(result.error).fieldErrors`.
 **TDD exception:** none
 
 ### TASK-73 — Edit-token cookies
-**Phase:** 2 · **Requirements:** REQ-24 · **Status:** todo · **Revision:** 1
+**Phase:** 2 · **Requirements:** REQ-24 · **Status:** done · **Revision:** 1
 **Files:** src/lib/edit-token-cookie.ts, src/lib/edit-token-cookie.test.ts
 **Interface:**
 ```ts
@@ -1998,7 +1998,7 @@ export function editTokenCookies(slug: string, token: string, expires: Date): Ed
 **TDD exception:** none
 
 ### TASK-74 — Client IP hashing
-**Phase:** 2 · **Requirements:** REQ-56 · **Status:** todo · **Revision:** 1
+**Phase:** 2 · **Requirements:** REQ-56 · **Status:** done · **Revision:** 1
 **Files:** src/lib/client-ip.ts, src/lib/client-ip.test.ts
 **Interface:** `export function clientIp(headers: Headers): string`; `export function hashIp(ip: string, salt: string): string`
 **Test first:** `REQ-56: clientIp takes the first forwarded address` (`x-forwarded-for: "203.0.113.7, 10.0.0.1"` →
@@ -2008,7 +2008,7 @@ export function editTokenCookies(slug: string, token: string, expires: Date): Ed
 **TDD exception:** none
 
 ### TASK-75 — Event page finds the guest's own RSVP
-**Phase:** 2 · **Requirements:** REQ-33 · **Status:** todo · **Revision:** 1
+**Phase:** 2 · **Requirements:** REQ-33 · **Status:** done · **Revision:** 1
 **Files:** src/services/get-event-page.ts, src/services/get-event-page.test.ts
 **Test first:** `REQ-33: a guest with a valid edit token sees only their own RSVP` — Maria was stored with
 `editTokenHash: hashToken('T')`; `execute({ slug, userId: null, editToken: 'T' })` → `ownRsvp` equals
@@ -2019,7 +2019,7 @@ export function editTokenCookies(slug: string, token: string, expires: Date): Ed
 **TDD exception:** none
 
 ### TASK-76 — SubmitRsvpService: new RSVP
-**Phase:** 2 · **Requirements:** REQ-23 · **Status:** todo · **Revision:** 2
+**Phase:** 2 · **Requirements:** REQ-23 · **Status:** done · **Revision:** 2
 **Files:** src/services/submit-rsvp.ts, src/services/submit-rsvp.test.ts
 **Interface:** C5 `SubmitRsvpService`, `SubmitRsvpResult`. `input.ipHash` and `input.honeypot` are accepted and
 ignored until Phase 5.
@@ -2051,7 +2051,7 @@ effects, a pre-check would change no outcome.
 - Rev 2 — TASK-78 SPEC failure: removed the `findByNameKey` pre-check (was step 6); the repository enforces (C4).
 
 ### TASK-77 — Same-browser resubmission edits the own RSVP
-**Phase:** 2 · **Requirements:** REQ-25 · **Status:** todo · **Revision:** 1
+**Phase:** 2 · **Requirements:** REQ-25 · **Status:** done · **Revision:** 1
 **Files:** src/services/submit-rsvp.ts, src/services/submit-rsvp.test.ts
 **Test first:** arrange Maria (GOING 3) created through the service with `newToken: () => 'T'`:
 - `REQ-25: the same name with the guest's own token edits the RSVP` — `name: '  maria '`, `partySize: 5`, `editToken: 'T'` →
@@ -2061,7 +2061,7 @@ effects, a pre-check would change no outcome.
 **TDD exception:** none
 
 ### TASK-78 — Duplicate name from another browser is blocked
-**Phase:** 2 · **Requirements:** REQ-26 · **Status:** todo · **Revision:** 2
+**Phase:** 2 · **Requirements:** REQ-26 · **Status:** done · **Revision:** 2
 **Files:** src/services/submit-rsvp.test.ts (tests only — do **not** modify `src/services/submit-rsvp.ts`)
 **Test first (characterization test — behavior delivered by TASK-77 + Contract C4):** TASK-77 already sends every
 case below to `rsvps.create` (no own RSVP) or `rsvps.update(own.id, …)` (own RSVP is a different one), and both throw
@@ -2102,7 +2102,7 @@ Commit the passing tests alone as `test(rsvp): REQ-26 duplicate name from anothe
 - Rev 2 — SPEC failure revision 1/2: tests passed before any code; now a characterization task (C4 enforces).
 
 ### TASK-79 — RSVP submission closes at the start time
-**Phase:** 2 · **Requirements:** REQ-29 · **Status:** todo · **Revision:** 2
+**Phase:** 2 · **Requirements:** REQ-29 · **Status:** done · **Revision:** 2
 **Files:** src/services/submit-rsvp.ts, src/services/submit-rsvp.test.ts
 **Test first:** add `EventEndedError` to the `@/domain/errors` import. Both tests fail before the implementation:
 - `REQ-29: submissions after the start are rejected` — arrange Maria (GOING 3) through a service with the module
@@ -2127,7 +2127,7 @@ inline). In the same commit, replace the comment `// TASK-78 will block a nameKe
 - Rev 2 — TASK-78 SPEC failure review: the at-start test passed before the implementation; merged into a red boundary test.
 
 ### TASK-80 — CancelRsvpService
-**Phase:** 2 · **Requirements:** REQ-28, REQ-29 · **Status:** todo · **Revision:** 1
+**Phase:** 2 · **Requirements:** REQ-28, REQ-29 · **Status:** done · **Revision:** 1
 **Files:** src/services/cancel-rsvp.ts, src/services/cancel-rsvp.test.ts
 **Interface:** C5 `CancelRsvpService`
 **Test first:** `REQ-28: cancel sets Not going with party size 0 and keeps the RSVP`; `REQ-28: cancel without a valid token
@@ -2138,7 +2138,7 @@ gets NotFoundError` (`null`, `'wrong'`); `REQ-29: cancel after the start gets Ev
 **TDD exception:** none
 
 ### TASK-81 — RemoveRsvpService
-**Phase:** 2 · **Requirements:** REQ-30 · **Status:** todo · **Revision:** 1
+**Phase:** 2 · **Requirements:** REQ-30 · **Status:** done · **Revision:** 1
 **Files:** src/services/remove-rsvp.ts, src/services/remove-rsvp.test.ts
 **Test first:** the four bullets of REQ-30 except the E2E one (owner removes; works after the end; `u2` →
 `NotOwnerError`; RSVP of another event → `NotFoundError`; unknown slug → `NotFoundError`).
@@ -2147,7 +2147,7 @@ gets NotFoundError` (`null`, `'wrong'`); `REQ-29: cancel after the start gets Ev
 **TDD exception:** none
 
 ### TASK-82 — Wire RSVP services
-**Phase:** 2 · **Requirements:** — · **Status:** todo · **Revision:** 1
+**Phase:** 2 · **Requirements:** — · **Status:** done · **Revision:** 1
 **Files:** src/lib/container.ts
 **Interface:** add `submitRsvp: SubmitRsvpService`, `cancelRsvp: CancelRsvpService`, `removeRsvp: RemoveRsvpService`
 to `Services` and build them with the Prisma repositories and `now`.
@@ -2156,7 +2156,7 @@ to `Services` and build them with the Prisma repositories and `now`.
 **TDD exception:** chore — dependency wiring
 
 ### TASK-83 — RSVP form component
-**Phase:** 2 · **Requirements:** REQ-31, REQ-26, REQ-57 · **Status:** todo · **Revision:** 1
+**Phase:** 2 · **Requirements:** REQ-31, REQ-26, REQ-57 · **Status:** done · **Revision:** 1
 **Files:** src/components/rsvp-form.tsx, src/components/rsvp-form.test.tsx
 **Interface:**
 ```ts
@@ -2186,7 +2186,7 @@ after any error. Pass `''` as honeypot for now (TASK-143 adds the field).
 **TDD exception:** none
 
 ### TASK-84 — Guest RSVP panel component
-**Phase:** 2 · **Requirements:** REQ-31 · **Status:** todo · **Revision:** 1
+**Phase:** 2 · **Requirements:** REQ-31 · **Status:** done · **Revision:** 1
 **Files:** src/components/guest-rsvp-panel.tsx, src/components/guest-rsvp-panel.test.tsx
 **Interface:**
 ```ts
@@ -2214,7 +2214,7 @@ Behavior:
 **TDD exception:** none
 
 ### TASK-85 — Guest page wiring and RSVP actions
-**Phase:** 2 · **Requirements:** REQ-23, REQ-24, REQ-31 · **Status:** todo · **Revision:** 1
+**Phase:** 2 · **Requirements:** REQ-23, REQ-24, REQ-31 · **Status:** done · **Revision:** 1
 **Files:** src/app/[locale]/e/[slug]/actions.ts, src/app/[locale]/e/[slug]/page.tsx, e2e/rsvp.spec.ts, e2e/helpers/factories.ts
 **Interface:**
 ```ts
@@ -2250,7 +2250,7 @@ export async function createRsvp(eventId: string, name: string, status?: 'GOING'
 **TDD exception:** none
 
 ### TASK-86 — Duplicate name from another browser (E2E)
-**Phase:** 2 · **Requirements:** REQ-26 · **Status:** todo · **Revision:** 2
+**Phase:** 2 · **Requirements:** REQ-26 · **Status:** done · **Revision:** 2
 **Files:** e2e/rsvp.spec.ts
 **Test first (characterization test — behavior delivered by the `PrismaRsvpRepository` unique-constraint mapping (C4,
 REQ-27) through TASK-77, plus TASK-83/85):**
@@ -2263,7 +2263,7 @@ still "maria"; `db.rsvp.count()` is 1.
 - Rev 2 — TASK-78 SPEC failure review: attribution corrected (TASK-78 no longer adds service code).
 
 ### TASK-87 — Ended event guest page (E2E)
-**Phase:** 2 · **Requirements:** REQ-29 · **Status:** todo · **Revision:** 1
+**Phase:** 2 · **Requirements:** REQ-29 · **Status:** done · **Revision:** 1
 **Files:** e2e/rsvp.spec.ts
 **Test first (characterization test):** `REQ-29: the guest page of an ended event is read-only` — event with
 `startsAt: new Date('2020-01-01T19:00:00Z')` → "This event has ended" visible; `getByRole('button', { name: 'Send RSVP' })`,
@@ -2272,7 +2272,7 @@ still "maria"; `db.rsvp.count()` is 1.
 **TDD exception:** none (characterization test, convention 13)
 
 ### TASK-88 — Owner guest list with remove
-**Phase:** 2 · **Requirements:** REQ-34, REQ-30 · **Status:** todo · **Revision:** 1
+**Phase:** 2 · **Requirements:** REQ-34, REQ-30 · **Status:** done · **Revision:** 1
 **Files:** src/components/owner-guest-list.tsx, src/components/remove-rsvp-button.tsx,
 src/app/[locale]/e/[slug]/actions.ts, src/app/[locale]/e/[slug]/page.tsx, e2e/owner.spec.ts
 **Interface:** `removeRsvpAction(slug: string, rsvpId: string): Promise<ActionResult<null>>` ('use server');
@@ -2296,7 +2296,7 @@ party size, `formatEventDateTime(row.updatedAt, event.timezone, locale)`, and a 
 **TDD exception:** none
 
 ### TASK-89 — Guest names never reach non-owners (E2E)
-**Phase:** 2 · **Requirements:** REQ-33 · **Status:** todo · **Revision:** 2
+**Phase:** 2 · **Requirements:** REQ-33 · **Status:** done · **Revision:** 2
 **Files:** e2e/privacy.spec.ts
 **Test first (characterization test — behavior delivered by TASK-56/75/85; the owner's names by TASK-88):**
 - `REQ-33: a guest's page HTML contains no other guest names` — RSVPs "Maria" and "João"; signed-out page →

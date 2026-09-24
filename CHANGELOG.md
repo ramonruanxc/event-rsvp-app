@@ -8,6 +8,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- Guests submit an RSVP from the event page without an account: name, Going / Not going, and party size
+  (REQ-20, REQ-23).
+- A returning guest (same browser) sees their own RSVP instead of a blank form, and can change or cancel it,
+  via a scoped, httpOnly edit-token cookie (REQ-24, REQ-25).
+- Duplicate guest names on the same event are blocked, whether or not the guest holds an edit-token cookie
+  (REQ-26).
+- Cancelling an RSVP keeps it on the list as "Not going" instead of deleting it (REQ-28).
+- RSVP submission and editing close once the event starts; the guest page becomes read-only (REQ-29).
+- Organizers remove any RSVP from their event's guest list, including after the event has ended (REQ-30).
+- Guest event page shows the visitor's own RSVP status and the event totals without exposing other guests'
+  names (REQ-31, REQ-33).
+- Owner event page lists every RSVP with totals, last-updated time, and a Remove action per row (REQ-34).
+- A rate-limited RSVP submission keeps the guest's typed input instead of clearing the form (REQ-57).
+
+### Added
+
 - Organizers create an event: name, description, date/time, timezone (prefilled from the browser, editable),
   and an optional location (REQ-14, REQ-15).
 - Event page showing the event's date and time formatted in its own timezone (REQ-12).
