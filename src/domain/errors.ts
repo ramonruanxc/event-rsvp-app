@@ -36,8 +36,16 @@ export class ValidationError extends DomainError {
     super('VALIDATION_ERROR');
   }
   /** Keeps the first issue per field; path [] becomes "form"; unknown messages become "invalidFormat". */
-  static fromZod(_error: z.ZodError): ValidationError {
-    throw new Error('not implemented');
+  static fromZod(error: z.ZodError): ValidationError {
+    const fieldErrors: FieldErrors = {};
+    for (const issue of error.issues) {
+      const key = issue.path.length ? issue.path.join('.') : 'form';
+      if (key in fieldErrors) continue;
+      fieldErrors[key] = (VALIDATION_KEYS as readonly string[]).includes(issue.message)
+        ? (issue.message as ValidationKey)
+        : 'invalidFormat';
+    }
+    return new ValidationError(fieldErrors);
   }
 }
 /** Raised when the requested resource does not exist. */
