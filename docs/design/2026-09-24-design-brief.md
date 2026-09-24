@@ -219,7 +219,7 @@ Diagram: [agent pipeline](../diagrams/agent-pipeline.svg).
 |---|---|---|
 | `analyst` | Sonnet | Owns business rules (BR-xx) and glossary; resolves DOC failures (asks the human for rule decisions); runs doc-sync before merge |
 | `spec-writer` | Opus | Writes the spec (REQ-xx → BR-xx) and plan (TASK-xx → REQ-xx); resolves SPEC failures |
-| `implementer` | Haiku | One task at a time, strict TDD |
+| `implementer` | Sonnet (see amendment A1) | One task or an ordered batch of tasks, strict TDD |
 | `reviewer` | Sonnet | Adversarial PR review; classifies findings as CODE / SPEC / DOC; never reviews its own work |
 | `release` | Haiku | Checks, eval when needed, migrations, deploy, smoke test, README URL/version |
 
@@ -289,3 +289,12 @@ final: release → Vercel production → README URL/version
 Live URL + demo event → 60-second walkthrough → features (core / bonus) → architecture (SVG diagrams) → business rules →
 run locally (`docker compose up`, env, migrate, dev) → tests → eval results → **How I used AI** (pipeline, models,
 failures and their root causes, what I verified by hand) → **What I left out and why** → **Time report**.
+
+---
+
+## Amendments
+
+| # | Date | Decision | Reason |
+|---|---|---|---|
+| A1 | 2026-09-24 | Executor model changed from Haiku to **Sonnet** | Human decision to reduce wall-clock time. Pipeline rules unchanged: TDD, attempt and revision budgets, upstream failure routing, human gates, no model escalation beyond the configured executor |
+
