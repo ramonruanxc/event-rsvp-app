@@ -6,7 +6,8 @@ describe('authConfig', () => {
     const providers = authConfig.providers;
     expect(providers).toHaveLength(1);
     const p = providers[0];
-    const resolved = typeof p === 'function' ? (p as (o: object) => { id: string })({}) : (p as { id: string });
+    const resolved =
+      typeof p === 'function' ? (p as (o: object) => { id: string })({}) : (p as { id: string });
     expect(resolved.id).toBe('google');
     expect(authConfig.session?.strategy).toBe('database');
   });
