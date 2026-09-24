@@ -22,6 +22,7 @@ Event times are taken from session timestamps. All times in America/Fortaleza (U
 |---|---|---|---|---|---|
 | 1 | 1 — Spec definition | 2026-09-24 12:32:29 | 2026-09-24 13:11:44 | 39m 15s | Personal break |
 | 2 | 2 — Pipeline bootstrap + spec | 2026-09-24 14:04:38 | 2026-09-24 14:39:47 | 35m 09s | Human away; spec-writer agent ran meanwhile (see Agent runs) |
+| 3 | 4 — Execution | 2026-09-24 15:27:44 | — | — | Work break; pipeline kept running |
 
 ## Agent runs
 
@@ -37,6 +38,10 @@ Pipeline agents working autonomously. Reported separately from human active time
 | implementer TASK-01 | haiku | 2026-09-24 14:50:30 | 2026-09-24 14:55:45 | 5m 15s | DONE, 1 attempt — Next.js scaffold |
 | implementer TASK-02 | haiku | 2026-09-24 14:56:05 | 2026-09-24 14:58:19 | 2m 14s | DONE, 1 attempt — ESLint, Prettier, typecheck |
 | implementer TASK-03 | haiku | 2026-09-24 14:58:40 | 2026-09-24 15:02:00 | 3m 20s | DONE, 1 attempt — Vitest unit + integration projects |
+| implementer batch TASK-04–05 | sonnet | 2026-09-24 15:03:30 | 2026-09-24 15:06:50 | 3m 16s | DONE, 1 attempt each — Postgres compose, Prisma schema + migration |
+| implementer batch TASK-06–08 | sonnet | 2026-09-24 15:07:30 | 2026-09-24 15:14:00 | 6m 33s | DONE, 1 attempt each — first TDD behavior, next-intl, key parity |
+| implementer TASK-09 | sonnet | 2026-09-24 15:15:00 | 2026-09-24 15:18:15 | 3m 15s | DONE, 1 attempt — Auth.js Google + database sessions |
+| implementer batch TASK-12–17 | sonnet | 2026-09-24 15:19:00 | 2026-09-24 15:29:50 | 10m 49s | DONE, 1 attempt each — traceability script (run ahead of TASK-10/11, blocked by ENV) |
 
 ## Events
 
@@ -68,3 +73,5 @@ Pipeline agents working autonomously. Reported separately from human active time
 | 2026-09-24 14:48:45 | DOC failure #1 resolved; spec + plan final (96/96 BRs covered) |
 | 2026-09-24 14:50:06 | Spec PR #2 merged; execution starts — phase 0 walking skeleton |
 | 2026-09-24 15:03:30 | Human decision A1: executor model Haiku → Sonnet from TASK-04 on |
+| 2026-09-24 15:19:00 | ENV: port 3000 occupied by an unrelated local app; TASK-10/11 blocked; traceability batch run ahead |
+| 2026-09-24 15:27:44 | Human decided ENV option A (configurable E2E_PORT: 3100 local, 3000 CI) |
