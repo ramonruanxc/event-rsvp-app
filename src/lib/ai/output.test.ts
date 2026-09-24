@@ -27,9 +27,7 @@ describe('normalizeAiOutput', () => {
 
   it('REQ-43: blank or too long texts become null', () => {
     expect(normalizeAiOutput({ ...VALID_RAW, name: '   ' }, null).fields.name).toBeNull();
-    expect(
-      normalizeAiOutput({ ...VALID_RAW, name: 'a'.repeat(121) }, null).fields.name,
-    ).toBeNull();
+    expect(normalizeAiOutput({ ...VALID_RAW, name: 'a'.repeat(121) }, null).fields.name).toBeNull();
     expect(
       normalizeAiOutput({ ...VALID_RAW, description: 'a'.repeat(2001) }, null).fields.description,
     ).toBeNull();

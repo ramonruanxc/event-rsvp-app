@@ -17,7 +17,11 @@ export interface ParseEventResult {
 /** Turns organizer-written text into event fields. */
 export interface EventTextParser {
   /** Parses request.text, resolving the timezone against request.formTimezone as of request.now. */
-  parse(request: { text: string; formTimezone: string | null; now: Date }): Promise<ParseEventResult>;
+  parse(request: {
+    text: string;
+    formTimezone: string | null;
+    now: Date;
+  }): Promise<ParseEventResult>;
 }
 
 /** Low-level model call: returns the model's structured output (unvalidated). */
