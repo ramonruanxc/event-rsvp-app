@@ -1,6 +1,9 @@
 import { cookies } from 'next/headers';
 import { notFound } from 'next/navigation';
+import { Pencil } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
+import { buttonClass } from '@/components/ui/button';
+import { Icon } from '@/components/ui/icon';
 import { CopyInviteLinkButton } from '@/components/copy-invite-link-button';
 import { DeleteEventButton } from '@/components/delete-event-button';
 import { EventDetails } from '@/components/event-details';
@@ -34,24 +37,34 @@ export default async function EventPage({
   }
 
   return (
-    <main>
-      <EventDetails event={view.event} totals={view.totals} locale={locale} />
-      {view.role === 'owner' && !view.ended && (
-        <Link href={`/e/${slug}/edit`}>{t('event.edit')}</Link>
-      )}
-      {view.role === 'owner' && (
-        <DeleteEventButton deleteAction={deleteEventAction.bind(null, slug)} />
-      )}
-      {view.role === 'owner' && <CopyInviteLinkButton slug={slug} />}
-      {view.role === 'owner' && <OwnerGuestList view={view} locale={locale} />}
-      {view.role === 'guest' && (
-        <GuestRsvpPanel
-          ownRsvp={view.ownRsvp}
-          ended={view.ended}
-          submit={submitRsvpAction.bind(null, locale, slug)}
-          cancel={cancelRsvpAction.bind(null, locale, slug)}
-        />
-      )}
+    <main className="page">
+      <div className="col-640">
+        <EventDetails event={view.event} totals={view.totals} locale={locale} ended={view.ended} />
+        {view.role === 'owner' && (
+          <div className="owner-tools mt-6">
+            <CopyInviteLinkButton slug={slug} />
+            <div className="owner-actions">
+              {!view.ended && (
+                <Link className={buttonClass('secondary')} href={`/e/${slug}/edit`}>
+                  <Icon icon={Pencil} />
+                  {t('event.edit')}
+                </Link>
+              )}
+              <DeleteEventButton deleteAction={deleteEventAction.bind(null, slug)} />
+            </div>
+          </div>
+        )}
+        <hr className="divider" />
+        {view.role === 'owner' && <OwnerGuestList view={view} locale={locale} />}
+        {view.role === 'guest' && (
+          <GuestRsvpPanel
+            ownRsvp={view.ownRsvp}
+            ended={view.ended}
+            submit={submitRsvpAction.bind(null, locale, slug)}
+            cancel={cancelRsvpAction.bind(null, locale, slug)}
+          />
+        )}
+      </div>
     </main>
   );
 }
