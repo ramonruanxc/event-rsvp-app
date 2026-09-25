@@ -1,4 +1,5 @@
 import { AI_FIELDS, type ParseEventResult } from '@/lib/ai/types';
+import { percentile95 } from './stats';
 import { CATEGORIES } from './types';
 import type {
   CaseResult,
@@ -121,8 +122,22 @@ export function summarize(results: readonly { category: Category; passed: boolea
 }
 
 /** Summarizes case runs: all, tuning and hold-out pass rates, availability and p95 latency (REQ-101, REQ-104). */
-export function summarizeEval(_cases: readonly CaseRuns[]): EvalSummary {
-  throw new Error('not implemented');
+export function summarizeEval(cases: readonly CaseRuns[]): EvalSummary {
+  const runs = cases.flatMap((c) => c.runs);
+  const answered = runs.filter((run) => run.status === 'ok' || run.status === 'invalid').length;
+  return {
+    all: summarize(cases),
+    tuning: summarize(cases.filter((c) => !c.holdout)),
+    holdout: summarize(cases.filter((c) => c.holdout)),
+    stats: {
+      runs: runs.length,
+      answered,
+      timeouts: runs.filter((run) => run.status === 'timeout').length,
+      outages: runs.filter((run) => run.status === 'outage').length,
+      availability: runs.length === 0 ? 0 : answered / runs.length,
+      p95LatencyMs: percentile95(runs.map((run) => run.latencyMs)),
+    },
+  };
 }
 
 /** Minimum overall pass rate required by the gate (REQ-91, REQ-103). */
