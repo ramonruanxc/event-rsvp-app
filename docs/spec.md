@@ -547,7 +547,7 @@ server started by Playwright). Production code is unchanged; only the base URL d
 
 ### REQ-37 — Sample event
 **Rules:** BR-49, BR-50
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - Given now = `2026-09-24T15:00:00.000Z` (= 12:00 in America/Fortaleza)
 - `CreateSampleEventService.execute({ ownerId: "u1", timezone: "America/Fortaleza", content: { name: "Sample: Friday
@@ -564,7 +564,7 @@ server started by Playwright). Production code is unchanged; only the base URL d
 
 ### REQ-38 — Invite link
 **Rules:** BR-51
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - `buildInviteUrl("https://rsvp.example.com", "abc123XYZ_")` → `"https://rsvp.example.com/e/abc123XYZ_"` (no locale;
   the guest's locale is detected on arrival)
@@ -575,7 +575,7 @@ server started by Playwright). Production code is unchanged; only the base URL d
 
 ### REQ-39 — Signed-out home page
 **Rules:** BR-52
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - Given a signed-out visitor on `/en`
 - Then one screen shows: the heading "Plan an event. Share one link. See who's coming.", a short explanation, a
@@ -587,7 +587,7 @@ server started by Playwright). Production code is unchanged; only the base URL d
 
 ### REQ-40 — Public demo event seed
 **Rules:** BR-52
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - Given now = `2026-09-24T15:00:00.000Z` and an empty database
 - `seedDemo(prisma, now)` creates user `demo@event-rsvp.invalid` and event slug `"demoPicnic"` named
@@ -602,7 +602,7 @@ server started by Playwright). Production code is unchanged; only the base URL d
 
 ### REQ-41 — .ics content
 **Rules:** BR-13, BR-72
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - Given event `{ slug: "abc", name: "Team dinner, Mario's", description: "Line 1\nLine 2; bring \\ snacks",
   location: "Mario's", startsAt: 2026-10-02T23:00:00.000Z }` and now = `2026-09-24T15:00:00.000Z`
@@ -617,7 +617,7 @@ server started by Playwright). Production code is unchanged; only the base URL d
 
 ### REQ-42 — Anyone can download the .ics
 **Rules:** BR-71
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - `GET /e/<slug>/calendar.ics` without any session → 200, `Content-Type: text/calendar; charset=utf-8`,
   `Content-Disposition: attachment; filename="<slug>.ics"`, body = `buildIcs(event, now)`

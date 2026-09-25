@@ -1,6 +1,7 @@
 import { cookies } from 'next/headers';
 import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
+import { CopyInviteLinkButton } from '@/components/copy-invite-link-button';
 import { DeleteEventButton } from '@/components/delete-event-button';
 import { EventDetails } from '@/components/event-details';
 import { GuestRsvpPanel } from '@/components/guest-rsvp-panel';
@@ -41,6 +42,7 @@ export default async function EventPage({
       {view.role === 'owner' && (
         <DeleteEventButton deleteAction={deleteEventAction.bind(null, slug)} />
       )}
+      {view.role === 'owner' && <CopyInviteLinkButton slug={slug} />}
       {view.role === 'owner' && <OwnerGuestList view={view} locale={locale} />}
       {view.role === 'guest' && (
         <GuestRsvpPanel

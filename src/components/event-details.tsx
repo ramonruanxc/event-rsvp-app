@@ -19,6 +19,9 @@ export async function EventDetails({ event, totals, locale }: EventDetailsProps)
       <p>{formatEventDateTime(event.startsAt, event.timezone, locale)}</p>
       {event.location && <p>{event.location}</p>}
       <p>{t('totals.peopleGoing', { count: totals.people })}</p>
+      <a href={`/e/${event.slug}/calendar.ics`} download>
+        {t('event.addToCalendar')}
+      </a>
     </>
   );
 }

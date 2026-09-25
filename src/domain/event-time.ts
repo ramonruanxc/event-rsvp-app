@@ -12,3 +12,10 @@ export function toLocalParts(instant: Date, timeZone: string): { date: string; t
     time: formatInTimeZone(instant, timeZone, 'HH:mm'),
   };
 }
+
+/** Adds a number of calendar days to a yyyy-MM-dd date string, using UTC arithmetic (REQ-37). */
+export function addDaysToDateString(date: string, days: number): string {
+  const [year, month, day] = date.split('-').map(Number);
+  const shifted = new Date(Date.UTC(year, month - 1, day + days));
+  return shifted.toISOString().slice(0, 10);
+}
