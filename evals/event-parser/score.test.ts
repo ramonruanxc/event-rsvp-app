@@ -117,6 +117,59 @@ describe('scoreCase (REQ-91)', () => {
   });
 });
 
+describe('scoreCase description facts (REQ-102)', () => {
+  const TERMS = ['\\b\\d{1,2}\\s*(a\\.?m|p\\.?m)\\b', 'saturday'];
+  const facts = (description: string | null) =>
+    scoreCase(baseCase({ forbiddenInDescription: TERMS }), {
+      ...baseResult,
+      fields: { ...baseResult.fields, description },
+    });
+
+  it('REQ-102: a description with a forbidden pattern fails the case', () => {
+    const withTime = facts('Dinner with the team at 7 p.m.');
+    expect(withTime.passed).toBe(false);
+    expect(withTime.fields).toContainEqual({
+      field: 'descriptionFacts',
+      passed: false,
+      expected: { noneOf: TERMS },
+      actual: 'Dinner with the team at 7 p.m.',
+    });
+    expect(facts('Team dinner on Saturday.').passed).toBe(false);
+  });
+
+  it('REQ-102: a description without forbidden patterns, or no description, passes the check', () => {
+    const clean = facts('Dinner with the team.');
+    expect(clean.passed).toBe(true);
+    expect(clean.fields).toContainEqual({
+      field: 'descriptionFacts',
+      passed: true,
+      expected: { noneOf: TERMS },
+      actual: 'Dinner with the team.',
+    });
+    const noDescription = facts(null);
+    expect(noDescription.fields).toContainEqual({
+      field: 'descriptionFacts',
+      passed: true,
+      expected: { noneOf: TERMS },
+      actual: null,
+    });
+    const noExpectation = scoreCase(baseCase({}), baseResult);
+    expect(noExpectation.fields.find((f) => f.field === 'descriptionFacts')).toBeUndefined();
+  });
+
+  it('REQ-102: an error fails the description check', () => {
+    const errored = scoreCase(baseCase({ forbiddenInDescription: TERMS }), {
+      error: 'AI_UNAVAILABLE',
+    });
+    expect(errored.fields).toContainEqual({
+      field: 'descriptionFacts',
+      passed: false,
+      expected: { noneOf: TERMS },
+      actual: null,
+    });
+  });
+});
+
 const r = (category: Category, passed: boolean, i = 0): CaseResult => ({
   id: `${category}-${i}`,
   category,
