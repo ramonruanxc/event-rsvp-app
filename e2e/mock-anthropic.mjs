@@ -23,7 +23,9 @@ const server = http.createServer((req, res) => {
     }
     if (body.includes('[[mock-error]]')) {
       res.writeHead(500, { 'content-type': 'application/json' });
-      res.end(JSON.stringify({ type: 'error', error: { type: 'api_error', message: 'mock failure' } }));
+      res.end(
+        JSON.stringify({ type: 'error', error: { type: 'api_error', message: 'mock failure' } }),
+      );
       return;
     }
     res.writeHead(200, { 'content-type': 'application/json' });

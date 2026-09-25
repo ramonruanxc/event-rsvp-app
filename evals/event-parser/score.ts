@@ -57,7 +57,12 @@ export function scoreCase(
   if (evalCase.expected.missing !== undefined) {
     const expected = evalCase.expected.missing;
     const actual = isError ? [] : outcome.missing;
-    fields.push({ field: 'missing', passed: !isError && sameSet(expected, actual), expected, actual });
+    fields.push({
+      field: 'missing',
+      passed: !isError && sameSet(expected, actual),
+      expected,
+      actual,
+    });
   }
 
   if (evalCase.expected.notAnEvent !== undefined) {

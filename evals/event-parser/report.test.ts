@@ -51,7 +51,9 @@ describe('renderReport (REQ-91)', () => {
   });
 
   it('REQ-91: a passing run says PASS and lists no failures', () => {
-    const ok: CaseResult[] = [{ id: 'explicit-01', category: 'explicit', passed: true, fields: [] }];
+    const ok: CaseResult[] = [
+      { id: 'explicit-01', category: 'explicit', passed: true, fields: [] },
+    ];
     const md = renderReport(summarize(ok), ok, { model: 'claude-haiku-4-5', date: '2026-09-24' });
 
     expect(md).toContain('**Gate:** PASS');

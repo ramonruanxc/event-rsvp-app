@@ -22,9 +22,7 @@ export type Category = (typeof CATEGORIES)[number];
  * and an object checks the keys it holds (`includes`, `excludes`, `anyOf`, `present`).
  */
 export type Matcher =
-  | string
-  | null
-  | { includes?: string; excludes?: string; anyOf?: string[]; present?: true };
+  string | null | { includes?: string; excludes?: string; anyOf?: string[]; present?: true };
 
 /** One case of the event-parser evaluation dataset. */
 export interface EvalCase {

@@ -8,7 +8,10 @@ test.beforeEach(async () => {
 });
 
 test.describe('REQ-51: Fill with AI', () => {
-  test('REQ-51: Fill with AI fills the form and the organizer saves it', async ({ page, context }) => {
+  test('REQ-51: Fill with AI fills the form and the organizer saves it', async ({
+    page,
+    context,
+  }) => {
     await signInAs(context, { email: 'organizer@example.com', name: 'Organizer' });
     await page.goto('/en/events/new');
 
@@ -40,7 +43,9 @@ test.describe('REQ-51: Fill with AI', () => {
     await page.getByLabel('Describe your event').fill('[[mock-error]] party');
     await page.getByRole('button', { name: 'Fill with AI' }).click();
 
-    await expect(page.getByText("Couldn't fill automatically — please fill the form.")).toBeVisible();
+    await expect(
+      page.getByText("Couldn't fill automatically — please fill the form."),
+    ).toBeVisible();
 
     await page.getByLabel('Name', { exact: true }).fill('Board games');
     await page.getByLabel('Description', { exact: true }).fill('Bring snacks');
