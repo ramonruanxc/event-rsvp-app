@@ -25,7 +25,7 @@ Event times are taken from session timestamps. All times in America/Fortaleza (U
 | 3 | 4 — Execution | 2026-09-24 15:27:44 | 2026-09-24 15:44:10 | 16m 26s | Work break; pipeline kept running |
 | 4 | 4 — Execution | 2026-09-24 18:59:23 | 2026-09-24 19:20:18 | 20m 55s | Work and calls; pipeline kept running |
 | 5 | 4 — Execution | 2026-09-24 19:24:11 | 2026-09-24 21:28:38 | 2h 04m 27s | Break; pipeline kept running (duration computed in the final report) |
-| 6 | 4 — Execution | 2026-09-25 01:02:49 | 2026-09-25 10:10:04 | 9h 07m 15s | Sleep; pipeline kept running |
+| 6 | 4 → 6 (spans the end of execution at 02:26:39 and the gap before ship) | 2026-09-25 01:02:49 | 2026-09-25 10:10:04 | 9h 07m 15s | Sleep; pipeline kept running and finished phases 6–7 |
 
 ## Agent runs
 
@@ -195,5 +195,6 @@ Timer: 2026-09-24 12:06:04 → 2026-09-25 10:17:22 (America/Fortaleza). Phase 0 
 | 4 — Execution, review, merges | 11h 36m | 7h 30m |
 | 6 — Ship | 0h 07m | 0h 07m |
 
-Active time includes the human's review and decisions while agents ran; agent runs overlapped each other (parallel
+Per-phase active time subtracts only the part of each pause that overlaps that phase (pause 6 overlaps phase 4
+for 1h 23m; the rest falls between phases). Active time includes the human's review and decisions while agents ran; agent runs overlapped each other (parallel
 worktrees) and continued during pauses, which is why their sum exceeds the active time.

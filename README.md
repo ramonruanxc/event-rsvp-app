@@ -146,8 +146,8 @@ Failures the pipeline hit along the way, and their root causes, are logged in
 What I verified by hand:
 
 - Google sign-in end to end in production (2026-09-24).
-- The production domain (https://event-rsvp-app-flax.vercel.app), its public access, and a smoke test after each
-  merge to `main`.
+- The production domain (https://event-rsvp-app-flax.vercel.app), its public access, and smoke tests of the live site
+  after the phase 1, 3, 6 and 7 deployments (locales, demo event, `.ics`, sign-in redirect, theme, security headers).
 - The approved visual direction (mockup) and every business-rule decision raised as a DOC question during the
   pipeline.
 - The real AI evaluation results (three models via OpenRouter) and the decision that the code default follows
