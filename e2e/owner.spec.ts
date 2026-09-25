@@ -61,6 +61,10 @@ test.describe('REQ-30: the owner removes an RSVP', () => {
 
     await page.goto(`/en/e/${event.slug}`);
     await page.getByRole('row', { name: /Maria/ }).getByRole('button', { name: 'Remove' }).click();
+    await page
+      .getByRole('row', { name: /Maria/ })
+      .getByRole('button', { name: 'Remove', exact: true })
+      .click();
 
     await expect(page.getByText('Maria')).toHaveCount(0);
     await expect(page.getByText('0 going · 1 declined · 0 people')).toBeVisible();
@@ -83,6 +87,7 @@ test.describe('REQ-34: an ended event', () => {
 
     await expect(page.getByText('Maria')).toBeVisible();
     await page.getByRole('button', { name: 'Remove' }).click();
+    await page.getByRole('button', { name: 'Remove', exact: true }).click();
     await expect(page.getByText('Maria')).toHaveCount(0);
 
     await expect(page.getByRole('button', { name: 'Delete event' })).toBeVisible();

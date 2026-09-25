@@ -6,6 +6,7 @@ import type { ActionResult } from '@/lib/action-result';
 
 /** Props of {@link RemoveRsvpButton}. */
 export interface RemoveRsvpButtonProps {
+  name: string;
   removeAction: () => Promise<ActionResult<null>>;
 }
 
