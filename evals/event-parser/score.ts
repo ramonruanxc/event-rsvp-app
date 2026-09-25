@@ -1,5 +1,5 @@
 import { AI_FIELDS, type ParseEventResult } from '@/lib/ai/types';
-import type { CaseResult, EvalCase, FieldResult, Matcher } from './types';
+import type { CaseResult, EvalCase, FieldResult, Matcher, Summary } from './types';
 
 /** Trims and lower-cases a value for case/space-insensitive comparisons. */
 function normalize(value: string): string {
@@ -69,4 +69,14 @@ export function scoreCase(
   const result: CaseResult = { id: evalCase.id, category: evalCase.category, passed, fields };
   if (isError) result.error = outcome.error;
   return result;
+}
+
+/** Aggregates case results into overall and per-category pass rates (REQ-91). */
+export function summarize(_results: CaseResult[]): Summary {
+  throw new Error('not implemented');
+}
+
+/** True when the summary clears the release bar: 90% overall and 100% on the critical categories (REQ-91). */
+export function gate(_summary: Summary): boolean {
+  throw new Error('not implemented');
 }

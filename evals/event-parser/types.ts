@@ -50,3 +50,11 @@ export interface CaseResult {
   fields: FieldResult[];
   error?: string;
 }
+
+/** Aggregated pass rates over a set of case results, overall and per category. */
+export interface Summary {
+  total: number;
+  passed: number;
+  overall: number;
+  byCategory: Record<Category, { total: number; passed: number; rate: number }>;
+}
