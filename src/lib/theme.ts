@@ -8,16 +8,16 @@ export const THEME_COOKIE = 'theme';
 export const DEFAULT_THEME: Theme = 'dark';
 
 /** Parses a cookie value into a Theme; anything but exactly 'light' is dark. */
-export function parseTheme(_value: string | null | undefined): Theme {
-  throw new Error('not implemented');
+export function parseTheme(value: string | null | undefined): Theme {
+  return value === 'light' ? 'light' : 'dark';
 }
 
 /** Returns the other theme. */
-export function nextTheme(_theme: Theme): Theme {
-  throw new Error('not implemented');
+export function nextTheme(theme: Theme): Theme {
+  return theme === 'dark' ? 'light' : 'dark';
 }
 
 /** Builds the Set-Cookie value that stores the theme for a year on the whole site. */
-export function themeCookieString(_theme: Theme): string {
-  throw new Error('not implemented');
+export function themeCookieString(theme: Theme): string {
+  return `${THEME_COOKIE}=${theme}; Path=/; Max-Age=31536000; SameSite=Lax`;
 }
