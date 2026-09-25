@@ -26,17 +26,43 @@ export interface ParsedPasswordHash {
   key: Buffer;
 }
 
+import { randomBytes, scrypt, timingSafeEqual } from 'node:crypto';
+
+/** Derives a scrypt key from the NFKC-normalized password (REQ-114). */
+function derive(password: string, salt: Buffer, keyLength: number): Promise<Buffer> {
+  const { N, r, p, maxmem } = SCRYPT_PARAMS;
+  return new Promise((resolve, reject) => {
+    scrypt(password.normalize('NFKC'), salt, keyLength, { N, r, p, maxmem }, (error, key) =>
+      error ? reject(error) : resolve(key),
+    );
+  });
+}
+
 /** Hashes a password with scrypt and a fresh 16-byte salt: `scrypt$N$r$p$<salt>$<key>` (REQ-114, BR-151). */
-export async function hashPassword(_password: string): Promise<string> {
-  throw new Error('not implemented');
+export async function hashPassword(password: string): Promise<string> {
+  const salt = randomBytes(SCRYPT_PARAMS.saltLength);
+  const key = await derive(password, salt, SCRYPT_PARAMS.keyLength);
+  const { N, r, p } = SCRYPT_PARAMS;
+  return ['scrypt', N, r, p, salt.toString('base64url'), key.toString('base64url')].join('$');
 }
 /** Splits a stored hash into its parts; null when it is malformed or uses other parameters (REQ-114). */
-export function parsePasswordHash(_stored: string): ParsedPasswordHash | null {
-  throw new Error('not implemented');
+export function parsePasswordHash(stored: string): ParsedPasswordHash | null {
+  const parts = stored.split('$');
+  if (parts.length !== 6 || parts[0] !== 'scrypt') return null;
+  const [N, r, p] = parts.slice(1, 4).map(Number);
+  if (N !== SCRYPT_PARAMS.N || r !== SCRYPT_PARAMS.r || p !== SCRYPT_PARAMS.p) return null;
+  const salt = Buffer.from(parts[4], 'base64url');
+  const key = Buffer.from(parts[5], 'base64url');
+  if (salt.length !== SCRYPT_PARAMS.saltLength || key.length !== SCRYPT_PARAMS.keyLength)
+    return null;
+  return { N, r, p, salt, key };
 }
 /** True when `password` matches `stored`, compared in constant time; false for a malformed hash (REQ-114, BR-152). */
-export async function verifyPassword(_password: string, _stored: string): Promise<boolean> {
-  throw new Error('not implemented');
+export async function verifyPassword(password: string, stored: string): Promise<boolean> {
+  const parsed = parsePasswordHash(stored);
+  if (!parsed) return false;
+  const key = await derive(password, parsed.salt, parsed.key.length);
+  return timingSafeEqual(key, parsed.key);
 }
 
 /** The production PasswordHasher (scrypt). */
