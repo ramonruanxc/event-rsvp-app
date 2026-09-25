@@ -20,8 +20,9 @@
 | 7 | `phase-7/openrouter` | OpenRouter as the default AI provider, Anthropic optional (A3): provider list (default `openrouter`) and failover in one 10 s budget, OpenRouter client, OpenAI-compatible E2E mock, key hygiene, eval `--provider` (default `openrouter`), key-provisioning script, OpenRouter eval run on 3 models (absorbs TASK-131), code default model follows the eval (`anthropic/claude-sonnet-5`) | REQ-86–REQ-89, REQ-93–REQ-98 | 29 + 1 human (TASK-190–TASK-218, HUMAN-06) |
 | 8 | `phase-8/eval-hardening` | Harder AI evaluation + reasoning control (A4): `OPENROUTER_REASONING_EFFORT` (default `low`) sent as `reasoning: { effort }`; 3 runs per case (every answered run must pass); availability and p95 latency (< 8 s) reported apart from correctness; description-invention check; every category ≥ 80%; hidden hold-out split (⅓); +30 hard cases; real run on four models; code default model follows the new gate. **Outcome:** no model passes; delivered as a measurement (human decision, option A): default stays `anthropic/claude-sonnet-5`, production sets `OPENROUTER_REASONING_EFFORT=omit` (HUMAN-07) | REQ-99–REQ-107 (+ amended REQ-91, REQ-92, REQ-93, REQ-94) | 19 + 1 human (TASK-220–TASK-238, HUMAN-07) |
 | 9 | `phase-9/containerize` | One-command local run (A5): `docker compose up --build` starts Postgres and the app, which migrates, seeds and serves on `APP_PORT` (default 3000). `.env.local` is optional (`AUTH_SECRET` is generated when it is absent). Node 22 image with the full build, and no secret in the image. `docker compose up -d db` for development and tests. A non-required CI smoke job. README | REQ-108–REQ-113 | 8 (TASK-239–TASK-246), no human task |
+| 10 | `phase-10/password-auth` | Email and password sign-in alongside Google (A6): register, sign in (one generic error, failed attempts limited per email and IP), set or change a password on a new Account page; Google links to an existing email only when verified, clears the unverified password and shows a notice; JWT sessions; scrypt from `node:crypto`; en/fr/pt-BR, WCAG 2.2 AA; README | REQ-114–REQ-130 (+ amended REQ-01, REQ-02, REQ-39, REQ-80, REQ-81) | 23 (TASK-247–TASK-269), no human task |
 
-Totals: 113 requirements (101 product + 12 tooling), 213 agent tasks, 6 human tasks.
+Totals: 130 requirements (118 product + 12 tooling), 236 agent tasks, 6 human tasks.
 
 **Adjustments to the suggested phases (with reasons):**
 - *All Prisma repositories move to Phase 1* (including the RSVP repository and its unique-constraint test REQ-27):
@@ -919,6 +920,397 @@ export function smokeBaseUrl(env: Record<string, string | undefined>): string;
 export function runSmoke(baseUrl: string, fetchImpl: typeof fetch): Promise<{ ok: boolean; lines: string[] }>;
 
 // scripts/docker/smoke-cli.ts (TASK-242): thin CLI, no exports.
+```
+
+### C15 — Phase 10 email and password sign-in (amendment A6)
+
+Created by the task named in each comment. Every exported symbol gets the one-line TSDoc shown here. No new npm
+dependency: the Credentials provider and `next-auth/jwt` ship with `next-auth`, and `scrypt` is in `node:crypto`.
+
+```ts
+// src/domain/errors.ts (TASK-249) — additions
+export type ErrorCode = /* existing codes */ | 'INVALID_CREDENTIALS' | 'EMAIL_TAKEN' | 'GOOGLE_ACCOUNT_EXISTS';
+// VALIDATION_KEYS gains, at the end and in this order:
+//   'invalidEmail', 'passwordLength', 'passwordMismatch', 'currentPasswordIncorrect'
+/** Unknown email, wrong password or an account without a password; never says which (BR-155). */
+export class InvalidCredentialsError extends DomainError { readonly code = 'INVALID_CREDENTIALS' as const; constructor() { super('INVALID_CREDENTIALS'); } }
+/** The registration email already belongs to an account that has a password (REQ-117). */
+export class EmailTakenError extends DomainError { readonly code = 'EMAIL_TAKEN' as const; constructor() { super('EMAIL_TAKEN'); } }
+/** The registration email belongs to an account without a password, i.e. Google-only (BR-157, BR-158). */
+export class GoogleAccountExistsError extends DomainError { readonly code = 'GOOGLE_ACCOUNT_EXISTS' as const; constructor() { super('GOOGLE_ACCOUNT_EXISTS'); } }
+
+// src/domain/credentials.ts (TASK-249)
+export const PASSWORD_MIN_LENGTH = 8;
+export const PASSWORD_MAX_LENGTH = 128;
+/** Trims surrounding whitespace and lower-cases an email address (BR-147). */
+export function normalizeEmail(value: string): string;          // value.trim().toLowerCase()
+/** Length of a password in Unicode code points (BR-148). */
+export function passwordLength(value: string): number;           // [...value].length
+
+// src/domain/schemas.ts (TASK-249) — additions; `requiredText` is the existing private helper
+export const emailSchema = z.string({ error: 'required' }).trim().toLowerCase()
+  .min(1, 'required').max(254, 'tooLong').email('invalidEmail');
+export const passwordSchema = z.string({ error: 'required' }).min(1, 'required').refine((v) => {
+  const n = passwordLength(v);
+  return n >= PASSWORD_MIN_LENGTH && n <= PASSWORD_MAX_LENGTH;
+}, 'passwordLength');
+const confirmSchema = z.string({ error: 'required' }).min(1, 'required');
+export const registerInputSchema = z
+  .object({ name: requiredText(80), email: emailSchema, password: passwordSchema, confirmPassword: confirmSchema })
+  .superRefine((v, ctx) => {
+    if (v.password !== v.confirmPassword) {
+      ctx.addIssue({ code: 'custom', path: ['confirmPassword'], message: 'passwordMismatch' });
+    }
+  })
+  .transform(({ name, email, password }) => ({ name, email, password }));
+export type RegisterFormValues = z.input<typeof registerInputSchema>;
+export type RegisterInput = z.output<typeof registerInputSchema>;
+export const signInInputSchema = z.object({
+  email: emailSchema,
+  password: z.string({ error: 'required' }).min(1, 'required'),
+});
+export type SignInFormValues = z.input<typeof signInInputSchema>;
+export type SignInInput = z.output<typeof signInInputSchema>;
+export const setPasswordInputSchema = z
+  .object({
+    currentPassword: z.string().optional().transform((v) => v ?? ''),
+    newPassword: passwordSchema,
+    confirmPassword: confirmSchema,
+  })
+  .superRefine((v, ctx) => {
+    if (v.newPassword !== v.confirmPassword) {
+      ctx.addIssue({ code: 'custom', path: ['confirmPassword'], message: 'passwordMismatch' });
+    }
+  })
+  .transform(({ currentPassword, newPassword }) => ({ currentPassword, newPassword }));
+export type SetPasswordFormValues = z.input<typeof setPasswordInputSchema>;
+export type SetPasswordInput = z.output<typeof setPasswordInputSchema>;
+
+// src/domain/types.ts (TASK-249) — additions
+/** A user as the credential services see it; passwordHash never leaves the server (BR-153). */
+export interface UserRecord {
+  id: string; name: string | null; email: string | null; passwordHash: string | null;
+  passwordClearedAt: Date | null; passwordNotice: boolean;
+}
+/** The identity handed to Auth.js after a password sign-in; never the hash (BR-153). */
+export interface AuthUser { id: string; name: string | null; email: string; }
+/** What the Account page and the password notice need (BR-159, BR-160, BR-164). */
+export interface AccountView { email: string | null; hasPassword: boolean; passwordNotice: boolean; }
+
+// src/domain/account-policy.ts
+/** False when a password session was opened before the password was cleared (REQ-122). */   // TASK-256
+export function passwordSessionValid(pwdAt: unknown, user: Pick<UserRecord, 'passwordClearedAt'> | null): boolean;
+/** Google may sign in only with a verified email that matches any current session's email (REQ-121). */  // TASK-259
+export function allowGoogleSignIn(input: {
+  emailVerified: unknown; googleEmail: string | null | undefined; sessionEmail: string | null;
+}): boolean;
+
+// src/lib/password.ts (TASK-248) — imports only node:crypto
+/** Hashes and verifies passwords; services depend on this so unit tests can use a fast fake. */
+export interface PasswordHasher {
+  hash(password: string): Promise<string>;
+  verify(password: string, stored: string): Promise<boolean>;
+}
+/** scrypt cost (BR-151); maxmem must exceed 128·N·r = 32 MiB. */
+export const SCRYPT_PARAMS = { N: 32768, r: 8, p: 1, keyLength: 64, saltLength: 16, maxmem: 64 * 1024 * 1024 } as const;
+/** A well-formed hash that no password matches in practice; verified against when there is no password (REQ-118). */
+export const DUMMY_PASSWORD_HASH = `scrypt$32768$8$1$${'A'.repeat(22)}$${'A'.repeat(86)}`;
+/** Parts of a stored `scrypt$N$r$p$<salt>$<key>` hash. */
+export interface ParsedPasswordHash { N: number; r: number; p: number; salt: Buffer; key: Buffer; }
+export function hashPassword(password: string): Promise<string>;
+export function parsePasswordHash(stored: string): ParsedPasswordHash | null;
+export function verifyPassword(password: string, stored: string): Promise<boolean>;
+/** The production PasswordHasher (scrypt). */
+export const scryptPasswordHasher: PasswordHasher = { hash: hashPassword, verify: verifyPassword };
+
+// src/repositories/interfaces.ts — additions
+export interface NewUser { name: string; email: string; passwordHash: string; }       // TASK-250
+export interface UserRepository {                                                        // TASK-250
+  /** Throws EmailTakenError when the email already exists. */
+  create(data: NewUser): Promise<UserRecord>;
+  /** Case-insensitive match on the stored email; callers pass a normalized email. */
+  findByEmail(email: string): Promise<UserRecord | null>;
+  findById(id: string): Promise<UserRecord | null>;
+  /** Stores a new hash and sets passwordNotice to false. */
+  setPassword(id: string, passwordHash: string): Promise<void>;
+  /** Sets passwordHash to null, passwordClearedAt to `at` and passwordNotice to true. */
+  clearPassword(id: string, at: Date): Promise<void>;
+  /** Sets passwordNotice to false. */
+  dismissPasswordNotice(id: string): Promise<void>;
+}
+// RateLimitRepository gains (TASK-251):
+//   /** Current count of (key, windowStart); 0 when there is no row. */
+//   count(key: string, windowStart: Date): Promise<number>;
+// MemoryStore gains `users: UserRecord[]` (createMemoryStore returns `users: []`); new class MemoryUserRepository;
+// createMemoryRepositories() also returns `users` (TASK-250).
+
+// src/services/rate-limiter.ts (TASK-251) — additions
+export interface RateLimitRule { name: 'rsvp' | 'ai' | 'signin-email' | 'signin-ip'; limit: number; windowMs: number; }
+/** REQ-119: at most 5 failed sign-ins per email per 15 minutes. */
+export const SIGNIN_EMAIL_RULE: RateLimitRule = { name: 'signin-email', limit: 5, windowMs: 900_000 };
+/** REQ-119: at most 20 failed sign-ins per client IP per 15 minutes. */
+export const SIGNIN_IP_RULE: RateLimitRule = { name: 'signin-ip', limit: 20, windowMs: 900_000 };
+// RateLimiter gains:
+//   /** True when (rule, subject) already reached rule.limit in the current window; never increments. */
+//   isBlocked(rule: RateLimitRule, subject: string): Promise<boolean>;
+
+// Services (one class per action)
+// sign-in-with-password.ts (TASK-252)
+export class SignInWithPasswordService {
+  constructor(private readonly deps: { users: UserRepository; rateLimiter: RateLimiter; hasher: PasswordHasher }) {}
+  execute(input: { values: unknown; ipHash: string }): Promise<AuthUser>;
+}
+// register-user.ts (TASK-253)
+export class RegisterUserService {
+  constructor(private readonly deps: { users: UserRepository; rateLimiter: RateLimiter; hasher: PasswordHasher }) {}
+  execute(input: { values: unknown; ipHash: string }): Promise<AuthUser>;
+}
+// set-password.ts (TASK-254)
+export class SetPasswordService {
+  constructor(private readonly deps: { users: UserRepository; hasher: PasswordHasher }) {}
+  execute(input: { userId: string | null; values: unknown }): Promise<void>;
+}
+// get-account.ts, dismiss-password-notice.ts (TASK-255)
+export class GetAccountService {
+  constructor(private readonly deps: { users: UserRepository }) {}
+  execute(input: { userId: string | null }): Promise<AccountView>;
+}
+export class DismissPasswordNoticeService {
+  constructor(private readonly deps: { users: UserRepository }) {}
+  execute(input: { userId: string | null }): Promise<void>;
+}
+// link-google-account.ts, validate-password-session.ts (TASK-256)
+export class LinkGoogleAccountService {
+  constructor(private readonly deps: { users: UserRepository; now: Clock }) {}
+  execute(input: { userId: string; provider: string }): Promise<boolean>;
+}
+export class ValidatePasswordSessionService {
+  constructor(private readonly deps: { users: UserRepository }) {}
+  execute(input: { userId: string; pwdAt: unknown }): Promise<boolean>;
+}
+
+// src/lib/auth-callbacks.ts (TASK-258: RateLimitedSignIn, signInFailure, authorize, jwt;
+//                            TASK-259: signIn, linkAccount and the two extra deps)
+import { CredentialsSignin } from 'next-auth';
+import type { JWT } from 'next-auth/jwt';
+/** Thrown by authorize when the sign-in rate limit is reached (REQ-119). */
+export class RateLimitedSignIn extends CredentialsSignin { code = 'rate_limited'; }
+/** What the Auth.js callbacks need from the application (wired in src/auth.ts). */
+export interface AuthCallbackDeps {
+  signInWithPassword: (input: { values: unknown; ipHash: string }) => Promise<AuthUser>;
+  validatePasswordSession: (input: { userId: string; pwdAt: unknown }) => Promise<boolean>;
+  ipSalt: () => string;                                   // AUTH_SECRET
+  now: () => number;                                      // Date.now in production
+  linkGoogleAccount: (input: { userId: string; provider: string }) => Promise<boolean>;   // TASK-259
+  currentSessionEmail: () => Promise<string | null>;                                      // TASK-259
+}
+/** Auth.js callbacks for credentials sign-in, password sessions and Google linking. */
+export interface AuthCallbacks {
+  authorize(credentials: Partial<Record<string, unknown>>, request: Request): Promise<AuthUser | null>;
+  jwt(params: { token: JWT; account?: { provider: string } | null; trigger?: 'signIn' | 'signUp' | 'update' }): Promise<JWT | null>;
+  signIn(params: { account?: { provider: string } | null; profile?: { email?: string | null; email_verified?: unknown } }): Promise<boolean>;   // TASK-259
+  linkAccount(message: { user: { id?: string }; account: { provider: string } }): Promise<void>;                                             // TASK-259
+}
+export function createAuthCallbacks(deps: AuthCallbackDeps): AuthCallbacks;
+/** Maps a server-side signIn failure to an ActionFailure (REQ-118, REQ-119). */
+export function signInFailure(error: unknown, log?: (error: unknown) => void): ActionFailure;
+
+// Server actions
+// src/app/[locale]/actions.ts (TASK-260) — next to the existing signOutAction
+export async function signInWithPasswordAction(values: unknown, callbackUrl: string): Promise<ActionResult<{ redirectTo: string }>>;
+export async function registerAction(values: unknown, callbackUrl: string): Promise<ActionResult<{ redirectTo: string }>>;
+// src/app/[locale]/account/actions.ts (TASK-261)
+export async function setPasswordAction(values: unknown): Promise<ActionResult<null>>;
+export async function dismissPasswordNoticeAction(): Promise<ActionResult<null>>;
+
+// Components
+// src/components/password-sign-in-form.tsx (TASK-262)
+export interface PasswordSignInFormProps {
+  callbackUrl: string;
+  submit: (values: SignInFormValues, callbackUrl: string) => Promise<ActionResult<{ redirectTo: string }>>;
+  navigate?: (url: string) => void;   // default (url) => window.location.assign(url)
+}
+// src/components/register-form.tsx (TASK-263)
+export interface RegisterFormProps {
+  callbackUrl: string;
+  submit: (values: RegisterFormValues, callbackUrl: string) => Promise<ActionResult<{ redirectTo: string }>>;
+  navigate?: (url: string) => void;
+}
+// src/components/set-password-form.tsx (TASK-264)
+export interface SetPasswordFormProps {
+  hasPassword: boolean;
+  submit: (values: SetPasswordFormValues) => Promise<ActionResult<null>>;
+}
+// src/components/password-notice.tsx (TASK-265), client
+export interface PasswordNoticeProps { dismiss: () => Promise<ActionResult<null>>; }
+// src/components/password-notice-slot.tsx (TASK-265), server: `export async function PasswordNoticeSlot()`
+```
+
+The `Services` interface of `src/lib/container.ts` gains (TASK-258): `registerUser`, `signInWithPassword`,
+`setPassword`, `getAccount`, `dismissPasswordNotice`, `linkGoogleAccount`, `validatePasswordSession`.
+
+Element ids: sign-in `signin-email`, `signin-password`; register `register-name`, `register-email`,
+`register-password`, `register-confirm`; account `account-current`, `account-new`, `account-confirm`. A field error has
+the id `<input id>-error`, a hint `<input id>-hint`.
+
+### C16 — Phase 10 messages (amendment A6)
+
+TASK-247 adds these keys to the three catalogs. Keep the existing keys and their order; add `nav.account` as the last
+key of `nav`, the two new objects `auth` and `account` after `sample`, and the new `errors` and `validation` keys at the
+end of their objects. TASK-266 then changes `nav.signIn` (en "Sign in", fr "Se connecter", pt-BR "Entrar") and removes
+`nav.signInShort` from all three.
+
+`messages/en.json`:
+```json
+{
+  "nav": { "account": "Account" },
+  "auth": {
+    "signInTitle": "Sign in",
+    "continueWithGoogle": "Continue with Google",
+    "email": "Email",
+    "password": "Password",
+    "signInSubmit": "Sign in",
+    "noAccount": "New here?",
+    "createAccount": "Create an account",
+    "registerTitle": "Create an account",
+    "name": "Name",
+    "confirmPassword": "Confirm password",
+    "passwordHint": "8 to 128 characters.",
+    "registerSubmit": "Create account",
+    "haveAccount": "Already have an account?",
+    "signInLink": "Sign in",
+    "tooManyAttempts": "Too many attempts — please try again in a few minutes.",
+    "signInFailed": "Sign-in couldn't be completed. Please try again."
+  },
+  "account": {
+    "title": "Account",
+    "signedInEmail": "Signed in as {email}",
+    "setPasswordTitle": "Set a password",
+    "setPasswordHint": "Add a password to also sign in with your email.",
+    "changePasswordTitle": "Change password",
+    "currentPassword": "Current password",
+    "newPassword": "New password",
+    "confirmNewPassword": "Confirm new password",
+    "savePassword": "Save password",
+    "passwordSaved": "Password saved.",
+    "passwordClearedNotice": "You signed in with Google, so the password on this account was removed to keep it safe. Set a new password in Account to sign in with your email again.",
+    "goToAccount": "Go to Account",
+    "dismiss": "Dismiss"
+  },
+  "errors": {
+    "INVALID_CREDENTIALS": "Email or password is incorrect.",
+    "EMAIL_TAKEN": "An account with this email already exists. Sign in instead.",
+    "GOOGLE_ACCOUNT_EXISTS": "This email already has an account that uses Google. Sign in with Google, then set a password in Account."
+  },
+  "validation": {
+    "invalidEmail": "Enter a valid email address.",
+    "passwordLength": "Use 8 to 128 characters.",
+    "passwordMismatch": "The passwords do not match.",
+    "currentPasswordIncorrect": "The current password is incorrect."
+  }
+}
+```
+
+`messages/fr.json`:
+```json
+{
+  "nav": { "account": "Compte" },
+  "auth": {
+    "signInTitle": "Connexion",
+    "continueWithGoogle": "Continuer avec Google",
+    "email": "E-mail",
+    "password": "Mot de passe",
+    "signInSubmit": "Se connecter",
+    "noAccount": "Nouveau ici ?",
+    "createAccount": "Créer un compte",
+    "registerTitle": "Créer un compte",
+    "name": "Nom",
+    "confirmPassword": "Confirmez le mot de passe",
+    "passwordHint": "De 8 à 128 caractères.",
+    "registerSubmit": "Créer le compte",
+    "haveAccount": "Vous avez déjà un compte ?",
+    "signInLink": "Se connecter",
+    "tooManyAttempts": "Trop de tentatives — veuillez réessayer dans quelques minutes.",
+    "signInFailed": "La connexion n'a pas pu aboutir. Veuillez réessayer."
+  },
+  "account": {
+    "title": "Compte",
+    "signedInEmail": "Connecté en tant que {email}",
+    "setPasswordTitle": "Définir un mot de passe",
+    "setPasswordHint": "Ajoutez un mot de passe pour vous connecter aussi avec votre e-mail.",
+    "changePasswordTitle": "Changer le mot de passe",
+    "currentPassword": "Mot de passe actuel",
+    "newPassword": "Nouveau mot de passe",
+    "confirmNewPassword": "Confirmez le nouveau mot de passe",
+    "savePassword": "Enregistrer le mot de passe",
+    "passwordSaved": "Mot de passe enregistré.",
+    "passwordClearedNotice": "Vous vous êtes connecté avec Google : le mot de passe de ce compte a donc été supprimé par sécurité. Définissez un nouveau mot de passe dans Compte pour vous connecter à nouveau avec votre e-mail.",
+    "goToAccount": "Aller au compte",
+    "dismiss": "Ignorer"
+  },
+  "errors": {
+    "INVALID_CREDENTIALS": "E-mail ou mot de passe incorrect.",
+    "EMAIL_TAKEN": "Un compte existe déjà avec cet e-mail. Connectez-vous plutôt.",
+    "GOOGLE_ACCOUNT_EXISTS": "Cet e-mail a déjà un compte qui utilise Google. Connectez-vous avec Google, puis définissez un mot de passe dans Compte."
+  },
+  "validation": {
+    "invalidEmail": "Saisissez une adresse e-mail valide.",
+    "passwordLength": "Utilisez de 8 à 128 caractères.",
+    "passwordMismatch": "Les mots de passe ne correspondent pas.",
+    "currentPasswordIncorrect": "Le mot de passe actuel est incorrect."
+  }
+}
+```
+
+`messages/pt-BR.json`:
+```json
+{
+  "nav": { "account": "Conta" },
+  "auth": {
+    "signInTitle": "Entrar",
+    "continueWithGoogle": "Continuar com o Google",
+    "email": "E-mail",
+    "password": "Senha",
+    "signInSubmit": "Entrar",
+    "noAccount": "Primeira vez aqui?",
+    "createAccount": "Criar uma conta",
+    "registerTitle": "Criar uma conta",
+    "name": "Nome",
+    "confirmPassword": "Confirme a senha",
+    "passwordHint": "De 8 a 128 caracteres.",
+    "registerSubmit": "Criar conta",
+    "haveAccount": "Já tem uma conta?",
+    "signInLink": "Entrar",
+    "tooManyAttempts": "Muitas tentativas — tente novamente em alguns minutos.",
+    "signInFailed": "Não foi possível concluir a entrada. Tente novamente."
+  },
+  "account": {
+    "title": "Conta",
+    "signedInEmail": "Conectado como {email}",
+    "setPasswordTitle": "Definir uma senha",
+    "setPasswordHint": "Adicione uma senha para entrar também com seu e-mail.",
+    "changePasswordTitle": "Alterar senha",
+    "currentPassword": "Senha atual",
+    "newPassword": "Nova senha",
+    "confirmNewPassword": "Confirme a nova senha",
+    "savePassword": "Salvar senha",
+    "passwordSaved": "Senha salva.",
+    "passwordClearedNotice": "Você entrou com o Google, então a senha desta conta foi removida por segurança. Defina uma nova senha em Conta para voltar a entrar com seu e-mail.",
+    "goToAccount": "Ir para Conta",
+    "dismiss": "Dispensar"
+  },
+  "errors": {
+    "INVALID_CREDENTIALS": "E-mail ou senha incorretos.",
+    "EMAIL_TAKEN": "Já existe uma conta com este e-mail. Entre com ela.",
+    "GOOGLE_ACCOUNT_EXISTS": "Este e-mail já tem uma conta que usa o Google. Entre com o Google e depois defina uma senha em Conta."
+  },
+  "validation": {
+    "invalidEmail": "Informe um endereço de e-mail válido.",
+    "passwordLength": "Use de 8 a 128 caracteres.",
+    "passwordMismatch": "As senhas não coincidem.",
+    "currentPasswordIncorrect": "A senha atual está incorreta."
+  }
+}
 ```
 
 ---
@@ -9305,4 +9697,2925 @@ Commit `docs: one-command docker run in the README`.
 **Test first:** —
 **Done when:** `npm run format:check` passes; step 4 prints nothing; `git diff main -- README.md` touches only the
 "Run locally" and "Tests" sections.
+**TDD exception:** docs
+
+## Phase 10 — Email and password sign-in (`phase-10/password-auth`, amendment A6)
+
+Goal: next to Google, a person can register with name, email and password, sign in with email and password, and set
+or change a password on a new Account page (REQ-114 … REQ-120, REQ-126 … REQ-128). Google signs in to an existing
+account with the same email only when Google has verified the email; linking clears a password that was set without
+that proof and shows a notice (REQ-121 … REQ-123). Sessions become JWTs (REQ-124). The hash never leaves the server
+(REQ-125). New screens in three languages, WCAG 2.2 AA in both themes (REQ-129). Works without `.env.local`
+(REQ-130). README last (TASK-269).
+
+Order: TASK-247 → TASK-269 in document order. There is no human task: no new secret, no new variable, no account and
+no Google Cloud change (`allowDangerousEmailAccountLinking` is code). Vercel applies the additive migration on the next
+production build (`prisma migrate deploy` in `vercel-build`).
+
+**Phase 10 notes — decisions taken while writing the spec** (none changes a business rule):
+1. **Edge split.** `src/middleware.ts` does not import `auth.config.ts` today (it only runs `next-intl`), so nothing
+   runs Auth.js on the Edge. The split is kept anyway: `src/auth.config.ts` stays free of Prisma, `node:crypto` and the
+   container, so it stays Edge-safe and unit-testable. The Credentials provider, the `jwt` and `signIn` callbacks and
+   `events.linkAccount` are wired in `src/auth.ts` (Node), through `src/lib/auth-callbacks.ts`.
+2. **User id in the session.** Auth.js sets `token.sub` to the user id when it creates a JWT (Google and
+   credentials). The `session` callback copies it to `session.user.id`, so `src/lib/session.ts` and every caller of
+   `getCurrentUserId` / `getCurrentUser` / `requireUserId` are unchanged.
+3. **Linking guard.** Google sets `allowDangerousEmailAccountLinking: true` (without it an existing email fails with
+   `OAuthAccountNotLinked`). The `signIn` callback, which Auth.js runs before it links anything, allows Google only
+   when `profile.email_verified === true` and, if a session already exists, only when that session's email is Google's
+   email. The second check is needed because Auth.js links a new Google account to the *signed-in* user whatever its
+   email: a pre-hijacker signed in with a password could otherwise attach their own Google account and keep access
+   after the clearing. The callback reads the current session through `auth()`, reached with a late-bound reference
+   in `src/auth.ts` (a direct reference would be circular). A refused sign-in ends on `/sign-in?error=AccessDenied`.
+4. **Clearing.** `events.linkAccount` fires after the `Account` row is written, for a new Google user and for an email
+   link alike. `LinkGoogleAccountService` clears only when the user has a password, so new Google users are untouched.
+   It sets `passwordHash` null, `passwordClearedAt` now and `passwordNotice` true.
+5. **Password sessions end when the password is cleared** (from BR-163 "can no longer be used to sign in" and its
+   pre-hijacking rationale): a credentials sign-in stamps `token.pwdAt`; the `jwt` callback re-checks only tokens with
+   `pwdAt` (one primary-key read per request for password sessions; Google sessions read nothing) and returns `null`
+   when `passwordClearedAt >= pwdAt`, which deletes the cookie.
+6. **Rate limit (BR-156).** Reuses the Postgres `RateLimit` table and the fixed windows of REQ-55. The new
+   `RateLimitRepository.count` lets the service check before it verifies (no increment); only failures are counted;
+   success neither counts nor resets. Keys hold hashes only: `signin-email:<sha256(email)>`,
+   `signin-ip:<salted ip hash>`. Unknown emails are counted exactly like known ones, so the limit reveals nothing.
+   Check-then-count is not atomic; a few concurrent attempts can pass the limit (accepted). Registration refusals for an
+   existing email count on the IP rule, and a blocked IP cannot register: this applies the mitigation recorded with
+   the A6 enumeration trade-off.
+7. **Registration with an email that has a password** → `EMAIL_TAKEN` ("An account with this email already exists.
+   Sign in instead."). The rules only describe the Google-only case; one email = one account follows from BR-147 and
+   the unique `User.email`. "Google-only" means `passwordHash` is null (this includes the seeded demo user).
+8. **Equal work.** Unknown email or no password → the password is still verified once, against `DUMMY_PASSWORD_HASH`.
+9. **scrypt.** N = 32768, r = 8, p = 1, 64-byte key, 16-byte salt, `maxmem` 64 MiB (Node's default 32 MiB rejects
+   these parameters: checked 2026-09-25), about 60 ms per hash. Stored as `scrypt$32768$8$1$<salt>$<key>` (base64url);
+   `verifyPassword` refuses other parameters. Passwords are NFKC-normalized (NIST SP 800-63B) and never trimmed.
+10. **Password length** is counted in code points (8–128). The sign-in password only needs to be non-empty.
+11. **Email.** zod `.email()`, at most 254 characters, normalized (BR-147). `findByEmail` matches case-insensitively
+    in Postgres (`mode: 'insensitive'`), because users created by Google keep the provider's spelling.
+12. **Notice (BR-164).** One column, `passwordNotice`. The layout shows the notice under the header on every page
+    while it is set: right after the linking sign-in (the banner) and on the Account page (the persistent notice), until
+    a new password is set or it is dismissed.
+13. **Entry points.** Every "Sign in" link and the organizer-route redirect go to `/<locale>/sign-in?callbackUrl=…`
+    (`signInRedirectPath`). `/api/login` stays the Google starter, used by "Continue with Google". Auth.js
+    `pages.signIn` and `pages.error` are `/sign-in`, so its built-in pages never show. The header label is "Sign in" at
+    every width; `nav.signInShort` is removed.
+14. **E2E auth.** `signInAs` mints the JWT with `encode` from `next-auth/jwt` and `AUTH_SECRET` from `.env.test`
+    (spec, "E2E authentication"); the new journeys use the real pages. `e2e/helpers/factories.ts` already imports ESM
+    packages (`nanoid`), so importing `next-auth/jwt` in Playwright works the same way.
+15. **Migration** is additive: `User.passwordHash` (nullable), `User.passwordClearedAt` (nullable),
+    `User.passwordNotice` (default false). The `Session` table stays (unused); dropping it is not needed and would
+    not be additive.
+16. **BR-170.** Password auth needs only the database and `AUTH_SECRET`; the E2E suite proves it works with Google
+    credentials that cannot sign in, and REQ-109 proves the container generates the secret. The container smoke check
+    stays as it is. A local container run without `.env.local` is not part of this phase: it would mean moving
+    `.env.local`, which agents never touch.
+17. **Hash hygiene.** `PrismaUserRepository` replaces every Prisma error by a sanitized one (Prisma validation messages
+    quote the query data), and no new module logs anything.
+18. **Not rate-limited / not revoked:** wrong current passwords on the Account page (the caller holds a session), and
+    other sessions after a password *change* (JWTs have no server-side store; only clearing ends password sessions,
+    note 5). Both are stated in the README.
+19. **Out of scope** (README): password reset and email verification (both need email sending).
+20. **DESIGN.md** still says the top bar shows "Sign in with Google". The analyst updates that line during doc-sync.
+
+**Phase 10 rules (read once, in addition to "How to execute a task"):**
+1. **No new dependency.** `package.json` and `package-lock.json` do not change.
+2. **Local ports and processes.** Port 3000 belongs to an unrelated app on this machine. Run E2E with `E2E_PORT=3100`,
+   e.g. `E2E_PORT=3100 npm run test:e2e -- e2e/password-auth.spec.ts` (PowerShell: `$env:E2E_PORT=3100; npm run
+   test:e2e -- …`). Start the database with `docker compose up -d db` only. Never run `docker compose down`, and never
+   stop, remove, restart or inspect any other container or process. If port 3100 is busy, or Docker is not running,
+   stop and return `ENV_FAILURE`.
+3. **Secrets.** Never open, print, copy or edit `.env.local`, and never run a command with `dotenv -e .env.local`.
+   Migrations and tests use `.env.test` only. The E2E helper reads `AUTH_SECRET` from the environment, never from a
+   literal.
+4. **Security.** Never log a password, a hash, an email or an IP in new code (no `console.*` in new modules). No
+   service, action, page or component returns or renders `passwordHash`.
+5. **Traceability.** Test titles are plain `it('REQ-xx: …')` / `test('REQ-xx: …')`. Loop inside one test; never use
+   `it.each`.
+6. **Formatting.** `npx prettier --write <files>` on every changed `.ts`, `.tsx`, `.json` and `.css` file. Keep
+   Markdown lines at 120 characters or fewer by hand (`.prettierignore` excludes `*.md`).
+7. **Red for the right reason.** New exported functions and methods start as stubs that throw
+   `new Error('not implemented')`; a new service class starts with such a stub `execute`.
+8. **UI.** Use only existing classes and primitives (`Button`, `buttonClass`, `Field`, `FieldLabel`, `FieldHint`,
+   `FieldError`, `Alert`, `describedBy`, `Icon`, `GoogleMark`). No new color value anywhere. The only CSS addition of
+   the phase is `.site-notice` (TASK-265). Forms follow `src/components/rsvp-form.tsx`: `noValidate`, client-side zod
+   with `ValidationError.fromZod`, field errors under the fields, form errors in `Alert`.
+9. **Test database.** Integration tests: `npm run test:int -- <file>` (applies migrations to `rsvp_test` first).
+
+**Existing tests that change:** `src/auth.config.test.ts` (TASK-257), `src/lib/action-result.test.ts` (TASK-249, the
+code list), `src/domain/errors.test.ts` (TASK-249, one test added), `src/services/rate-limiter.test.ts` (TASK-251, tests
+added), `src/components/user-menu.test.tsx` (TASK-264, one test added), `src/lib/auth-redirect.test.ts` (TASK-266),
+`e2e/helpers/auth.ts` (TASK-257), `e2e/auth.spec.ts`, `e2e/header.spec.ts`, `e2e/home.spec.ts` (TASK-266),
+`e2e/a11y.spec.ts`, `e2e/i18n-layout.spec.ts` (TASK-268, tests added). Every other test keeps passing unchanged.
+
+### TASK-247 — Phase 10 message keys
+**Phase:** 10 · **Requirements:** REQ-129 · **Status:** todo · **Revision:** 1
+**Files:** messages/en.json, messages/fr.json, messages/pt-BR.json
+**Steps:**
+1. Add the keys of C16 to each catalog exactly as given: `nav.account` as the last key of `nav`; the objects `auth`
+   and `account` right after the `sample` object; the three `errors` keys after `INTERNAL_ERROR`; the four `validation`
+   keys after `invalidStatus`. Do not change or remove any existing key in this task (`nav.signIn` and
+   `nav.signInShort` change in TASK-266).
+2. `npx prettier --write messages/en.json messages/fr.json messages/pt-BR.json`.
+
+Commit `chore(i18n): phase 10 message keys`.
+**Test first:** — (the existing REQ-52 parity test guards the three catalogs)
+**Done when:** `npx vitest run --project unit src/i18n/messages.test.ts` passes; `npm run typecheck` passes.
+**TDD exception:** chore (message content; guarded by the existing parity test)
+
+### TASK-248 — Password hashing with scrypt
+**Phase:** 10 · **Requirements:** REQ-114 · **Status:** todo · **Revision:** 1
+**Files:** src/lib/password.ts, src/lib/password.test.ts
+**Interface:** C15 `src/lib/password.ts`.
+**Steps (red commit):** create `src/lib/password.ts` with `PasswordHasher`, `SCRYPT_PARAMS`, `DUMMY_PASSWORD_HASH`,
+`ParsedPasswordHash` and `scryptPasswordHasher` exactly as in C15, and three stubs that throw
+`new Error('not implemented')`:
+```ts
+/** Hashes a password with scrypt and a fresh 16-byte salt: `scrypt$N$r$p$<salt>$<key>` (REQ-114, BR-151). */
+export async function hashPassword(_password: string): Promise<string> { throw new Error('not implemented'); }
+/** Splits a stored hash into its parts; null when it is malformed or uses other parameters (REQ-114). */
+export function parsePasswordHash(_stored: string): ParsedPasswordHash | null { throw new Error('not implemented'); }
+/** True when `password` matches `stored`, compared in constant time; false for a malformed hash (REQ-114, BR-152). */
+export async function verifyPassword(_password: string, _stored: string): Promise<boolean> { throw new Error('not implemented'); }
+```
+(`scryptPasswordHasher` refers to the stubs, so declare it after them.)
+**Test first** (new file `src/lib/password.test.ts`):
+```ts
+import { describe, expect, it, vi } from 'vitest';
+
+vi.mock('node:crypto', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('node:crypto')>();
+  return { ...actual, timingSafeEqual: vi.fn(actual.timingSafeEqual) };
+});
+
+import { timingSafeEqual } from 'node:crypto';
+import { DUMMY_PASSWORD_HASH, hashPassword, parsePasswordHash, verifyPassword } from './password';
+
+describe('password hashing (REQ-114)', () => {
+  it('REQ-114: hashes with scrypt, a 16-byte salt and a 64-byte key, a new salt each time', async () => {
+    const first = await hashPassword('correct horse');
+    const second = await hashPassword('correct horse');
+    expect(first).toMatch(/^scrypt\$32768\$8\$1\$[A-Za-z0-9_-]{22}\$[A-Za-z0-9_-]{86}$/);
+    expect(second).not.toBe(first);
+    expect(await verifyPassword('correct horse', first)).toBe(true);
+    expect(await verifyPassword('correct horse', second)).toBe(true);
+  });
+
+  it('REQ-114: rejects a different password and compares in constant time', async () => {
+    const stored = await hashPassword('correct horse');
+    vi.mocked(timingSafeEqual).mockClear();
+    expect(await verifyPassword('correct horsE', stored)).toBe(false);
+    expect(timingSafeEqual).toHaveBeenCalledTimes(1);
+  });
+
+  it('REQ-114: normalizes the password (NFKC) before hashing and verifying', async () => {
+    const stored = await hashPassword('café horse');
+    expect(await verifyPassword('café horse', stored)).toBe(true);
+  });
+
+  it('REQ-114: a malformed or foreign hash is false without running scrypt', async () => {
+    vi.mocked(timingSafeEqual).mockClear();
+    const salt = 'A'.repeat(22);
+    const key = 'A'.repeat(86);
+    for (const stored of [
+      '',
+      'plain',
+      `scrypt$16384$8$1$${salt}$${key}`,
+      `scrypt$32768$8$1$${'A'.repeat(10)}$${key}`,
+      `scrypt$32768$8$1$${salt}$${'A'.repeat(40)}`,
+      `bcrypt$32768$8$1$${salt}$${key}`,
+    ]) {
+      expect(parsePasswordHash(stored), stored).toBeNull();
+      expect(await verifyPassword('correct horse', stored), stored).toBe(false);
+    }
+    expect(timingSafeEqual).not.toHaveBeenCalled();
+  });
+
+  it('REQ-114: the dummy hash is well formed, so verifying against it costs a full scrypt', async () => {
+    const parsed = parsePasswordHash(DUMMY_PASSWORD_HASH);
+    expect(parsed).not.toBeNull();
+    expect(parsed!.salt).toHaveLength(16);
+    expect(parsed!.key).toHaveLength(64);
+    vi.mocked(timingSafeEqual).mockClear();
+    expect(await verifyPassword('anything', DUMMY_PASSWORD_HASH)).toBe(false);
+    expect(timingSafeEqual).toHaveBeenCalledTimes(1);
+  });
+});
+```
+Red: every test fails with `not implemented`. Commit `test(auth): scrypt password hashing`.
+**Implementation** (commit `feat(auth): scrypt password hashing`). Replace the stubs with:
+```ts
+import { randomBytes, scrypt, timingSafeEqual } from 'node:crypto';
+
+/** Derives a scrypt key from the NFKC-normalized password (REQ-114). */
+function derive(password: string, salt: Buffer, keyLength: number): Promise<Buffer> {
+  const { N, r, p, maxmem } = SCRYPT_PARAMS;
+  return new Promise((resolve, reject) => {
+    scrypt(password.normalize('NFKC'), salt, keyLength, { N, r, p, maxmem }, (error, key) =>
+      error ? reject(error) : resolve(key),
+    );
+  });
+}
+
+export async function hashPassword(password: string): Promise<string> {
+  const salt = randomBytes(SCRYPT_PARAMS.saltLength);
+  const key = await derive(password, salt, SCRYPT_PARAMS.keyLength);
+  const { N, r, p } = SCRYPT_PARAMS;
+  return ['scrypt', N, r, p, salt.toString('base64url'), key.toString('base64url')].join('$');
+}
+
+export function parsePasswordHash(stored: string): ParsedPasswordHash | null {
+  const parts = stored.split('$');
+  if (parts.length !== 6 || parts[0] !== 'scrypt') return null;
+  const [N, r, p] = parts.slice(1, 4).map(Number);
+  if (N !== SCRYPT_PARAMS.N || r !== SCRYPT_PARAMS.r || p !== SCRYPT_PARAMS.p) return null;
+  const salt = Buffer.from(parts[4], 'base64url');
+  const key = Buffer.from(parts[5], 'base64url');
+  if (salt.length !== SCRYPT_PARAMS.saltLength || key.length !== SCRYPT_PARAMS.keyLength) return null;
+  return { N, r, p, salt, key };
+}
+
+export async function verifyPassword(password: string, stored: string): Promise<boolean> {
+  const parsed = parsePasswordHash(stored);
+  if (!parsed) return false;
+  const key = await derive(password, parsed.salt, parsed.key.length);
+  return timingSafeEqual(key, parsed.key);
+}
+```
+(keep the TSDoc lines of the stubs above each function). The module imports nothing but `node:crypto`.
+**Done when:** `npx vitest run --project unit src/lib/password.test.ts` passes (5 tests); `npm run typecheck` and
+`npm run lint` pass.
+**TDD exception:** none
+
+### TASK-249 — Credential errors, validation keys, email normalization and schemas
+**Phase:** 10 · **Requirements:** REQ-115 · **Status:** todo · **Revision:** 1
+**Files:** src/domain/errors.ts, src/domain/errors.test.ts, src/domain/credentials.ts, src/domain/credentials.test.ts,
+src/domain/schemas.ts, src/domain/schemas.test.ts, src/domain/types.ts, src/lib/action-result.test.ts
+**Interface:** C15 `errors.ts`, `credentials.ts`, `schemas.ts`, `types.ts` additions.
+**Steps (red commit):**
+1. `src/domain/errors.ts`: add the three codes to `ErrorCode`, the four keys to the end of `VALIDATION_KEYS`, and the
+   three error classes of C15 (full bodies; they are declarations).
+2. `src/domain/types.ts`: add `UserRecord`, `AuthUser`, `AccountView` (C15).
+3. `src/domain/credentials.ts`: `PASSWORD_MIN_LENGTH`, `PASSWORD_MAX_LENGTH`, and `normalizeEmail` / `passwordLength`
+   as stubs that throw `new Error('not implemented')`.
+4. `src/domain/schemas.ts`: add the C15 schemas and types verbatim (they call `passwordLength`, so the schema tests go
+   red on `not implemented`).
+5. `src/lib/action-result.test.ts`: add `'INVALID_CREDENTIALS'`, `'EMAIL_TAKEN'` and `'GOOGLE_ACCOUNT_EXISTS'` to the
+   `codes` list of `REQ-59: every error code has an English message` (TASK-247 already added the messages).
+**Test first:**
+- `src/domain/credentials.test.ts` (new):
+```ts
+import { describe, expect, it } from 'vitest';
+import { normalizeEmail, passwordLength } from './credentials';
+
+describe('credentials (REQ-115)', () => {
+  it('REQ-115: normalizeEmail trims and lower-cases', () => {
+    expect(normalizeEmail('  Ana@Example.COM ')).toBe('ana@example.com');
+  });
+
+  it('REQ-115: passwordLength counts code points', () => {
+    expect(passwordLength('12345678')).toBe(8);
+    expect(passwordLength('😀'.repeat(100))).toBe(100);
+  });
+});
+```
+- `src/domain/schemas.test.ts`: add at the end (add the new schema names to the file's import from `./schemas`, and
+  `import { ValidationError } from './errors';` if it is not imported yet):
+```ts
+/** First field error of each field, as the forms show them. */
+function fieldErrorsOf(result: { success: boolean; error?: import('zod').ZodError }) {
+  return result.success ? null : ValidationError.fromZod(result.error!).fieldErrors;
+}
+
+describe('credential schemas (REQ-115)', () => {
+  it('REQ-115: emailSchema normalizes and validates the email', () => {
+    expect(emailSchema.parse('  Ana@Example.COM ')).toBe('ana@example.com');
+    expect(fieldErrorsOf(z.object({ email: emailSchema }).safeParse({ email: '' }))).toEqual({ email: 'required' });
+    expect(fieldErrorsOf(z.object({ email: emailSchema }).safeParse({}))).toEqual({ email: 'required' });
+    for (const email of ['nope', 'a@b']) {
+      expect(fieldErrorsOf(z.object({ email: emailSchema }).safeParse({ email })), email).toEqual({
+        email: 'invalidEmail',
+      });
+    }
+    expect(
+      fieldErrorsOf(z.object({ email: emailSchema }).safeParse({ email: 'a'.repeat(250) + '@example.com' })),
+    ).toEqual({ email: 'tooLong' });
+  });
+
+  it('REQ-115: passwordSchema accepts 8 to 128 code points with no composition rule', () => {
+    for (const ok of ['12345678', 'a'.repeat(128), '😀'.repeat(100), 'aaaaaaaa', '        ']) {
+      expect(passwordSchema.safeParse(ok).success, JSON.stringify(ok)).toBe(true);
+    }
+    const errors = (value: string) => fieldErrorsOf(z.object({ password: passwordSchema }).safeParse({ password: value }));
+    expect(errors('')).toEqual({ password: 'required' });
+    expect(errors('1234567')).toEqual({ password: 'passwordLength' });
+    expect(errors('a'.repeat(129))).toEqual({ password: 'passwordLength' });
+    expect(passwordSchema.parse('  spaced  ')).toBe('  spaced  ');
+  });
+
+  it('REQ-115: registerInputSchema normalizes, drops the confirmation and reports a mismatch', () => {
+    expect(
+      registerInputSchema.parse({
+        name: '  Ana Lima ',
+        email: ' Ana@Example.com',
+        password: 'correct horse',
+        confirmPassword: 'correct horse',
+      }),
+    ).toEqual({ name: 'Ana Lima', email: 'ana@example.com', password: 'correct horse' });
+    const base = { name: 'Ana', email: 'ana@example.com', password: 'correct horse' };
+    expect(fieldErrorsOf(registerInputSchema.safeParse({ ...base, confirmPassword: 'correct horsE' }))).toEqual({
+      confirmPassword: 'passwordMismatch',
+    });
+    expect(fieldErrorsOf(registerInputSchema.safeParse({ ...base, confirmPassword: '' }))).toEqual({
+      confirmPassword: 'required',
+    });
+    expect(
+      fieldErrorsOf(registerInputSchema.safeParse({ ...base, name: '', confirmPassword: 'other' })),
+    ).toEqual({ name: 'required', confirmPassword: 'passwordMismatch' });
+    expect(
+      fieldErrorsOf(registerInputSchema.safeParse({ ...base, name: 'a'.repeat(81), confirmPassword: base.password })),
+    ).toEqual({ name: 'tooLong' });
+  });
+
+  it('REQ-115: signInInputSchema only needs a non-empty password', () => {
+    expect(signInInputSchema.parse({ email: ' Ana@Example.com ', password: 'x' })).toEqual({
+      email: 'ana@example.com',
+      password: 'x',
+    });
+    expect(fieldErrorsOf(signInInputSchema.safeParse({ email: 'nope', password: '' }))).toEqual({
+      email: 'invalidEmail',
+      password: 'required',
+    });
+  });
+
+  it('REQ-115: setPasswordInputSchema defaults the current password and checks the new one', () => {
+    expect(
+      setPasswordInputSchema.parse({ newPassword: 'new horse 12', confirmPassword: 'new horse 12' }),
+    ).toEqual({ currentPassword: '', newPassword: 'new horse 12' });
+    expect(
+      setPasswordInputSchema.parse({ currentPassword: 'old', newPassword: 'new horse 12', confirmPassword: 'new horse 12' }),
+    ).toEqual({ currentPassword: 'old', newPassword: 'new horse 12' });
+    expect(
+      fieldErrorsOf(setPasswordInputSchema.safeParse({ newPassword: 'short', confirmPassword: 'other' })),
+    ).toEqual({ newPassword: 'passwordLength', confirmPassword: 'passwordMismatch' });
+  });
+});
+```
+  (`z` is already imported in that file; if it is not, add `import { z } from 'zod';`.)
+- `src/domain/errors.test.ts`: import the three new classes and add inside the file's last `describe`:
+```ts
+  it('REQ-115: the credential errors carry their codes', () => {
+    expect(new InvalidCredentialsError().code).toBe('INVALID_CREDENTIALS');
+    expect(new EmailTakenError().code).toBe('EMAIL_TAKEN');
+    expect(new GoogleAccountExistsError().code).toBe('GOOGLE_ACCOUNT_EXISTS');
+    expect(new InvalidCredentialsError()).toBeInstanceOf(DomainError);
+  });
+```
+Red: the credentials and schema tests fail with `not implemented`; the errors test passes (declarations). Commit
+`test(domain): credential schemas and errors`.
+**Implementation** (commit `feat(domain): credential schemas and errors`): `normalizeEmail` returns
+`value.trim().toLowerCase()`; `passwordLength` returns `[...value].length`.
+**Done when:** `npx vitest run --project unit src/domain src/lib/action-result.test.ts src/i18n` passes;
+`npm run typecheck` and `npm run lint` pass.
+**TDD exception:** none
+
+### TASK-250 — Password columns and the user repository
+**Phase:** 10 · **Requirements:** REQ-116, REQ-117, REQ-122, REQ-123, REQ-125 · **Status:** todo · **Revision:** 1
+**Files:** prisma/schema.prisma, prisma/migrations/20260925200000_password_auth/migration.sql,
+src/repositories/interfaces.ts, src/repositories/prisma/prisma-user-repository.ts,
+src/repositories/prisma/prisma-user-repository.int.test.ts, src/repositories/prisma/prisma-user-repository.test.ts,
+src/repositories/memory/memory-user-repository.ts, src/repositories/memory/memory-store.ts,
+src/repositories/memory/index.ts
+**Interface:** C15 `NewUser`, `UserRepository`, memory additions.
+**Steps (red commit):**
+1. `prisma/schema.prisma`, model `User`: after `image String?` add
+   ```prisma
+   passwordHash      String?
+   passwordClearedAt DateTime?
+   passwordNotice    Boolean   @default(false)
+   ```
+   (let Prettier-for-Prisma alignment be whatever `npx prisma format` produces; run it).
+2. Create `prisma/migrations/20260925200000_password_auth/migration.sql` with exactly:
+   ```sql
+   -- AlterTable
+   ALTER TABLE "User" ADD COLUMN     "passwordClearedAt" TIMESTAMP(3),
+   ADD COLUMN     "passwordHash" TEXT,
+   ADD COLUMN     "passwordNotice" BOOLEAN NOT NULL DEFAULT false;
+   ```
+3. `npx prisma generate`, then apply to the test database: `npx dotenv -e .env.test -- prisma migrate deploy`. Check
+   that schema and migrations agree: `npx dotenv -e .env.test -- prisma migrate diff --from-schema-datasource
+   prisma/schema.prisma --to-schema-datamodel prisma/schema.prisma --exit-code` must exit 0.
+4. `src/repositories/interfaces.ts`: add `NewUser` and `UserRepository` from C15 (import `UserRecord`).
+5. `src/repositories/memory/memory-store.ts`: `users: UserRecord[]` in `MemoryStore`, `users: []` in
+   `createMemoryStore`. New `memory-user-repository.ts` with class `MemoryUserRepository implements UserRepository`
+   (`constructor(private readonly store: MemoryStore)`), full implementation (it is a test fake, like the other memory
+   repositories): `create` throws `EmailTakenError` when a stored email equals `data.email` ignoring case, else pushes
+   `{ id: crypto.randomUUID(), name, email, passwordHash, passwordClearedAt: null, passwordNotice: false }` and returns
+   a copy; `findByEmail` compares lower-cased; `findById`; `setPassword` / `clearPassword` / `dismissPasswordNotice`
+   update the record as C15 says and throw `new Error('not found')` for an unknown id. Export it from
+   `memory/index.ts` and add `users: new MemoryUserRepository(store)` to `createMemoryRepositories()`.
+6. `src/repositories/prisma/prisma-user-repository.ts`: class `PrismaUserRepository implements UserRepository`,
+   `constructor(private readonly prisma: PrismaClient)`, every method a stub that throws `new Error('not implemented')`.
+**Test first:**
+- `src/repositories/prisma/prisma-user-repository.int.test.ts` (new):
+```ts
+import { beforeEach, describe, expect, it } from 'vitest';
+import { EmailTakenError } from '@/domain/errors';
+import { prisma } from '@/lib/prisma';
+import { resetDatabase } from '@/test/db';
+import { PrismaUserRepository } from './prisma-user-repository';
+
+describe('PrismaUserRepository', () => {
+  beforeEach(resetDatabase);
+  const repo = () => new PrismaUserRepository(prisma);
+
+  it('REQ-116: creates a password user and finds it by email (any case) and id', async () => {
+    const created = await repo().create({ name: 'Ana', email: 'ana@example.com', passwordHash: 'scrypt$x' });
+    expect(created).toEqual({
+      id: created.id,
+      name: 'Ana',
+      email: 'ana@example.com',
+      passwordHash: 'scrypt$x',
+      passwordClearedAt: null,
+      passwordNotice: false,
+    });
+    expect(await repo().findByEmail('ana@example.com')).toEqual(created);
+    await prisma.user.create({ data: { email: 'Gil@Example.com', name: 'Gil' } });
+    expect((await repo().findByEmail('gil@example.com'))?.name).toBe('Gil');
+    expect(await repo().findById(created.id)).toEqual(created);
+    expect(await repo().findByEmail('nobody@example.com')).toBeNull();
+    expect(await repo().findById('missing')).toBeNull();
+  });
+
+  it('REQ-117: only one of two concurrent registrations of an email succeeds', async () => {
+    const data = { name: 'Ana', email: 'ana@example.com', passwordHash: 'scrypt$x' };
+    const results = await Promise.allSettled([repo().create(data), repo().create(data)]);
+    expect(results.filter((r) => r.status === 'fulfilled')).toHaveLength(1);
+    const rejected = results.find((r) => r.status === 'rejected') as PromiseRejectedResult;
+    expect(rejected.reason).toBeInstanceOf(EmailTakenError);
+    expect(await prisma.user.count()).toBe(1);
+  });
+
+  it('REQ-122: clearPassword removes the hash, records when and raises the notice', async () => {
+    const { id } = await repo().create({ name: 'Ana', email: 'ana@example.com', passwordHash: 'scrypt$x' });
+    const at = new Date('2026-09-25T12:00:00.000Z');
+    await repo().clearPassword(id, at);
+    expect(await repo().findById(id)).toMatchObject({ passwordHash: null, passwordClearedAt: at, passwordNotice: true });
+  });
+
+  it('REQ-123: setPassword and dismissPasswordNotice lower the notice', async () => {
+    const { id } = await repo().create({ name: 'Ana', email: 'ana@example.com', passwordHash: 'scrypt$x' });
+    await repo().clearPassword(id, new Date('2026-09-25T12:00:00.000Z'));
+    await repo().setPassword(id, 'scrypt$y');
+    expect(await repo().findById(id)).toMatchObject({ passwordHash: 'scrypt$y', passwordNotice: false });
+    await repo().clearPassword(id, new Date('2026-09-25T13:00:00.000Z'));
+    await repo().dismissPasswordNotice(id);
+    expect(await repo().findById(id)).toMatchObject({ passwordHash: null, passwordNotice: false });
+  });
+});
+```
+- `src/repositories/prisma/prisma-user-repository.test.ts` (new, unit, fake client):
+```ts
+import { describe, expect, it } from 'vitest';
+import type { PrismaClient } from '@prisma/client';
+import { PrismaUserRepository } from './prisma-user-repository';
+
+describe('PrismaUserRepository errors (REQ-125)', () => {
+  it('REQ-125: a Prisma error that quotes the hash is replaced by a sanitized one', async () => {
+    const leaky = Object.assign(
+      new Error('Invalid `prisma.user.update()` invocation: { data: { passwordHash: "scrypt$secret-hash" } }'),
+      { code: 'P2025' },
+    );
+    const fake = { user: { update: async () => { throw leaky; } } } as unknown as PrismaClient;
+    const error = await new PrismaUserRepository(fake).setPassword('u1', 'scrypt$secret-hash').catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(Error);
+    expect((error as Error).message).toBe('PrismaUserRepository.setPassword failed (P2025)');
+    expect(String((error as Error).stack)).not.toContain('secret-hash');
+    expect((error as Error).cause).toBeUndefined();
+
+    const noCode = { user: { create: async () => { throw new Error('boom "scrypt$secret-hash"'); } } } as unknown as PrismaClient;
+    const createError = await new PrismaUserRepository(noCode)
+      .create({ name: 'Ana', email: 'ana@example.com', passwordHash: 'scrypt$secret-hash' })
+      .catch((e: unknown) => e);
+    expect((createError as Error).message).toBe('PrismaUserRepository.create failed (unknown)');
+  });
+});
+```
+Red: all tests fail with `not implemented`. Commit `test(repo): user repository with password columns`.
+**Implementation** (commit `feat(repo): user repository with password columns`):
+```ts
+import { Prisma, type PrismaClient } from '@prisma/client';
+import { EmailTakenError } from '@/domain/errors';
+import type { UserRecord } from '@/domain/types';
+import type { NewUser, UserRepository } from '@/repositories/interfaces';
+
+const USER_FIELDS = {
+  id: true, name: true, email: true, passwordHash: true, passwordClearedAt: true, passwordNotice: true,
+} as const;
+
+/** Replaces any Prisma error by one that cannot quote query data such as the hash (REQ-125). */
+function sanitized(method: string, error: unknown): Error {
+  const code = typeof (error as { code?: unknown })?.code === 'string' ? (error as { code: string }).code : 'unknown';
+  return new Error(`PrismaUserRepository.${method} failed (${code})`);
+}
+
+/** Prisma-backed UserRepository (password columns on User). */
+export class PrismaUserRepository implements UserRepository {
+  constructor(private readonly prisma: PrismaClient) {}
+
+  /** Throws EmailTakenError when the email already exists. */
+  async create(data: NewUser): Promise<UserRecord> {
+    try {
+      return await this.prisma.user.create({ data, select: USER_FIELDS });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') throw new EmailTakenError();
+      throw sanitized('create', error);
+    }
+  }
+  /** Case-insensitive match on the stored email; callers pass a normalized email. */
+  async findByEmail(email: string): Promise<UserRecord | null> {
+    try {
+      return await this.prisma.user.findFirst({
+        where: { email: { equals: email, mode: 'insensitive' } }, select: USER_FIELDS, orderBy: { createdAt: 'asc' },
+      });
+    } catch (error) {
+      throw sanitized('findByEmail', error);
+    }
+  }
+  // findById: findUnique({ where: { id }, select: USER_FIELDS }) in the same try/catch shape ('findById').
+  // setPassword: update({ where: { id }, data: { passwordHash, passwordNotice: false } }) ('setPassword').
+  // clearPassword: update({ where: { id }, data: { passwordHash: null, passwordClearedAt: at, passwordNotice: true } }).
+  // dismissPasswordNotice: update({ where: { id }, data: { passwordNotice: false } }).
+  // The three update methods select nothing and return void. Every method has a one-line TSDoc.
+}
+```
+**Done when:** `npm run test:int -- src/repositories/prisma/prisma-user-repository.int.test.ts` passes (4 tests; needs
+`docker compose up -d db`); `npx vitest run --project unit src/repositories` passes; the `migrate diff` check of step 3
+exits 0; `npm run typecheck` and `npm run lint` pass; `git diff main -- prisma/migrations` shows only the new folder.
+**TDD exception:** none (the migration is exercised by the integration test)
+
+### TASK-251 — Sign-in rate-limit rules and a non-incrementing check
+**Phase:** 10 · **Requirements:** REQ-119 · **Status:** todo · **Revision:** 1
+**Files:** src/services/rate-limiter.ts, src/services/rate-limiter.test.ts, src/repositories/interfaces.ts,
+src/repositories/memory/memory-rate-limit-repository.ts, src/repositories/prisma/prisma-rate-limit-repository.ts,
+src/repositories/prisma/prisma-rate-limit-repository.int.test.ts
+**Interface:** C15 rate-limiter additions and `RateLimitRepository.count`.
+**Steps (red commit):** widen `RateLimitRule['name']`, add `SIGNIN_EMAIL_RULE` and `SIGNIN_IP_RULE` (C15, full), add
+`count` to the `RateLimitRepository` interface, and add stubs: `RateLimiter.isBlocked`,
+`MemoryRateLimitRepository.count` and `PrismaRateLimitRepository.count`, each throwing
+`new Error('not implemented')`, each with its TSDoc from C15.
+**Test first:**
+- `src/services/rate-limiter.test.ts`, add `SIGNIN_EMAIL_RULE, SIGNIN_IP_RULE` to the import and this block at the end:
+```ts
+describe('sign-in rules (REQ-119)', () => {
+  it('REQ-119: the sign-in rules are 5 per email and 20 per IP per 15 minutes', () => {
+    expect(SIGNIN_EMAIL_RULE).toEqual({ name: 'signin-email', limit: 5, windowMs: 900_000 });
+    expect(SIGNIN_IP_RULE).toEqual({ name: 'signin-ip', limit: 20, windowMs: 900_000 });
+  });
+
+  it('REQ-119: isBlocked reports the limit without counting, per window', async () => {
+    const { rateLimits, store } = createMemoryRepositories();
+    let current = new Date('2026-09-25T12:00:00.000Z');
+    const limiter = new RateLimiter({ repo: rateLimits, now: () => current });
+
+    expect(await limiter.isBlocked(SIGNIN_EMAIL_RULE, 'e1')).toBe(false);
+    expect(store.rateLimits.size).toBe(0);
+    for (let i = 0; i < 4; i++) await limiter.consume(SIGNIN_EMAIL_RULE, 'e1');
+    expect(await limiter.isBlocked(SIGNIN_EMAIL_RULE, 'e1')).toBe(false);
+    await limiter.consume(SIGNIN_EMAIL_RULE, 'e1');
+    expect(await limiter.isBlocked(SIGNIN_EMAIL_RULE, 'e1')).toBe(true);
+    expect(await limiter.isBlocked(SIGNIN_EMAIL_RULE, 'e2')).toBe(false);
+    expect(store.rateLimits.get('signin-email:e1|2026-09-25T12:00:00.000Z')).toBe(5);
+
+    current = new Date('2026-09-25T12:15:00.000Z');
+    expect(await limiter.isBlocked(SIGNIN_EMAIL_RULE, 'e1')).toBe(false);
+  });
+});
+```
+- `src/repositories/prisma/prisma-rate-limit-repository.int.test.ts`, add inside the `describe`:
+```ts
+  it('REQ-119: count reads the current counter and never creates a row', async () => {
+    const repo = new PrismaRateLimitRepository(prisma);
+    const ws = new Date('2026-09-25T12:00:00.000Z');
+    expect(await repo.count('signin-ip:h1', ws)).toBe(0);
+    expect(await prisma.rateLimit.count()).toBe(0);
+    await repo.increment('signin-ip:h1', ws);
+    await repo.increment('signin-ip:h1', ws);
+    expect(await repo.count('signin-ip:h1', ws)).toBe(2);
+  });
+```
+Red: the new tests fail with `not implemented`. Commit `test(rate-limit): sign-in rules and isBlocked`.
+**Implementation** (commit `feat(rate-limit): sign-in rules and isBlocked`):
+- `RateLimiter.isBlocked`: `return (await this.deps.repo.count(`${rule.name}:${subject}`, windowStart(this.deps.now(),
+  rule.windowMs))) >= rule.limit;`
+- Memory `count`: `return this.store.rateLimits.get(`${key}|${windowStart.toISOString()}`) ?? 0;`
+- Prisma `count`:
+  `const row = await this.prisma.rateLimit.findUnique({ where: { key_windowStart: { key, windowStart } } });`
+  `return row?.count ?? 0;`
+**Done when:** `npx vitest run --project unit src/services/rate-limiter.test.ts` and
+`npm run test:int -- src/repositories/prisma/prisma-rate-limit-repository.int.test.ts` pass; `npm run typecheck`
+and `npm run lint` pass.
+**TDD exception:** none
+
+### TASK-252 — SignInWithPasswordService: generic failure, equal work, failed-attempt limits
+**Phase:** 10 · **Requirements:** REQ-118, REQ-119, REQ-125 · **Status:** todo · **Revision:** 1
+**Files:** src/services/sign-in-with-password.ts, src/services/sign-in-with-password.test.ts, src/test/fake-hasher.ts
+**Interface:** C15 `SignInWithPasswordService`.
+**Steps (red commit):**
+1. Create `src/test/fake-hasher.ts` (a test helper, complete in this commit):
+```ts
+import type { PasswordHasher } from '@/lib/password';
+
+/** Fast fake PasswordHasher for service tests: hash(p) = "fake:" + p; records every verify call. */
+export function fakeHasher(): { hasher: PasswordHasher; verified: Array<{ password: string; stored: string }> } {
+  const verified: Array<{ password: string; stored: string }> = [];
+  const hasher: PasswordHasher = {
+    hash: async (password) => `fake:${password}`,
+    verify: async (password, stored) => {
+      verified.push({ password, stored });
+      return stored === `fake:${password}`;
+    },
+  };
+  return { hasher, verified };
+}
+```
+2. Create `src/services/sign-in-with-password.ts` with the class and a stub `execute` that throws
+   `new Error('not implemented')`, TSDoc `/** Signs in with email and password (REQ-118, REQ-119). */` on the class and
+   `/** Returns the user for a matching password; one InvalidCredentialsError for any failure; limits failures. */` on
+   `execute`.
+**Test first** (new file `src/services/sign-in-with-password.test.ts`):
+```ts
+import { describe, expect, it } from 'vitest';
+import { InvalidCredentialsError, RateLimitedError } from '@/domain/errors';
+import { hashToken } from '@/lib/crypto';
+import { DUMMY_PASSWORD_HASH } from '@/lib/password';
+import { createMemoryRepositories } from '@/repositories/memory';
+import { fakeHasher } from '@/test/fake-hasher';
+import { RateLimiter } from './rate-limiter';
+import { SignInWithPasswordService } from './sign-in-with-password';
+
+async function arrange() {
+  const { users, rateLimits, store } = createMemoryRepositories();
+  const clock = { now: new Date('2026-09-25T12:00:00.000Z') };
+  const rateLimiter = new RateLimiter({ repo: rateLimits, now: () => clock.now });
+  const { hasher, verified } = fakeHasher();
+  const ana = await users.create({ name: 'Ana', email: 'ana@example.com', passwordHash: 'fake:correct horse' });
+  store.users.push({
+    id: 'g1', name: 'Gil', email: 'gil@example.com', passwordHash: null, passwordClearedAt: null, passwordNotice: false,
+  });
+  const service = new SignInWithPasswordService({ users, rateLimiter, hasher });
+  const signIn = (email: string, password: string, ipHash = 'h1') =>
+    service.execute({ values: { email, password }, ipHash });
+  return { service, signIn, verified, store, clock, ana };
+}
+
+describe('SignInWithPasswordService', () => {
+  it('REQ-118: signs in with a normalized email and returns only id, name and email', async () => {
+    const { signIn, ana } = await arrange();
+    const user = await signIn(' ANA@example.com ', 'correct horse');
+    expect(user).toEqual({ id: ana.id, name: 'Ana', email: 'ana@example.com' });
+    expect(Object.keys(user).sort()).toEqual(['email', 'id', 'name']);
+  });
+
+  it('REQ-118: unknown email, wrong password and a Google-only account fail the same way', async () => {
+    const { signIn } = await arrange();
+    for (const [email, password] of [
+      ['ana@example.com', 'wrong horse'],
+      ['nobody@example.com', 'correct horse'],
+      ['gil@example.com', 'correct horse'],
+    ]) {
+      const error = await signIn(email, password).catch((e: unknown) => e);
+      expect(error, email).toBeInstanceOf(InvalidCredentialsError);
+      expect(error).toMatchObject({ code: 'INVALID_CREDENTIALS', message: 'INVALID_CREDENTIALS' });
+    }
+  });
+
+  it('REQ-118: without a usable password the dummy hash is still verified once', async () => {
+    const { signIn, verified } = await arrange();
+    await signIn('nobody@example.com', 'correct horse').catch(() => undefined);
+    await signIn('gil@example.com', 'correct horse').catch(() => undefined);
+    expect(verified).toEqual([
+      { password: 'correct horse', stored: DUMMY_PASSWORD_HASH },
+      { password: 'correct horse', stored: DUMMY_PASSWORD_HASH },
+    ]);
+  });
+
+  it('REQ-118: invalid input fails without verifying or counting', async () => {
+    const { signIn, verified, store } = await arrange();
+    await expect(signIn('ana@example.com', '')).rejects.toBeInstanceOf(InvalidCredentialsError);
+    expect(verified).toEqual([]);
+    expect(store.rateLimits.size).toBe(0);
+  });
+
+  it('REQ-119: after 5 failures for an email even the right password is refused unchecked', async () => {
+    const { signIn, verified } = await arrange();
+    for (let i = 0; i < 5; i++) {
+      await expect(signIn('ana@example.com', 'wrong horse')).rejects.toBeInstanceOf(InvalidCredentialsError);
+    }
+    await expect(signIn('ana@example.com', 'correct horse', 'h2')).rejects.toBeInstanceOf(RateLimitedError);
+    expect(verified).toHaveLength(5);
+  });
+
+  it('REQ-119: 20 failures from one IP block that IP only, and a new window allows again', async () => {
+    const { signIn, clock } = await arrange();
+    for (let i = 0; i < 20; i++) {
+      await expect(signIn(`user${i}@example.com`, 'x')).rejects.toBeInstanceOf(InvalidCredentialsError);
+    }
+    await expect(signIn('ana@example.com', 'correct horse', 'h1')).rejects.toBeInstanceOf(RateLimitedError);
+    await expect(signIn('ana@example.com', 'correct horse', 'h2')).resolves.toMatchObject({ name: 'Ana' });
+    clock.now = new Date('2026-09-25T12:15:00.000Z');
+    await expect(signIn('ana@example.com', 'correct horse', 'h1')).resolves.toMatchObject({ name: 'Ana' });
+  });
+
+  it('REQ-119: successes are not counted and the counters keep only hashes', async () => {
+    const { signIn, store } = await arrange();
+    for (let i = 0; i < 10; i++) await signIn('ana@example.com', 'correct horse');
+    expect(store.rateLimits.size).toBe(0);
+    await expect(signIn('Ana@Example.com', 'wrong horse')).rejects.toBeInstanceOf(InvalidCredentialsError);
+    expect([...store.rateLimits.keys()].sort()).toEqual([
+      `signin-email:${hashToken('ana@example.com')}|2026-09-25T12:00:00.000Z`,
+      'signin-ip:h1|2026-09-25T12:00:00.000Z',
+    ]);
+    expect([...store.rateLimits.keys()].some((key) => key.includes('@'))).toBe(false);
+  });
+});
+```
+Red: every test fails with `not implemented`. Commit `test(auth): sign in with email and password`.
+**Implementation** (commit `feat(auth): sign in with email and password`):
+```ts
+import { InvalidCredentialsError, RateLimitedError } from '@/domain/errors';
+import { signInInputSchema } from '@/domain/schemas';
+import type { AuthUser } from '@/domain/types';
+import { hashToken } from '@/lib/crypto';
+import { DUMMY_PASSWORD_HASH, type PasswordHasher } from '@/lib/password';
+import type { UserRepository } from '@/repositories/interfaces';
+import { SIGNIN_EMAIL_RULE, SIGNIN_IP_RULE, type RateLimiter } from './rate-limiter';
+
+export class SignInWithPasswordService {
+  constructor(
+    private readonly deps: { users: UserRepository; rateLimiter: RateLimiter; hasher: PasswordHasher },
+  ) {}
+
+  async execute(input: { values: unknown; ipHash: string }): Promise<AuthUser> {
+    const parsed = signInInputSchema.safeParse(input.values);
+    if (!parsed.success) throw new InvalidCredentialsError();
+    const { email, password } = parsed.data;
+    const { users, rateLimiter, hasher } = this.deps;
+    const emailKey = hashToken(email);
+    if (
+      (await rateLimiter.isBlocked(SIGNIN_EMAIL_RULE, emailKey)) ||
+      (await rateLimiter.isBlocked(SIGNIN_IP_RULE, input.ipHash))
+    ) {
+      throw new RateLimitedError();
+    }
+    const user = await users.findByEmail(email);
+    const stored = user?.passwordHash ?? null;
+    const matches = await hasher.verify(password, stored ?? DUMMY_PASSWORD_HASH);
+    if (!user || stored === null || !matches) {
+      await rateLimiter.consume(SIGNIN_EMAIL_RULE, emailKey);
+      await rateLimiter.consume(SIGNIN_IP_RULE, input.ipHash);
+      throw new InvalidCredentialsError();
+    }
+    return { id: user.id, name: user.name, email: user.email ?? email };
+  }
+}
+```
+**Done when:** `npx vitest run --project unit src/services/sign-in-with-password.test.ts` passes (7 tests);
+`npm run typecheck` and `npm run lint` pass.
+**TDD exception:** none
+
+### TASK-253 — RegisterUserService: create, or refuse an email that has an account
+**Phase:** 10 · **Requirements:** REQ-116, REQ-117, REQ-119 · **Status:** todo · **Revision:** 1
+**Files:** src/services/register-user.ts, src/services/register-user.test.ts
+**Interface:** C15 `RegisterUserService`.
+**Steps (red commit):** create the class with a stub `execute` (TSDoc on the class
+`/** Registers a password account (REQ-116, REQ-117). */`, on `execute`
+`/** Creates the user, or refuses an email that already has an account; never changes an existing user. */`).
+**Test first** (new file `src/services/register-user.test.ts`):
+```ts
+import { describe, expect, it } from 'vitest';
+import {
+  EmailTakenError,
+  GoogleAccountExistsError,
+  RateLimitedError,
+  ValidationError,
+} from '@/domain/errors';
+import { createMemoryRepositories } from '@/repositories/memory';
+import { fakeHasher } from '@/test/fake-hasher';
+import { RateLimiter } from './rate-limiter';
+import { RegisterUserService } from './register-user';
+
+const valid = { name: 'Ana Lima', email: '  Ana@Example.COM ', password: 'correct horse', confirmPassword: 'correct horse' };
+
+function arrange() {
+  const { users, rateLimits, store } = createMemoryRepositories();
+  const rateLimiter = new RateLimiter({ repo: rateLimits, now: () => new Date('2026-09-25T12:00:00.000Z') });
+  const service = new RegisterUserService({ users, rateLimiter, hasher: fakeHasher().hasher });
+  return { service, store };
+}
+
+describe('RegisterUserService', () => {
+  it('REQ-116: creates the user with a normalized email and a hashed password', async () => {
+    const { service, store } = arrange();
+    const user = await service.execute({ values: valid, ipHash: 'h1' });
+    expect(user).toEqual({ id: store.users[0].id, name: 'Ana Lima', email: 'ana@example.com' });
+    expect(store.users).toEqual([
+      {
+        id: user.id,
+        name: 'Ana Lima',
+        email: 'ana@example.com',
+        passwordHash: 'fake:correct horse',
+        passwordClearedAt: null,
+        passwordNotice: false,
+      },
+    ]);
+  });
+
+  it('REQ-116: invalid values are refused with field errors and nothing is stored or counted', async () => {
+    const { service, store } = arrange();
+    const error = await service
+      .execute({ values: { ...valid, name: '', confirmPassword: 'other' }, ipHash: 'h1' })
+      .catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(ValidationError);
+    expect((error as ValidationError).fieldErrors).toEqual({ name: 'required', confirmPassword: 'passwordMismatch' });
+    expect(store.users).toEqual([]);
+    expect(store.rateLimits.size).toBe(0);
+  });
+
+  it('REQ-117: an email without a password (Google-only) is refused and left unchanged', async () => {
+    const { service, store } = arrange();
+    const gil = { id: 'g1', name: 'Gil', email: 'gil@example.com', passwordHash: null, passwordClearedAt: null, passwordNotice: false };
+    store.users.push({ ...gil });
+    await expect(
+      service.execute({ values: { ...valid, email: 'GIL@example.com' }, ipHash: 'h1' }),
+    ).rejects.toBeInstanceOf(GoogleAccountExistsError);
+    expect(store.users).toEqual([gil]);
+  });
+
+  it('REQ-117: an email with a password is refused as taken', async () => {
+    const { service, store } = arrange();
+    await service.execute({ values: valid, ipHash: 'h1' });
+    await expect(service.execute({ values: { ...valid, name: 'Other' }, ipHash: 'h1' })).rejects.toBeInstanceOf(
+      EmailTakenError,
+    );
+    expect(store.users).toHaveLength(1);
+    expect(store.users[0].name).toBe('Ana Lima');
+  });
+
+  it('REQ-119: refusals count against the IP, and a blocked IP cannot register', async () => {
+    const { service, store } = arrange();
+    await service.execute({ values: valid, ipHash: 'seed' });
+    for (let i = 0; i < 20; i++) {
+      await expect(service.execute({ values: valid, ipHash: 'h1' })).rejects.toBeInstanceOf(EmailTakenError);
+    }
+    await expect(
+      service.execute({ values: { ...valid, email: 'new@example.com' }, ipHash: 'h1' }),
+    ).rejects.toBeInstanceOf(RateLimitedError);
+    expect(store.users.map((u) => u.email)).toEqual(['ana@example.com']);
+    await expect(
+      service.execute({ values: { ...valid, email: 'new@example.com' }, ipHash: 'h2' }),
+    ).resolves.toMatchObject({ email: 'new@example.com' });
+  });
+});
+```
+Red: every test fails with `not implemented`. Commit `test(auth): register with email and password`.
+**Implementation** (commit `feat(auth): register with email and password`):
+```ts
+export class RegisterUserService {
+  constructor(
+    private readonly deps: { users: UserRepository; rateLimiter: RateLimiter; hasher: PasswordHasher },
+  ) {}
+
+  async execute(input: { values: unknown; ipHash: string }): Promise<AuthUser> {
+    const parsed = registerInputSchema.safeParse(input.values);
+    if (!parsed.success) throw ValidationError.fromZod(parsed.error);
+    const { name, email, password } = parsed.data;
+    const { users, rateLimiter, hasher } = this.deps;
+    if (await rateLimiter.isBlocked(SIGNIN_IP_RULE, input.ipHash)) throw new RateLimitedError();
+    const existing = await users.findByEmail(email);
+    if (existing) {
+      await rateLimiter.consume(SIGNIN_IP_RULE, input.ipHash);
+      throw existing.passwordHash === null ? new GoogleAccountExistsError() : new EmailTakenError();
+    }
+    const user = await users.create({ name, email, passwordHash: await hasher.hash(password) });
+    return { id: user.id, name: user.name, email };
+  }
+}
+```
+(imports as in TASK-252: errors, `registerInputSchema`, `AuthUser`, `PasswordHasher`, `UserRepository`,
+`SIGNIN_IP_RULE`, `RateLimiter`).
+**Done when:** `npx vitest run --project unit src/services/register-user.test.ts` passes (5 tests); `npm run typecheck`
+and `npm run lint` pass.
+**TDD exception:** none
+
+### TASK-254 — SetPasswordService: set without, change with the current password
+**Phase:** 10 · **Requirements:** REQ-120 · **Status:** todo · **Revision:** 1
+**Files:** src/services/set-password.ts, src/services/set-password.test.ts
+**Interface:** C15 `SetPasswordService`.
+**Steps (red commit):** class with a stub `execute` (TSDoc on the class
+`/** Sets or changes the signed-in user's password (REQ-120). */`, on `execute`
+`/** A user with a password must give it; storing a password also lowers the cleared-password notice. */`).
+**Test first** (new file `src/services/set-password.test.ts`):
+```ts
+import { describe, expect, it } from 'vitest';
+import { UnauthenticatedError, ValidationError } from '@/domain/errors';
+import { createMemoryRepositories } from '@/repositories/memory';
+import { fakeHasher } from '@/test/fake-hasher';
+import { SetPasswordService } from './set-password';
+
+const newValues = { newPassword: 'new horse 12', confirmPassword: 'new horse 12' };
+
+function arrange(passwordHash: string | null, passwordNotice = false) {
+  const { users, store } = createMemoryRepositories();
+  store.users.push({ id: 'u1', name: 'Ana', email: 'ana@example.com', passwordHash, passwordClearedAt: null, passwordNotice });
+  const service = new SetPasswordService({ users, hasher: fakeHasher().hasher });
+  return { service, store };
+}
+
+async function fieldErrors(promise: Promise<unknown>) {
+  const error = await promise.catch((e: unknown) => e);
+  expect(error).toBeInstanceOf(ValidationError);
+  return (error as ValidationError).fieldErrors;
+}
+
+describe('SetPasswordService', () => {
+  it('REQ-120: a user without a password sets one and the notice goes down', async () => {
+    const { service, store } = arrange(null, true);
+    await service.execute({ userId: 'u1', values: { currentPassword: 'ignored', ...newValues } });
+    expect(store.users[0]).toMatchObject({ passwordHash: 'fake:new horse 12', passwordNotice: false });
+  });
+
+  it('REQ-120: a user with a password must give the right current password', async () => {
+    const { service, store } = arrange('fake:correct horse');
+    expect(await fieldErrors(service.execute({ userId: 'u1', values: newValues }))).toEqual({
+      currentPassword: 'required',
+    });
+    expect(
+      await fieldErrors(service.execute({ userId: 'u1', values: { currentPassword: 'wrong', ...newValues } })),
+    ).toEqual({ currentPassword: 'currentPasswordIncorrect' });
+    expect(store.users[0].passwordHash).toBe('fake:correct horse');
+    await service.execute({ userId: 'u1', values: { currentPassword: 'correct horse', ...newValues } });
+    expect(store.users[0].passwordHash).toBe('fake:new horse 12');
+  });
+
+  it('REQ-120: the new password follows the length and confirmation rules', async () => {
+    const { service, store } = arrange(null);
+    expect(
+      await fieldErrors(service.execute({ userId: 'u1', values: { newPassword: 'short', confirmPassword: 'other' } })),
+    ).toEqual({ newPassword: 'passwordLength', confirmPassword: 'passwordMismatch' });
+    expect(store.users[0].passwordHash).toBeNull();
+  });
+
+  it('REQ-120: needs a signed-in, existing user', async () => {
+    const { service } = arrange(null);
+    await expect(service.execute({ userId: null, values: newValues })).rejects.toBeInstanceOf(UnauthenticatedError);
+    await expect(service.execute({ userId: 'missing', values: newValues })).rejects.toBeInstanceOf(
+      UnauthenticatedError,
+    );
+  });
+});
+```
+Red: every test fails with `not implemented`. Commit `test(account): set or change a password`.
+**Implementation** (commit `feat(account): set or change a password`):
+```ts
+async execute(input: { userId: string | null; values: unknown }): Promise<void> {
+  if (!input.userId) throw new UnauthenticatedError();
+  const user = await this.deps.users.findById(input.userId);
+  if (!user) throw new UnauthenticatedError();
+  const parsed = setPasswordInputSchema.safeParse(input.values);
+  if (!parsed.success) throw ValidationError.fromZod(parsed.error);
+  const { currentPassword, newPassword } = parsed.data;
+  if (user.passwordHash !== null) {
+    if (currentPassword === '') throw new ValidationError({ currentPassword: 'required' });
+    if (!(await this.deps.hasher.verify(currentPassword, user.passwordHash))) {
+      throw new ValidationError({ currentPassword: 'currentPasswordIncorrect' });
+    }
+  }
+  await this.deps.users.setPassword(user.id, await this.deps.hasher.hash(newPassword));
+}
+```
+**Done when:** `npx vitest run --project unit src/services/set-password.test.ts` passes (4 tests); `npm run typecheck`
+and `npm run lint` pass.
+**TDD exception:** none
+
+### TASK-255 — Account view and notice dismissal
+**Phase:** 10 · **Requirements:** REQ-123 · **Status:** todo · **Revision:** 1
+**Files:** src/services/get-account.ts, src/services/dismiss-password-notice.ts, src/services/account.test.ts
+**Interface:** C15 `GetAccountService`, `DismissPasswordNoticeService`.
+**Steps (red commit):** both classes with stub `execute` methods. TSDoc: `GetAccountService`
+`/** Reads what the Account page and the password notice show (REQ-123, REQ-128). */`, its `execute`
+`/** The user's email, whether a password is set, and whether the cleared-password notice is pending. */`;
+`DismissPasswordNoticeService` `/** Dismisses the cleared-password notice (REQ-123). */`, its `execute`
+`/** Lowers the notice for the signed-in user. */`.
+**Test first** (new file `src/services/account.test.ts`):
+```ts
+import { describe, expect, it } from 'vitest';
+import { UnauthenticatedError } from '@/domain/errors';
+import { createMemoryRepositories } from '@/repositories/memory';
+import { DismissPasswordNoticeService } from './dismiss-password-notice';
+import { GetAccountService } from './get-account';
+
+function arrange() {
+  const { users, store } = createMemoryRepositories();
+  store.users.push({
+    id: 'u1', name: 'Ana', email: 'ana@example.com', passwordHash: null,
+    passwordClearedAt: new Date('2026-09-25T12:00:00.000Z'), passwordNotice: true,
+  });
+  return { users, store };
+}
+
+describe('account services', () => {
+  it('REQ-123: GetAccountService returns email, password presence and the notice, never the hash', async () => {
+    const { users, store } = arrange();
+    const service = new GetAccountService({ users });
+    expect(await service.execute({ userId: 'u1' })).toEqual({
+      email: 'ana@example.com',
+      hasPassword: false,
+      passwordNotice: true,
+    });
+    store.users[0].passwordHash = 'fake:x';
+    store.users[0].passwordNotice = false;
+    expect(await service.execute({ userId: 'u1' })).toEqual({
+      email: 'ana@example.com',
+      hasPassword: true,
+      passwordNotice: false,
+    });
+  });
+
+  it('REQ-123: DismissPasswordNoticeService lowers the notice', async () => {
+    const { users, store } = arrange();
+    await new DismissPasswordNoticeService({ users }).execute({ userId: 'u1' });
+    expect(store.users[0].passwordNotice).toBe(false);
+  });
+
+  it('REQ-123: both need a signed-in, existing user', async () => {
+    const { users } = arrange();
+    for (const userId of [null, 'missing']) {
+      await expect(new GetAccountService({ users }).execute({ userId })).rejects.toBeInstanceOf(UnauthenticatedError);
+      await expect(new DismissPasswordNoticeService({ users }).execute({ userId })).rejects.toBeInstanceOf(
+        UnauthenticatedError,
+      );
+    }
+  });
+});
+```
+Red: all fail with `not implemented`. Commit `test(account): account view and notice dismissal`.
+**Implementation** (commit `feat(account): account view and notice dismissal`): both start with
+`if (!input.userId) throw new UnauthenticatedError(); const user = await this.deps.users.findById(input.userId); if
+(!user) throw new UnauthenticatedError();`. `GetAccountService` returns `{ email: user.email, hasPassword:
+user.passwordHash !== null, passwordNotice: user.passwordNotice }`; `DismissPasswordNoticeService` calls
+`this.deps.users.dismissPasswordNotice(user.id)`.
+**Done when:** `npx vitest run --project unit src/services/account.test.ts` passes (3 tests); `npm run typecheck` and
+`npm run lint` pass.
+**TDD exception:** none
+
+### TASK-256 — Linking Google clears the password; password sessions are re-checked
+**Phase:** 10 · **Requirements:** REQ-122 · **Status:** todo · **Revision:** 1
+**Files:** src/domain/account-policy.ts, src/domain/account-policy.test.ts, src/services/link-google-account.ts,
+src/services/validate-password-session.ts, src/services/link-google-account.test.ts
+**Interface:** C15 `passwordSessionValid`, `LinkGoogleAccountService`, `ValidatePasswordSessionService`.
+**Steps (red commit):** create `src/domain/account-policy.ts` with `passwordSessionValid` as a stub (TSDoc from C15),
+and both service classes with stub `execute` methods. TSDoc: `LinkGoogleAccountService`
+`/** Runs when Auth.js links an OAuth account to a user (REQ-122). */`, its `execute`
+`/** For Google and a user with a password: clears it, records when, raises the notice; true when it cleared. */`;
+`ValidatePasswordSessionService` `/** Decides whether a JWT session is still valid (REQ-122). */`, its `execute`
+`/** Password sessions opened before the password was cleared are no longer valid; other sessions always are. */`.
+**Test first:**
+- `src/domain/account-policy.test.ts` (new):
+```ts
+import { describe, expect, it } from 'vitest';
+import { passwordSessionValid } from './account-policy';
+
+describe('passwordSessionValid', () => {
+  it('REQ-122: a password session opened before the clearing is no longer valid', () => {
+    const cleared = { passwordClearedAt: new Date(1_000) };
+    expect(passwordSessionValid(undefined, null)).toBe(true);
+    expect(passwordSessionValid('1000', cleared)).toBe(true);
+    expect(passwordSessionValid(2_000, null)).toBe(false);
+    expect(passwordSessionValid(500, { passwordClearedAt: null })).toBe(true);
+    expect(passwordSessionValid(999, cleared)).toBe(false);
+    expect(passwordSessionValid(1_000, cleared)).toBe(false);
+    expect(passwordSessionValid(1_001, cleared)).toBe(true);
+  });
+});
+```
+- `src/services/link-google-account.test.ts` (new):
+```ts
+import { describe, expect, it, vi } from 'vitest';
+import { createMemoryRepositories } from '@/repositories/memory';
+import { LinkGoogleAccountService } from './link-google-account';
+import { ValidatePasswordSessionService } from './validate-password-session';
+
+const now = () => new Date('2026-09-25T12:00:00.000Z');
+
+function arrange(passwordHash: string | null) {
+  const { users, store } = createMemoryRepositories();
+  store.users.push({ id: 'u1', name: 'Ana', email: 'ana@example.com', passwordHash, passwordClearedAt: null, passwordNotice: false });
+  return { users, store };
+}
+
+describe('LinkGoogleAccountService', () => {
+  it('REQ-122: linking Google to a password account clears the password and raises the notice', async () => {
+    const { users, store } = arrange('fake:correct horse');
+    expect(await new LinkGoogleAccountService({ users, now }).execute({ userId: 'u1', provider: 'google' })).toBe(true);
+    expect(store.users[0]).toMatchObject({ passwordHash: null, passwordClearedAt: now(), passwordNotice: true });
+  });
+
+  it('REQ-122: a user without a password, or another provider, is left unchanged', async () => {
+    const google = arrange(null);
+    expect(
+      await new LinkGoogleAccountService({ users: google.users, now }).execute({ userId: 'u1', provider: 'google' }),
+    ).toBe(false);
+    expect(google.store.users[0]).toMatchObject({ passwordClearedAt: null, passwordNotice: false });
+
+    const other = arrange('fake:correct horse');
+    const findById = vi.spyOn(other.users, 'findById');
+    expect(
+      await new LinkGoogleAccountService({ users: other.users, now }).execute({ userId: 'u1', provider: 'github' }),
+    ).toBe(false);
+    expect(findById).not.toHaveBeenCalled();
+    expect(other.store.users[0].passwordHash).toBe('fake:correct horse');
+  });
+});
+
+describe('ValidatePasswordSessionService', () => {
+  it('REQ-122: Google sessions are valid without a read; password sessions end once cleared', async () => {
+    const { users, store } = arrange('fake:correct horse');
+    const findById = vi.spyOn(users, 'findById');
+    const service = new ValidatePasswordSessionService({ users });
+    expect(await service.execute({ userId: 'u1', pwdAt: undefined })).toBe(true);
+    expect(findById).not.toHaveBeenCalled();
+
+    const pwdAt = now().getTime() - 60_000;
+    expect(await service.execute({ userId: 'u1', pwdAt })).toBe(true);
+    await new LinkGoogleAccountService({ users, now }).execute({ userId: 'u1', provider: 'google' });
+    expect(store.users[0].passwordHash).toBeNull();
+    expect(await service.execute({ userId: 'u1', pwdAt })).toBe(false);
+    expect(await service.execute({ userId: 'missing', pwdAt })).toBe(false);
+  });
+});
+```
+Red: all fail with `not implemented`. Commit `test(auth): google linking clears the password`.
+**Implementation** (commit `feat(auth): google linking clears the password`):
+```ts
+// account-policy.ts
+export function passwordSessionValid(pwdAt: unknown, user: Pick<UserRecord, 'passwordClearedAt'> | null): boolean {
+  if (typeof pwdAt !== 'number') return true;
+  if (!user) return false;
+  return user.passwordClearedAt === null || user.passwordClearedAt.getTime() < pwdAt;
+}
+// LinkGoogleAccountService.execute
+if (input.provider !== 'google') return false;
+const user = await this.deps.users.findById(input.userId);
+if (!user || user.passwordHash === null) return false;
+await this.deps.users.clearPassword(user.id, this.deps.now());
+return true;
+// ValidatePasswordSessionService.execute
+if (typeof input.pwdAt !== 'number') return true;
+return passwordSessionValid(input.pwdAt, await this.deps.users.findById(input.userId));
+```
+**Done when:**
+`npx vitest run --project unit src/domain/account-policy.test.ts src/services/link-google-account.test.ts` passes
+(4 tests); `npm run typecheck` and `npm run lint` pass.
+**TDD exception:** none
+
+### TASK-257 — JWT sessions and the E2E sign-in helper
+**Phase:** 10 · **Requirements:** REQ-01, REQ-124 · **Status:** todo · **Revision:** 1
+**Files:** src/auth.config.ts, src/auth.config.test.ts, src/auth.ts, e2e/helpers/auth.ts, e2e/sessions.spec.ts
+**Interface:** `authConfig` (`satisfies NextAuthConfig`); `signInAs(context, { email, name }): Promise<{ id: string }>`
+keeps its signature.
+**Test first:** replace the whole content of `src/auth.config.test.ts` with:
+```ts
+import { describe, expect, it } from 'vitest';
+import { authConfig } from './auth.config';
+
+describe('authConfig', () => {
+  it('REQ-01: Google links verified emails and sessions are JWTs', () => {
+    expect(authConfig.providers).toHaveLength(1);
+    const google = authConfig.providers[0] as unknown as {
+      id: string;
+      options?: { allowDangerousEmailAccountLinking?: boolean };
+    };
+    expect(google.id).toBe('google');
+    expect(google.options?.allowDangerousEmailAccountLinking).toBe(true);
+    expect(authConfig.session.strategy).toBe('jwt');
+  });
+
+  it('REQ-124: the session exposes the user id from the token subject', async () => {
+    const session = await authConfig.callbacks.session({
+      session: { user: { id: '', name: 'Ana', email: 'ana@example.com' }, expires: '2026-10-25T00:00:00.000Z' },
+      token: { sub: 'u1' },
+    } as never);
+    expect(session).toEqual({
+      user: { id: 'u1', name: 'Ana', email: 'ana@example.com' },
+      expires: '2026-10-25T00:00:00.000Z',
+    });
+  });
+});
+```
+Red: the first test fails (`id` undefined, strategy `database`), the second throws on `user.id` (there is no `user`
+in a JWT callback). Commit `test(auth): jwt sessions carry the user id`.
+**Implementation** (commit `feat(auth): switch to jwt sessions`):
+1. `src/auth.config.ts`:
+```ts
+import type { NextAuthConfig } from 'next-auth';
+import Google from 'next-auth/providers/google';
+
+/**
+ * Auth.js settings shared by the app and safe for the Edge (no Prisma, no node:crypto): Google, which may link a
+ * verified email to an existing user (REQ-121), and JWT sessions carrying the user id (REQ-01, REQ-124).
+ */
+export const authConfig = {
+  providers: [Google({ allowDangerousEmailAccountLinking: true })],
+  session: { strategy: 'jwt' },
+  trustHost: true,
+  callbacks: {
+    session({ session, token }) {
+      if (token?.sub) session.user.id = token.sub;
+      return session;
+    },
+  },
+} satisfies NextAuthConfig;
+```
+2. `src/auth.ts`: code unchanged; its TSDoc becomes `/** Auth.js instance: Prisma adapter for users and accounts, JWT
+   sessions (REQ-124). */`.
+3. `e2e/helpers/auth.ts`, whole file:
+```ts
+import type { BrowserContext } from '@playwright/test';
+import { encode } from 'next-auth/jwt';
+import { db } from './db';
+
+/** Name of the Auth.js session cookie over plain http; Auth.js also uses it as the JWT salt. */
+export const SESSION_COOKIE = 'authjs.session-token';
+
+/**
+ * Signs a user in without Google (REQ-124): upserts the `User` row and sets an Auth.js JWT session cookie encrypted
+ * with the app's AUTH_SECRET (from .env.test through `npm run test:e2e`). The token has no `pwdAt`, like a Google
+ * session.
+ */
+export async function signInAs(
+  context: BrowserContext,
+  user: { email: string; name: string },
+): Promise<{ id: string }> {
+  const secret = process.env.AUTH_SECRET;
+  if (!secret) throw new Error('AUTH_SECRET is not set: run E2E with npm run test:e2e (it loads .env.test)');
+  const u = await db.user.upsert({ where: { email: user.email }, update: {}, create: user });
+  const maxAge = 24 * 60 * 60;
+  const value = await encode({
+    token: { sub: u.id, name: user.name, email: user.email },
+    secret,
+    salt: SESSION_COOKIE,
+    maxAge,
+  });
+  await context.addCookies([
+    {
+      name: SESSION_COOKIE,
+      value,
+      domain: 'localhost',
+      path: '/',
+      httpOnly: true,
+      sameSite: 'Lax',
+      expires: Math.floor(Date.now() / 1000) + maxAge,
+    },
+  ]);
+  return { id: u.id };
+}
+```
+4. New `e2e/sessions.spec.ts`:
+```ts
+import { randomUUID } from 'node:crypto';
+import { test, expect } from '@playwright/test';
+import { resetDatabase } from './helpers/db';
+import { SESSION_COOKIE, signInAs } from './helpers/auth';
+
+test.beforeEach(async () => {
+  await resetDatabase();
+});
+
+test.describe('REQ-124: JWT sessions', () => {
+  test('REQ-124: a cookie from the old database sessions just means signed out', async ({ page, context }) => {
+    await context.addCookies([
+      { name: SESSION_COOKIE, value: randomUUID(), domain: 'localhost', path: '/', httpOnly: true, sameSite: 'Lax' },
+    ]);
+    const response = await page.goto('/en');
+    expect(response?.status()).toBe(200);
+    await expect(page.getByRole('banner').getByLabel('Account menu')).toHaveCount(0);
+  });
+
+  test('REQ-124: signing out clears the session cookie', async ({ page, context }) => {
+    await signInAs(context, { email: 'ana@example.com', name: 'Ana' });
+    await page.goto('/en');
+    const banner = page.getByRole('banner');
+    await banner.getByLabel('Account menu').click();
+    await banner.getByRole('button', { name: 'Sign out' }).click();
+    await expect(banner.getByLabel('Account menu')).toHaveCount(0);
+    expect((await context.cookies()).some((c) => c.name === SESSION_COOKIE)).toBe(false);
+  });
+});
+```
+(E2E files are not unit tests: they belong to the `feat` commit together with the helper they exercise.)
+**Done when:** `npx vitest run --project unit src/auth.config.test.ts` passes; the **whole** E2E suite passes with
+the new helper: `E2E_PORT=3100 npm run test:e2e` (needs `docker compose up -d db`); `npm run typecheck` and
+`npm run lint` pass.
+**TDD exception:** none (the E2E helper is test infrastructure; the whole suite is its test)
+
+### TASK-258 — Credentials provider: authorize, the jwt callback and the container wiring
+**Phase:** 10 · **Requirements:** REQ-118, REQ-119, REQ-122, REQ-125 · **Status:** todo · **Revision:** 1
+**Files:** src/lib/auth-callbacks.ts, src/lib/auth-callbacks.test.ts, src/lib/container.ts, src/auth.ts
+**Interface:** C15 `src/lib/auth-callbacks.ts` (complete `AuthCallbackDeps` and `AuthCallbacks` interfaces).
+**Steps (red commit):** create `src/lib/auth-callbacks.ts` with `RateLimitedSignIn` (full, TSDoc from C15), both
+interfaces (full), and stubs: `createAuthCallbacks` returns an object whose four methods each throw
+`new Error('not implemented')`; `signInFailure` throws `new Error('not implemented')`. TSDoc on `createAuthCallbacks`:
+`/** Builds the Auth.js callbacks from application services (REQ-118, REQ-119, REQ-121, REQ-122). */`.
+**Test first** (new file `src/lib/auth-callbacks.test.ts`):
+```ts
+import { describe, expect, it, vi } from 'vitest';
+import { CredentialsSignin } from 'next-auth';
+import type { JWT } from 'next-auth/jwt';
+import { EmailTakenError, InvalidCredentialsError, RateLimitedError } from '@/domain/errors';
+import { hashIp } from './client-ip';
+import { createAuthCallbacks, RateLimitedSignIn, signInFailure, type AuthCallbackDeps } from './auth-callbacks';
+
+const ana = { id: 'u1', name: 'Ana', email: 'ana@example.com' };
+const request = new Request('http://localhost/api/auth/callback/credentials', {
+  headers: { 'x-forwarded-for': '203.0.113.7, 10.0.0.1' },
+});
+
+/** Fake dependencies; every function is a vi.fn so calls can be checked. */
+function deps(overrides: Partial<AuthCallbackDeps> = {}) {
+  return {
+    signInWithPassword: vi.fn(async () => ana),
+    validatePasswordSession: vi.fn(async () => true),
+    ipSalt: () => 'salt',
+    now: () => 1_790_000_000_000,
+    linkGoogleAccount: vi.fn(async () => false),
+    currentSessionEmail: vi.fn(async (): Promise<string | null> => null),
+    ...overrides,
+  } satisfies AuthCallbackDeps;
+}
+
+describe('authorize', () => {
+  it('REQ-118: authorize signs in with the salted IP hash and returns only the user', async () => {
+    const d = deps();
+    const user = await createAuthCallbacks(d).authorize(
+      { email: 'ana@example.com', password: 'correct horse', csrfToken: 'x' },
+      request,
+    );
+    expect(user).toEqual(ana);
+    expect(d.signInWithPassword).toHaveBeenCalledWith({
+      values: { email: 'ana@example.com', password: 'correct horse' },
+      ipHash: hashIp('203.0.113.7', 'salt'),
+    });
+  });
+
+  it('REQ-118: wrong credentials become null, which Auth.js reports as CredentialsSignin', async () => {
+    const d = deps({ signInWithPassword: vi.fn(async () => Promise.reject(new InvalidCredentialsError())) });
+    expect(await createAuthCallbacks(d).authorize({ email: 'a@b.co', password: 'x' }, request)).toBeNull();
+  });
+
+  it('REQ-119: the rate limit becomes RateLimitedSignIn; unexpected errors are rethrown', async () => {
+    const limited = deps({ signInWithPassword: vi.fn(async () => Promise.reject(new RateLimitedError())) });
+    const error = await createAuthCallbacks(limited).authorize({}, request).catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(RateLimitedSignIn);
+    expect(error).toBeInstanceOf(CredentialsSignin);
+    expect((error as RateLimitedSignIn).code).toBe('rate_limited');
+
+    const boom = new Error('db down');
+    const broken = deps({ signInWithPassword: vi.fn(async () => Promise.reject(boom)) });
+    await expect(createAuthCallbacks(broken).authorize({}, request)).rejects.toBe(boom);
+  });
+});
+
+describe('jwt', () => {
+  it('REQ-122: a credentials sign-in stamps pwdAt; a Google sign-in does not', async () => {
+    const { jwt } = createAuthCallbacks(deps());
+    expect(await jwt({ token: { sub: 'u1' }, account: { provider: 'credentials' }, trigger: 'signIn' })).toEqual({
+      sub: 'u1',
+      pwdAt: 1_790_000_000_000,
+    });
+    expect(await jwt({ token: { sub: 'u1' }, account: { provider: 'google' }, trigger: 'signUp' })).toEqual({
+      sub: 'u1',
+    });
+  });
+
+  it('REQ-122: later calls re-check password sessions only, and end them when invalid', async () => {
+    const token: JWT = { sub: 'u1', pwdAt: 1_789_000_000_000 };
+    const valid = deps();
+    expect(await createAuthCallbacks(valid).jwt({ token })).toBe(token);
+    expect(valid.validatePasswordSession).toHaveBeenCalledWith({ userId: 'u1', pwdAt: 1_789_000_000_000 });
+
+    const google = deps();
+    expect(await createAuthCallbacks(google).jwt({ token: { sub: 'u2' } })).toEqual({ sub: 'u2' });
+    expect(google.validatePasswordSession).not.toHaveBeenCalled();
+
+    const cleared = deps({ validatePasswordSession: vi.fn(async () => false) });
+    expect(await createAuthCallbacks(cleared).jwt({ token })).toBeNull();
+    expect(await createAuthCallbacks(deps()).jwt({ token: { pwdAt: 1 } })).toBeNull();
+  });
+});
+
+describe('signInFailure', () => {
+  it('REQ-118: maps sign-in failures to action results', () => {
+    const log = vi.fn();
+    expect(signInFailure(new CredentialsSignin(), log)).toEqual({ ok: false, code: 'INVALID_CREDENTIALS' });
+    expect(signInFailure(new RateLimitedSignIn(), log)).toEqual({ ok: false, code: 'RATE_LIMITED' });
+    expect(signInFailure(new EmailTakenError(), log)).toEqual({ ok: false, code: 'EMAIL_TAKEN' });
+    expect(signInFailure(new Error('boom'), log)).toEqual({ ok: false, code: 'INTERNAL_ERROR' });
+    expect(log).toHaveBeenCalledTimes(1);
+  });
+});
+```
+Red: all fail with `not implemented`. Commit `test(auth): credentials authorize and password sessions`.
+**Implementation** (commit `feat(auth): credentials provider and password sessions`):
+1. In `src/lib/auth-callbacks.ts` implement `authorize`, `jwt` and `signInFailure`; leave `signIn` and `linkAccount`
+   as stubs (TASK-259):
+```ts
+async authorize(credentials, request) {
+  const ipHash = hashIp(clientIp(request.headers), deps.ipSalt());
+  try {
+    return await deps.signInWithPassword({
+      values: { email: credentials.email, password: credentials.password },
+      ipHash,
+    });
+  } catch (error) {
+    if (error instanceof RateLimitedError) throw new RateLimitedSignIn();
+    if (error instanceof InvalidCredentialsError) return null;
+    throw error;
+  }
+},
+async jwt({ token, account, trigger }) {
+  if (trigger === 'signIn' || trigger === 'signUp') {
+    if (account?.provider === 'credentials') token.pwdAt = deps.now();
+    return token;
+  }
+  if (typeof token.pwdAt !== 'number') return token;
+  if (!token.sub) return null;
+  return (await deps.validatePasswordSession({ userId: token.sub, pwdAt: token.pwdAt })) ? token : null;
+},
+// …
+export function signInFailure(error: unknown, log?: (error: unknown) => void): ActionFailure {
+  if (error instanceof CredentialsSignin) {
+    return { ok: false, code: error.code === 'rate_limited' ? 'RATE_LIMITED' : 'INVALID_CREDENTIALS' };
+  }
+  return toActionError(error, log);
+}
+```
+   (`toActionError(error, undefined)` uses its default logger.)
+2. `src/lib/container.ts`: import `PrismaUserRepository`, `scryptPasswordHasher` and the seven services of C15; add the
+   seven keys to `Services` (C15 names, each with its class type) and build them inside `getServices()`:
+```ts
+const users = new PrismaUserRepository(prisma);
+const hasher = scryptPasswordHasher;
+// …inside the services object:
+registerUser: new RegisterUserService({ users, rateLimiter, hasher }),
+signInWithPassword: new SignInWithPasswordService({ users, rateLimiter, hasher }),
+setPassword: new SetPasswordService({ users, hasher }),
+getAccount: new GetAccountService({ users }),
+dismissPasswordNotice: new DismissPasswordNoticeService({ users }),
+linkGoogleAccount: new LinkGoogleAccountService({ users, now }),
+validatePasswordSession: new ValidatePasswordSessionService({ users }),
+```
+3. `src/auth.ts`, whole file:
+```ts
+import NextAuth, { type Session } from 'next-auth';
+import Credentials from 'next-auth/providers/credentials';
+import { PrismaAdapter } from '@auth/prisma-adapter';
+import { prisma } from '@/lib/prisma';
+import { getServices } from '@/lib/container';
+import { createAuthCallbacks } from '@/lib/auth-callbacks';
+import { authConfig } from './auth.config';
+
+/** Reads the current session; pointed at `auth` below, once NextAuth exists (used by the Google check, REQ-121). */
+let currentSession: () => Promise<Session | null> = async () => null;
+
+const callbacks = createAuthCallbacks({
+  signInWithPassword: (input) => getServices().signInWithPassword.execute(input),
+  validatePasswordSession: (input) => getServices().validatePasswordSession.execute(input),
+  linkGoogleAccount: (input) => getServices().linkGoogleAccount.execute(input),
+  currentSessionEmail: async () => (await currentSession())?.user?.email ?? null,
+  ipSalt: () => process.env.AUTH_SECRET ?? '',
+  now: () => Date.now(),
+});
+
+/** Auth.js instance: Google and email/password, JWT sessions, users and accounts in PostgreSQL (REQ-01, REQ-124). */
+export const { handlers, auth, signIn, signOut } = NextAuth({
+  ...authConfig,
+  adapter: PrismaAdapter(prisma),
+  providers: [
+    ...authConfig.providers,
+    Credentials({ credentials: { email: {}, password: {} }, authorize: callbacks.authorize }),
+  ],
+  callbacks: { ...authConfig.callbacks, jwt: callbacks.jwt },
+});
+
+currentSession = () => auth();
+```
+**Done when:** `npx vitest run --project unit src/lib/auth-callbacks.test.ts src/auth.config.test.ts` passes;
+`npm run typecheck` and `npm run lint` pass; the app still boots and serves sessions:
+`E2E_PORT=3100 npm run test:e2e -- e2e/sessions.spec.ts e2e/header.spec.ts` passes.
+**TDD exception:** none (`container.ts` and `auth.ts` are wiring, exercised by the E2E run and by TASK-267)
+
+### TASK-259 — Google sign-in: verified email only, and clearing on link
+**Phase:** 10 · **Requirements:** REQ-121, REQ-122 · **Status:** todo · **Revision:** 1
+**Files:** src/domain/account-policy.ts, src/domain/account-policy.test.ts, src/lib/auth-callbacks.ts,
+src/lib/auth-callbacks.test.ts, src/lib/auth-callbacks.int.test.ts, src/auth.ts
+**Interface:** C15 `allowGoogleSignIn`, `AuthCallbacks.signIn`, `AuthCallbacks.linkAccount`.
+**Steps (red commit):** add `allowGoogleSignIn` to `src/domain/account-policy.ts` as a stub (TSDoc from C15).
+**Test first:**
+- `src/domain/account-policy.test.ts`, add `allowGoogleSignIn` to the import and:
+```ts
+describe('allowGoogleSignIn', () => {
+  it('REQ-121: Google needs a verified email that matches any current session', () => {
+    const ok = { emailVerified: true, googleEmail: 'ana@example.com', sessionEmail: null };
+    expect(allowGoogleSignIn(ok)).toBe(true);
+    for (const emailVerified of [false, undefined, 'true']) {
+      expect(allowGoogleSignIn({ ...ok, emailVerified }), String(emailVerified)).toBe(false);
+    }
+    for (const googleEmail of [null, undefined, '  ']) {
+      expect(allowGoogleSignIn({ ...ok, googleEmail }), String(googleEmail)).toBe(false);
+    }
+    expect(allowGoogleSignIn({ ...ok, sessionEmail: ' Ana@Example.com' })).toBe(true);
+    expect(allowGoogleSignIn({ ...ok, sessionEmail: 'bob@example.com' })).toBe(false);
+  });
+});
+```
+- `src/lib/auth-callbacks.test.ts`, add:
+```ts
+describe('Google sign-in', () => {
+  it('REQ-121: other providers pass without reading the session', async () => {
+    const d = deps();
+    expect(await createAuthCallbacks(d).signIn({ account: { provider: 'credentials' } })).toBe(true);
+    expect(d.currentSessionEmail).not.toHaveBeenCalled();
+  });
+
+  it('REQ-121: Google passes only with a verified email matching the current session', async () => {
+    const google = { provider: 'google' };
+    const verified = { email: 'ana@example.com', email_verified: true };
+    expect(await createAuthCallbacks(deps()).signIn({ account: google, profile: verified })).toBe(true);
+    expect(
+      await createAuthCallbacks(deps()).signIn({ account: google, profile: { ...verified, email_verified: false } }),
+    ).toBe(false);
+    const same = deps({ currentSessionEmail: vi.fn(async () => 'Ana@Example.com') });
+    expect(await createAuthCallbacks(same).signIn({ account: google, profile: verified })).toBe(true);
+    const other = deps({ currentSessionEmail: vi.fn(async () => 'bob@example.com') });
+    expect(await createAuthCallbacks(other).signIn({ account: google, profile: verified })).toBe(false);
+  });
+
+  it('REQ-122: linkAccount hands the user and the provider to the linking service', async () => {
+    const d = deps();
+    await createAuthCallbacks(d).linkAccount({ user: { id: 'u1' }, account: { provider: 'google' } });
+    expect(d.linkGoogleAccount).toHaveBeenCalledWith({ userId: 'u1', provider: 'google' });
+    await createAuthCallbacks(d).linkAccount({ user: {}, account: { provider: 'google' } });
+    expect(d.linkGoogleAccount).toHaveBeenCalledTimes(1);
+  });
+});
+```
+- New `src/lib/auth-callbacks.int.test.ts` (the real adapter and repositories, no Google):
+```ts
+import { beforeEach, describe, expect, it } from 'vitest';
+import { PrismaAdapter } from '@auth/prisma-adapter';
+import { InvalidCredentialsError } from '@/domain/errors';
+import { prisma } from '@/lib/prisma';
+import { hashPassword, scryptPasswordHasher } from '@/lib/password';
+import { PrismaRateLimitRepository } from '@/repositories/prisma/prisma-rate-limit-repository';
+import { PrismaUserRepository } from '@/repositories/prisma/prisma-user-repository';
+import { LinkGoogleAccountService } from '@/services/link-google-account';
+import { RateLimiter } from '@/services/rate-limiter';
+import { SignInWithPasswordService } from '@/services/sign-in-with-password';
+import { resetDatabase } from '@/test/db';
+import { createAuthCallbacks } from './auth-callbacks';
+
+const linkedAt = new Date('2026-09-25T12:00:00.000Z');
+
+function arrange() {
+  const users = new PrismaUserRepository(prisma);
+  const rateLimiter = new RateLimiter({ repo: new PrismaRateLimitRepository(prisma), now: () => new Date() });
+  const signInService = new SignInWithPasswordService({ users, rateLimiter, hasher: scryptPasswordHasher });
+  const linkService = new LinkGoogleAccountService({ users, now: () => linkedAt });
+  const callbacks = createAuthCallbacks({
+    signInWithPassword: (input) => signInService.execute(input),
+    validatePasswordSession: async () => true,
+    linkGoogleAccount: (input) => linkService.execute(input),
+    currentSessionEmail: async () => null,
+    ipSalt: () => 'salt',
+    now: () => Date.now(),
+  });
+  return { callbacks, signInService };
+}
+
+/** What Auth.js does when Google signs in with the email of an existing user: write the account, fire the event. */
+async function linkGoogle(callbacks: ReturnType<typeof createAuthCallbacks>, userId: string) {
+  const account = { userId, type: 'oidc' as const, provider: 'google', providerAccountId: 'google-123' };
+  await PrismaAdapter(prisma).linkAccount!(account);
+  await callbacks.linkAccount({ user: { id: userId }, account });
+}
+
+describe('Google linking (integration)', () => {
+  beforeEach(resetDatabase);
+
+  it('REQ-122: linking Google to a password account clears the password and raises the notice', async () => {
+    const { callbacks, signInService } = arrange();
+    const user = await prisma.user.create({
+      data: { email: 'ana@example.com', name: 'Ana', passwordHash: await hashPassword('correct horse') },
+    });
+
+    await linkGoogle(callbacks, user.id);
+
+    const row = await prisma.user.findUniqueOrThrow({ where: { id: user.id }, include: { accounts: true } });
+    expect(row.passwordHash).toBeNull();
+    expect(row.passwordNotice).toBe(true);
+    expect(row.passwordClearedAt).toEqual(linkedAt);
+    expect(row.accounts.map((a) => a.provider)).toEqual(['google']);
+    await expect(
+      signInService.execute({ values: { email: 'ana@example.com', password: 'correct horse' }, ipHash: 'h1' }),
+    ).rejects.toBeInstanceOf(InvalidCredentialsError);
+  });
+
+  it('REQ-122: a user without a password is left unchanged by the link', async () => {
+    const { callbacks } = arrange();
+    const user = await prisma.user.create({ data: { email: 'gil@example.com', name: 'Gil' } });
+    await linkGoogle(callbacks, user.id);
+    const row = await prisma.user.findUniqueOrThrow({ where: { id: user.id } });
+    expect(row).toMatchObject({ passwordHash: null, passwordClearedAt: null, passwordNotice: false });
+  });
+});
+```
+Red: the unit tests fail with `not implemented`; the integration tests fail on `not implemented` from `linkAccount`.
+Commit `test(auth): google sign-in checks and clearing on link`.
+**Implementation** (commit `feat(auth): google sign-in checks and clearing on link`):
+1. `allowGoogleSignIn`:
+```ts
+export function allowGoogleSignIn(input: {
+  emailVerified: unknown; googleEmail: string | null | undefined; sessionEmail: string | null;
+}): boolean {
+  if (input.emailVerified !== true) return false;
+  if (!input.googleEmail?.trim()) return false;
+  if (input.sessionEmail === null) return true;
+  return normalizeEmail(input.sessionEmail) === normalizeEmail(input.googleEmail);
+}
+```
+2. In `createAuthCallbacks`:
+```ts
+async signIn({ account, profile }) {
+  if (account?.provider !== 'google') return true;
+  return allowGoogleSignIn({
+    emailVerified: profile?.email_verified,
+    googleEmail: profile?.email,
+    sessionEmail: await deps.currentSessionEmail(),
+  });
+},
+async linkAccount({ user, account }) {
+  if (!user.id) return;
+  await deps.linkGoogleAccount({ userId: user.id, provider: account.provider });
+},
+```
+3. `src/auth.ts`: `callbacks: { ...authConfig.callbacks, jwt: callbacks.jwt, signIn: callbacks.signIn }` and a new
+   top-level key `events: { linkAccount: callbacks.linkAccount }`.
+**Done when:** `npx vitest run --project unit src/domain/account-policy.test.ts src/lib/auth-callbacks.test.ts` and
+`npm run test:int -- src/lib/auth-callbacks.int.test.ts` pass; `npm run typecheck` and `npm run lint` pass.
+**TDD exception:** none
+
+### TASK-260 — Sign-in and register server actions
+**Phase:** 10 · **Requirements:** REQ-116, REQ-117, REQ-118, REQ-119 · **Status:** todo · **Revision:** 1
+**Files:** src/app/[locale]/actions.ts, src/app/[locale]/actions.test.ts
+**Interface:** C15 `signInWithPasswordAction`, `registerAction`.
+**Steps (red commit):** add both actions to `src/app/[locale]/actions.ts` (it already starts with `'use server'` and
+has `signOutAction`) as stubs that throw `new Error('not implemented')`, with the TSDoc
+`/** Signs in with email and password and returns where to go next (REQ-118, REQ-119). */` and
+`/** Registers a password account and signs it in at once (REQ-116, REQ-117). */`.
+**Test first** (new file `src/app/[locale]/actions.test.ts`):
+```ts
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { CredentialsSignin } from 'next-auth';
+import { EmailTakenError, GoogleAccountExistsError } from '@/domain/errors';
+import { hashIp } from '@/lib/client-ip';
+
+const mocks = vi.hoisted(() => ({ signIn: vi.fn(), register: vi.fn() }));
+vi.mock('@/auth', () => ({ signIn: mocks.signIn, signOut: vi.fn() }));
+vi.mock('@/lib/container', () => ({ getServices: () => ({ registerUser: { execute: mocks.register } }) }));
+vi.mock('next/headers', () => ({ headers: async () => new Headers({ 'x-forwarded-for': '203.0.113.7' }) }));
+
+import { RateLimitedSignIn } from '@/lib/auth-callbacks';
+import { registerAction, signInWithPasswordAction } from './actions';
+
+const registration = { name: 'Ana Lima', email: ' Ana@Example.com ', password: 'correct horse', confirmPassword: 'correct horse' };
+
+beforeEach(() => {
+  mocks.signIn.mockReset();
+  mocks.register.mockReset();
+  vi.stubEnv('AUTH_SECRET', 'test-secret');
+});
+
+describe('signInWithPasswordAction', () => {
+  it('REQ-118: signs in with the normalized email, without redirect, and returns the safe callback', async () => {
+    mocks.signIn.mockResolvedValue('http://localhost/');
+    expect(
+      await signInWithPasswordAction({ email: ' Ana@Example.com ', password: 'correct horse' }, '/en/events/new'),
+    ).toEqual({ ok: true, data: { redirectTo: '/en/events/new' } });
+    expect(mocks.signIn).toHaveBeenCalledWith('credentials', {
+      email: 'ana@example.com',
+      password: 'correct horse',
+      redirect: false,
+    });
+    expect(
+      await signInWithPasswordAction({ email: 'ana@example.com', password: 'x' }, 'https://evil.com'),
+    ).toEqual({ ok: true, data: { redirectTo: '/' } });
+  });
+
+  it('REQ-118: invalid input returns field errors without calling Auth.js', async () => {
+    expect(await signInWithPasswordAction({ email: 'nope', password: '' }, '/en/dashboard')).toEqual({
+      ok: false,
+      code: 'VALIDATION_ERROR',
+      fieldErrors: { email: 'invalidEmail', password: 'required' },
+    });
+    expect(mocks.signIn).not.toHaveBeenCalled();
+  });
+
+  it('REQ-118: a failed sign-in is INVALID_CREDENTIALS, a limited one RATE_LIMITED', async () => {
+    mocks.signIn.mockRejectedValueOnce(new CredentialsSignin());
+    expect(await signInWithPasswordAction({ email: 'ana@example.com', password: 'x' }, '/')).toEqual({
+      ok: false,
+      code: 'INVALID_CREDENTIALS',
+    });
+    mocks.signIn.mockRejectedValueOnce(new RateLimitedSignIn());
+    expect(await signInWithPasswordAction({ email: 'ana@example.com', password: 'x' }, '/')).toEqual({
+      ok: false,
+      code: 'RATE_LIMITED',
+    });
+  });
+});
+
+describe('registerAction', () => {
+  it('REQ-116: registers with the hashed IP, then signs in with the new credentials', async () => {
+    mocks.register.mockResolvedValue({ id: 'u1', name: 'Ana Lima', email: 'ana@example.com' });
+    mocks.signIn.mockResolvedValue('http://localhost/');
+    expect(await registerAction(registration, '/en/dashboard')).toEqual({
+      ok: true,
+      data: { redirectTo: '/en/dashboard' },
+    });
+    expect(mocks.register).toHaveBeenCalledWith({
+      values: registration,
+      ipHash: hashIp('203.0.113.7', 'test-secret'),
+    });
+    expect(mocks.signIn).toHaveBeenCalledWith('credentials', {
+      email: 'ana@example.com',
+      password: 'correct horse',
+      redirect: false,
+    });
+  });
+
+  it('REQ-116: invalid registration returns field errors without calling the service', async () => {
+    expect(
+      await registerAction({ ...registration, name: '', password: 'short', confirmPassword: 'short' }, '/'),
+    ).toEqual({ ok: false, code: 'VALIDATION_ERROR', fieldErrors: { name: 'required', password: 'passwordLength' } });
+    expect(mocks.register).not.toHaveBeenCalled();
+  });
+
+  it('REQ-117: a refused email returns its code and nobody is signed in', async () => {
+    mocks.register.mockRejectedValueOnce(new GoogleAccountExistsError());
+    expect(await registerAction(registration, '/')).toEqual({ ok: false, code: 'GOOGLE_ACCOUNT_EXISTS' });
+    mocks.register.mockRejectedValueOnce(new EmailTakenError());
+    expect(await registerAction(registration, '/')).toEqual({ ok: false, code: 'EMAIL_TAKEN' });
+    expect(mocks.signIn).not.toHaveBeenCalled();
+  });
+});
+```
+Red: every test fails with `not implemented`. Commit `test(auth): sign-in and register actions`.
+**Implementation** (commit `feat(auth): sign-in and register actions`). Imports: `headers` from `next/headers`;
+`signIn, signOut` from `@/auth`; `ValidationError` from `@/domain/errors`; `registerInputSchema, signInInputSchema` from
+`@/domain/schemas`; `sanitizeCallbackUrl` from `@/lib/auth-redirect`; `signInFailure` from `@/lib/auth-callbacks`;
+`clientIp, hashIp` from `@/lib/client-ip`; `getServices` from `@/lib/container`; `toActionError, type ActionResult` from
+`@/lib/action-result`.
+```ts
+export async function signInWithPasswordAction(
+  values: unknown,
+  callbackUrl: string,
+): Promise<ActionResult<{ redirectTo: string }>> {
+  const parsed = signInInputSchema.safeParse(values);
+  if (!parsed.success) return toActionError(ValidationError.fromZod(parsed.error));
+  try {
+    await signIn('credentials', { email: parsed.data.email, password: parsed.data.password, redirect: false });
+    return { ok: true, data: { redirectTo: sanitizeCallbackUrl(callbackUrl) } };
+  } catch (error) {
+    return signInFailure(error);
+  }
+}
+
+export async function registerAction(
+  values: unknown,
+  callbackUrl: string,
+): Promise<ActionResult<{ redirectTo: string }>> {
+  const parsed = registerInputSchema.safeParse(values);
+  if (!parsed.success) return toActionError(ValidationError.fromZod(parsed.error));
+  const ipHash = hashIp(clientIp(await headers()), process.env.AUTH_SECRET ?? '');
+  try {
+    const user = await getServices().registerUser.execute({ values, ipHash });
+    await signIn('credentials', { email: user.email, password: parsed.data.password, redirect: false });
+    return { ok: true, data: { redirectTo: sanitizeCallbackUrl(callbackUrl) } };
+  } catch (error) {
+    return signInFailure(error);
+  }
+}
+```
+**Done when:** `npx vitest run --project unit "src/app/[locale]/actions.test.ts"` passes (6 tests); `npm run typecheck`
+and `npm run lint` pass.
+**TDD exception:** none
+
+### TASK-261 — Account server actions
+**Phase:** 10 · **Requirements:** REQ-120, REQ-123 · **Status:** todo · **Revision:** 1
+**Files:** src/app/[locale]/account/actions.ts, src/app/[locale]/account/actions.test.ts
+**Interface:** C15 `setPasswordAction`, `dismissPasswordNoticeAction`.
+**Steps (red commit):** new file starting with `'use server';`, both actions as stubs, TSDoc
+`/** Sets or changes the signed-in user's password (REQ-120). */` and
+`/** Dismisses the cleared-password notice of the signed-in user (REQ-123). */`.
+**Test first** (new file `src/app/[locale]/account/actions.test.ts`):
+```ts
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { UnauthenticatedError, ValidationError } from '@/domain/errors';
+
+const mocks = vi.hoisted(() => ({ userId: 'u1' as string | null, setPassword: vi.fn(), dismiss: vi.fn() }));
+vi.mock('@/lib/session', () => ({ getCurrentUserId: async () => mocks.userId }));
+vi.mock('@/lib/container', () => ({
+  getServices: () => ({
+    setPassword: { execute: mocks.setPassword },
+    dismissPasswordNotice: { execute: mocks.dismiss },
+  }),
+}));
+
+import { dismissPasswordNoticeAction, setPasswordAction } from './actions';
+
+beforeEach(() => {
+  mocks.userId = 'u1';
+  mocks.setPassword.mockReset();
+  mocks.dismiss.mockReset();
+});
+
+describe('account actions', () => {
+  it('REQ-120: setPasswordAction passes the session user and the values', async () => {
+    const values = { newPassword: 'new horse 12', confirmPassword: 'new horse 12' };
+    expect(await setPasswordAction(values)).toEqual({ ok: true, data: null });
+    expect(mocks.setPassword).toHaveBeenCalledWith({ userId: 'u1', values });
+  });
+
+  it('REQ-120: setPasswordAction returns field errors and UNAUTHENTICATED', async () => {
+    mocks.setPassword.mockRejectedValueOnce(new ValidationError({ currentPassword: 'currentPasswordIncorrect' }));
+    expect(await setPasswordAction({})).toEqual({
+      ok: false,
+      code: 'VALIDATION_ERROR',
+      fieldErrors: { currentPassword: 'currentPasswordIncorrect' },
+    });
+    mocks.userId = null;
+    mocks.setPassword.mockRejectedValueOnce(new UnauthenticatedError());
+    expect(await setPasswordAction({})).toEqual({ ok: false, code: 'UNAUTHENTICATED' });
+    expect(mocks.setPassword).toHaveBeenLastCalledWith({ userId: null, values: {} });
+  });
+
+  it('REQ-123: dismissPasswordNoticeAction dismisses for the session user', async () => {
+    expect(await dismissPasswordNoticeAction()).toEqual({ ok: true, data: null });
+    expect(mocks.dismiss).toHaveBeenCalledWith({ userId: 'u1' });
+  });
+});
+```
+Red: all fail with `not implemented`. Commit `test(account): account actions`.
+**Implementation** (commit `feat(account): account actions`): the pattern of `deleteEventAction`:
+`const userId = await getCurrentUserId(); try { await getServices().setPassword.execute({ userId, values }); return
+{ ok: true, data: null }; } catch (error) { return toActionError(error); }`, and the same with
+`dismissPasswordNotice.execute({ userId })`.
+**Done when:** `npx vitest run --project unit "src/app/[locale]/account/actions.test.ts"` passes (3 tests);
+`npm run typecheck` and `npm run lint` pass.
+**TDD exception:** none
+
+### TASK-262 — Sign-in page with Google and email/password
+**Phase:** 10 · **Requirements:** REQ-126, REQ-118, REQ-119 · **Status:** todo · **Revision:** 1
+**Files:** src/components/password-sign-in-form.tsx, src/components/password-sign-in-form.test.tsx,
+src/app/[locale]/sign-in/page.tsx, src/auth.config.ts, src/auth.config.test.ts, e2e/sign-in.spec.ts
+**Interface:** C15 `PasswordSignInFormProps`; `export function PasswordSignInForm(props: PasswordSignInFormProps):
+React.JSX.Element`.
+**Steps (red commit):** create `src/components/password-sign-in-form.tsx` (`'use client'`) exporting the props
+interface and a component stub that throws `new Error('not implemented')`.
+**Test first:**
+- New `src/components/password-sign-in-form.test.tsx`:
+```tsx
+// @vitest-environment jsdom
+import { describe, expect, it, vi } from 'vitest';
+import { fireEvent, waitFor } from '@testing-library/react';
+import type { ActionResult } from '@/lib/action-result';
+import { renderWithIntl } from '@/test/render';
+import { PasswordSignInForm } from './password-sign-in-form';
+
+function setup(result: ActionResult<{ redirectTo: string }>) {
+  const submit = vi.fn(async () => result);
+  const navigate = vi.fn();
+  const view = renderWithIntl(
+    <PasswordSignInForm callbackUrl="/en/events/new" submit={submit} navigate={navigate} />,
+  );
+  const fill = (email: string, password: string) => {
+    fireEvent.change(view.getByLabelText('Email'), { target: { value: email } });
+    fireEvent.change(view.getByLabelText('Password'), { target: { value: password } });
+    fireEvent.click(view.getByRole('button', { name: 'Sign in' }));
+  };
+  return { ...view, submit, navigate, fill };
+}
+
+const ok: ActionResult<{ redirectTo: string }> = { ok: true, data: { redirectTo: '/en/events/new' } };
+
+describe('PasswordSignInForm', () => {
+  it('REQ-126: has labelled email and password inputs and a Sign in button', () => {
+    const { getByLabelText, getByRole } = setup(ok);
+    const email = getByLabelText('Email');
+    expect(email.id).toBe('signin-email');
+    expect(email.getAttribute('type')).toBe('email');
+    expect(email.getAttribute('autocomplete')).toBe('email');
+    const password = getByLabelText('Password');
+    expect(password.id).toBe('signin-password');
+    expect(password.getAttribute('type')).toBe('password');
+    expect(password.getAttribute('autocomplete')).toBe('current-password');
+    expect(getByRole('button', { name: 'Sign in' }).getAttribute('type')).toBe('submit');
+  });
+
+  it('REQ-126: empty fields show required errors and nothing is sent', async () => {
+    const { fill, findAllByText, getByLabelText, submit } = setup(ok);
+    fill('', '');
+    expect(await findAllByText('This field is required.')).toHaveLength(2);
+    expect(getByLabelText('Email').getAttribute('aria-invalid')).toBe('true');
+    expect(getByLabelText('Email').getAttribute('aria-describedby')).toContain('signin-email-error');
+    expect(submit).not.toHaveBeenCalled();
+  });
+
+  it('REQ-118: sends the normalized values with the callback, then navigates', async () => {
+    const { fill, submit, navigate } = setup(ok);
+    fill(' Ana@Example.com ', 'correct horse');
+    await waitFor(() => expect(navigate).toHaveBeenCalledWith('/en/events/new'));
+    expect(submit).toHaveBeenCalledWith({ email: 'ana@example.com', password: 'correct horse' }, '/en/events/new');
+  });
+
+  it('REQ-118: a failed sign-in shows the generic error, empties the password and keeps the email', async () => {
+    const { fill, findByRole, getByLabelText, navigate } = setup({ ok: false, code: 'INVALID_CREDENTIALS' });
+    fill('ana@example.com', 'wrong horse');
+    expect((await findByRole('alert')).textContent).toBe('Email or password is incorrect.');
+    expect((getByLabelText('Password') as HTMLInputElement).value).toBe('');
+    expect((getByLabelText('Email') as HTMLInputElement).value).toBe('ana@example.com');
+    expect(navigate).not.toHaveBeenCalled();
+  });
+
+  it('REQ-119: the rate limit shows the retry message', async () => {
+    const { fill, findByRole } = setup({ ok: false, code: 'RATE_LIMITED' });
+    fill('ana@example.com', 'correct horse');
+    expect((await findByRole('alert')).textContent).toBe('Too many attempts — please try again in a few minutes.');
+  });
+});
+```
+- `src/auth.config.test.ts`, add inside the `describe`:
+```ts
+  it('REQ-126: Auth.js sends its sign-in and error pages to /sign-in', () => {
+    expect(authConfig.pages).toEqual({ signIn: '/sign-in', error: '/sign-in' });
+  });
+```
+Red: the component tests fail with `not implemented`, the config test on `undefined`. Commit
+`test(auth): sign-in form and pages`.
+**Implementation** (commit `feat(auth): sign-in page with google and password`):
+1. `src/auth.config.ts`: add `pages: { signIn: '/sign-in', error: '/sign-in' },` after `session`.
+2. `PasswordSignInForm`, following `src/components/rsvp-form.tsx`: state `email`, `password`, `fieldErrors`,
+   `formError: string | null`, `submitting`; default `navigate = (url) => window.location.assign(url)`. Markup:
+   `<form onSubmit noValidate>`, `{formError && <Alert>{formError}</Alert>}`, two `Field`s (`FieldLabel` +
+   `<input className="input" …>` + `FieldError` with id `<input id>-error`; `aria-invalid="true"` and
+   `aria-describedby={describedBy(error && '<id>-error')}` when the field has an error), then
+   `<div className="form-foot"><Button type="submit" variant="primary" loading={submitting}>{t('auth.signInSubmit')}
+   </Button></div>`. Labels: `auth.email`, `auth.password`. Submit handler:
+```ts
+async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  event.preventDefault();
+  const parsed = signInInputSchema.safeParse({ email, password });
+  if (!parsed.success) {
+    setFieldErrors(ValidationError.fromZod(parsed.error).fieldErrors);
+    setFormError(null);
+    return;
+  }
+  setFieldErrors({});
+  setFormError(null);
+  setSubmitting(true);
+  const result = await submit(parsed.data, callbackUrl);
+  if (result.ok) {
+    navigate(result.data.redirectTo);
+    return;
+  }
+  setSubmitting(false);
+  if (result.code === 'VALIDATION_ERROR') {
+    setFieldErrors(result.fieldErrors ?? {});
+    return;
+  }
+  if (result.code === 'INVALID_CREDENTIALS') setPassword('');
+  setFormError(result.code === 'RATE_LIMITED' ? t('auth.tooManyAttempts') : t(`errors.${result.code}`));
+}
+```
+3. `src/app/[locale]/sign-in/page.tsx`:
+```tsx
+import { redirect } from 'next/navigation';
+import { getTranslations } from 'next-intl/server';
+import { Link } from '@/i18n/navigation';
+import { sanitizeCallbackUrl } from '@/lib/auth-redirect';
+import { getCurrentUserId } from '@/lib/session';
+import { buttonClass } from '@/components/ui/button';
+import { Alert } from '@/components/ui/field';
+import { GoogleMark } from '@/components/google-mark';
+import { PasswordSignInForm } from '@/components/password-sign-in-form';
+import { signInWithPasswordAction } from '../actions';
+
+/** Sign-in page: Google or email and password, then back to the callback path (REQ-126, BR-154, BR-95). */
+export default async function SignInPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ locale: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const { locale } = await params;
+  const query = await searchParams;
+  const raw = typeof query.callbackUrl === 'string' ? query.callbackUrl : undefined;
+  const callbackUrl = raw ? sanitizeCallbackUrl(raw) : `/${locale}/dashboard`;
+  if (await getCurrentUserId()) redirect(callbackUrl);
+  const t = await getTranslations();
+
+  return (
+    <main className="page">
+      <div className="col-640">
+        <div className="panel">
+          <h1 className="h2">{t('auth.signInTitle')}</h1>
+          {typeof query.error === 'string' && <Alert>{t('auth.signInFailed')}</Alert>}
+          <div className="btn-row">
+            <a
+              className={buttonClass('secondary', 'lg')}
+              href={`/api/login?callbackUrl=${encodeURIComponent(callbackUrl)}`}
+            >
+              <GoogleMark />
+              {t('auth.continueWithGoogle')}
+            </a>
+          </div>
+          <hr className="divider" />
+          <PasswordSignInForm callbackUrl={callbackUrl} submit={signInWithPasswordAction} />
+          <hr className="divider" />
+          <p className="small muted">{t('auth.noAccount')}</p>
+          <div className="btn-row">
+            <Link
+              className={buttonClass('secondary', 'md')}
+              href={{ pathname: '/register', query: { callbackUrl } }}
+            >
+              {t('auth.createAccount')}
+            </Link>
+          </div>
+        </div>
+      </div>
+    </main>
+  );
+}
+```
+4. New `e2e/sign-in.spec.ts`:
+```ts
+import { test, expect } from '@playwright/test';
+import { resetDatabase } from './helpers/db';
+import { signInAs } from './helpers/auth';
+
+test.beforeEach(async () => {
+  await resetDatabase();
+});
+
+test.describe('REQ-126: the sign-in page', () => {
+  test('REQ-126: offers Google and email/password, and links to registration', async ({ page }) => {
+    await page.goto('/en/sign-in?callbackUrl=%2Fen%2Fevents%2Fnew');
+    const main = page.locator('main');
+    await expect(main.getByRole('heading', { level: 1, name: 'Sign in' })).toBeVisible();
+    await expect(main.getByRole('link', { name: 'Continue with Google' })).toHaveAttribute(
+      'href',
+      '/api/login?callbackUrl=%2Fen%2Fevents%2Fnew',
+    );
+    await expect(main.getByLabel('Email')).toBeVisible();
+    await expect(main.getByLabel('Password')).toBeVisible();
+    await expect(main.getByRole('link', { name: 'Create an account' })).toHaveAttribute(
+      'href',
+      '/en/register?callbackUrl=%2Fen%2Fevents%2Fnew',
+    );
+  });
+
+  test('REQ-126: no callback means the dashboard; an unsafe one becomes /', async ({ page }) => {
+    const google = page.locator('main').getByRole('link', { name: 'Continue with Google' });
+    await page.goto('/en/sign-in');
+    await expect(google).toHaveAttribute('href', '/api/login?callbackUrl=%2Fen%2Fdashboard');
+    await page.goto('/en/sign-in?callbackUrl=https%3A%2F%2Fevil.com');
+    await expect(google).toHaveAttribute('href', '/api/login?callbackUrl=%2F');
+  });
+
+  test('REQ-126: an Auth.js error lands here with a generic message', async ({ page }) => {
+    await page.goto('/sign-in?error=AccessDenied');
+    await expect(page).toHaveURL(/\/en\/sign-in\?error=AccessDenied$/);
+    await expect(page.locator('main').getByRole('alert')).toHaveText(
+      "Sign-in couldn't be completed. Please try again.",
+    );
+  });
+
+  test('REQ-126: a signed-in visitor goes straight to the callback', async ({ page, context }) => {
+    await signInAs(context, { email: 'ana@example.com', name: 'Ana' });
+    await page.goto('/en/sign-in?callbackUrl=%2Fen%2Fevents%2Fnew');
+    await expect(page).toHaveURL(/\/en\/events\/new$/);
+  });
+});
+```
+If the `Create an account` href does not match because the object `href` encodes differently, stop and report it
+(`SPEC_FAILURE`); do not change the assertion.
+**Done when:** `npx vitest run --project unit src/components/password-sign-in-form.test.tsx src/auth.config.test.ts`
+passes; `E2E_PORT=3100 npm run test:e2e -- e2e/sign-in.spec.ts` passes; `npm run typecheck` and `npm run lint` pass.
+**TDD exception:** none (the page is thin wiring; its E2E is in this task)
+
+### TASK-263 — Register page
+**Phase:** 10 · **Requirements:** REQ-127, REQ-116, REQ-117, REQ-119 · **Status:** todo · **Revision:** 1
+**Files:** src/components/register-form.tsx, src/components/register-form.test.tsx,
+src/app/[locale]/register/page.tsx
+**Interface:** C15 `RegisterFormProps`; `export function RegisterForm(props: RegisterFormProps): React.JSX.Element`.
+**Steps (red commit):** `'use client'` component stub that throws `new Error('not implemented')`, and its props
+interface.
+**Test first** (new file `src/components/register-form.test.tsx`):
+```tsx
+// @vitest-environment jsdom
+import { describe, expect, it, vi } from 'vitest';
+import { fireEvent, waitFor } from '@testing-library/react';
+import type { ActionResult } from '@/lib/action-result';
+import { renderWithIntl } from '@/test/render';
+import { RegisterForm } from './register-form';
+
+const typed = { name: 'Ana Lima', email: ' Ana@Example.com ', password: 'correct horse', confirmPassword: 'correct horse' };
+
+function setup(result: ActionResult<{ redirectTo: string }>) {
+  const submit = vi.fn(async () => result);
+  const navigate = vi.fn();
+  const view = renderWithIntl(<RegisterForm callbackUrl="/en/dashboard" submit={submit} navigate={navigate} />);
+  const fill = (values: typeof typed) => {
+    fireEvent.change(view.getByLabelText('Name'), { target: { value: values.name } });
+    fireEvent.change(view.getByLabelText('Email'), { target: { value: values.email } });
+    fireEvent.change(view.getByLabelText('Password'), { target: { value: values.password } });
+    fireEvent.change(view.getByLabelText('Confirm password'), { target: { value: values.confirmPassword } });
+    fireEvent.click(view.getByRole('button', { name: 'Create account' }));
+  };
+  return { ...view, submit, navigate, fill };
+}
+
+describe('RegisterForm', () => {
+  it('REQ-127: four labelled fields, the password hint and the Create account button', () => {
+    const { getByLabelText, getByRole } = setup({ ok: true, data: { redirectTo: '/en/dashboard' } });
+    expect(getByLabelText('Name').getAttribute('autocomplete')).toBe('name');
+    expect(getByLabelText('Email').getAttribute('type')).toBe('email');
+    const password = getByLabelText('Password');
+    expect(password.getAttribute('type')).toBe('password');
+    expect(password.getAttribute('autocomplete')).toBe('new-password');
+    expect(password.getAttribute('aria-describedby')).toContain('register-password-hint');
+    expect(document.getElementById('register-password-hint')?.textContent).toBe('8 to 128 characters.');
+    expect(getByLabelText('Confirm password').getAttribute('autocomplete')).toBe('new-password');
+    expect(getByRole('button', { name: 'Create account' }).getAttribute('type')).toBe('submit');
+  });
+
+  it('REQ-127: a different confirmation is caught before sending', async () => {
+    const { fill, findByText, getByLabelText, submit } = setup({ ok: true, data: { redirectTo: '/' } });
+    fill({ ...typed, confirmPassword: 'correct horsE' });
+    expect(await findByText('The passwords do not match.')).not.toBeNull();
+    expect(getByLabelText('Confirm password').getAttribute('aria-invalid')).toBe('true');
+    expect(submit).not.toHaveBeenCalled();
+  });
+
+  it('REQ-116: sends the typed values with the callback, then navigates', async () => {
+    const { fill, submit, navigate } = setup({ ok: true, data: { redirectTo: '/en/dashboard' } });
+    fill(typed);
+    await waitFor(() => expect(navigate).toHaveBeenCalledWith('/en/dashboard'));
+    expect(submit).toHaveBeenCalledWith(typed, '/en/dashboard');
+  });
+
+  it('REQ-117: refusals and the rate limit show their message and keep the typed values', async () => {
+    for (const [code, text] of [
+      ['GOOGLE_ACCOUNT_EXISTS', 'This email already has an account that uses Google. Sign in with Google, then set a password in Account.'],
+      ['EMAIL_TAKEN', 'An account with this email already exists. Sign in instead.'],
+      ['RATE_LIMITED', 'Too many attempts — please try again in a few minutes.'],
+    ] as const) {
+      const view = setup({ ok: false, code });
+      view.fill(typed);
+      expect((await view.findByRole('alert')).textContent, code).toBe(text);
+      expect((view.getByLabelText('Name') as HTMLInputElement).value).toBe('Ana Lima');
+      expect(view.navigate).not.toHaveBeenCalled();
+      view.unmount();
+    }
+  });
+});
+```
+Red: all fail with `not implemented`. Commit `test(auth): register form`.
+**Implementation** (commit `feat(auth): register page`):
+1. `RegisterForm` like TASK-262's form, with four fields (ids `register-name`, `register-email`, `register-password`,
+   `register-confirm`; labels `auth.name`, `auth.email`, `auth.password`, `auth.confirmPassword`; autocomplete `name`,
+   `email`, `new-password`, `new-password`), a `FieldHint` with id `register-password-hint` and text
+   `auth.passwordHint` under the Password input (its `aria-describedby` is
+   `describedBy('register-password-hint', error && 'register-password-error')`), and the submit `auth.registerSubmit`.
+   Client validation with `registerInputSchema.safeParse(values)`; on success it calls
+   `submit(values, callbackUrl)` with the **typed** values `{ name, email, password, confirmPassword }` (the action
+   normalizes them). `ok` → `navigate(result.data.redirectTo)`; `VALIDATION_ERROR` → field errors; `RATE_LIMITED` →
+   `auth.tooManyAttempts`; any other code → `errors.<code>`. Nothing is cleared after a failure.
+2. `src/app/[locale]/register/page.tsx`: the same shape as the sign-in page (same props, same `callbackUrl` handling and
+   signed-in redirect, no `error` alert, no Google link), TSDoc `/** Register page: create a password account and sign
+   in at once (REQ-127, BR-145, BR-146). */`. Inside the panel: `<h1 className="h2">{t('auth.registerTitle')}</h1>`,
+   `<RegisterForm callbackUrl={callbackUrl} submit={registerAction} />` (`registerAction` from `../actions`),
+   `<hr className="divider" />`, `<p className="small muted">{t('auth.haveAccount')}</p>` and a `btn-row` with
+   `<Link className={buttonClass('secondary', 'md')} href={{ pathname: '/sign-in', query: { callbackUrl } }}>
+   {t('auth.signInLink')}</Link>`.
+**Done when:** `npx vitest run --project unit src/components/register-form.test.tsx` passes (4 tests);
+`npm run typecheck` and `npm run lint` pass. (The page is covered by TASK-267's journeys.)
+**TDD exception:** none
+
+### TASK-264 — Account page, set-password form and the menu link
+**Phase:** 10 · **Requirements:** REQ-128, REQ-120, REQ-80 · **Status:** todo · **Revision:** 1
+**Files:** src/components/set-password-form.tsx, src/components/set-password-form.test.tsx,
+src/app/[locale]/account/page.tsx, src/components/user-menu.tsx, src/components/user-menu.test.tsx
+**Interface:** C15 `SetPasswordFormProps`; `export function SetPasswordForm(props: SetPasswordFormProps):
+React.JSX.Element`.
+**Steps (red commit):** `'use client'` component stub that throws `new Error('not implemented')`, and its props
+interface.
+**Test first:**
+- New `src/components/set-password-form.test.tsx`:
+```tsx
+// @vitest-environment jsdom
+import { describe, expect, it, vi } from 'vitest';
+import { fireEvent, waitFor } from '@testing-library/react';
+import type { ActionResult } from '@/lib/action-result';
+import { renderWithIntl } from '@/test/render';
+import { SetPasswordForm } from './set-password-form';
+
+const nav = vi.hoisted(() => ({ push: vi.fn(), refresh: vi.fn(), replace: vi.fn() }));
+vi.mock('@/i18n/navigation', () => ({ useRouter: () => nav, usePathname: () => '/' }));
+
+function setup(hasPassword: boolean, result: ActionResult<null> = { ok: true, data: null }) {
+  const submit = vi.fn(async () => result);
+  const view = renderWithIntl(<SetPasswordForm hasPassword={hasPassword} submit={submit} />);
+  const type = (label: string, value: string) => fireEvent.change(view.getByLabelText(label), { target: { value } });
+  const save = () => fireEvent.click(view.getByRole('button', { name: 'Save password' }));
+  return { ...view, submit, type, save };
+}
+
+describe('SetPasswordForm', () => {
+  it('REQ-128: without a password it offers "Set a password" and no current-password field', () => {
+    const { getByRole, getByText, queryByLabelText, getByLabelText } = setup(false);
+    expect(getByRole('heading', { level: 2, name: 'Set a password' })).not.toBeNull();
+    expect(getByText('Add a password to also sign in with your email.')).not.toBeNull();
+    expect(queryByLabelText('Current password')).toBeNull();
+    expect(getByLabelText('New password').getAttribute('autocomplete')).toBe('new-password');
+    expect(getByLabelText('New password').getAttribute('aria-describedby')).toContain('account-new-hint');
+    expect(getByLabelText('Confirm new password').getAttribute('autocomplete')).toBe('new-password');
+  });
+
+  it('REQ-128: with a password it asks for the current one first', async () => {
+    const { getByRole, getByLabelText, type, save, findByText, submit } = setup(true);
+    expect(getByRole('heading', { level: 2, name: 'Change password' })).not.toBeNull();
+    expect(getByLabelText('Current password').getAttribute('autocomplete')).toBe('current-password');
+    type('New password', 'new horse 12');
+    type('Confirm new password', 'new horse 12');
+    save();
+    expect(await findByText('This field is required.')).not.toBeNull();
+    expect(getByLabelText('Current password').getAttribute('aria-invalid')).toBe('true');
+    expect(submit).not.toHaveBeenCalled();
+  });
+
+  it('REQ-120: saving shows "Password saved.", empties the fields and refreshes', async () => {
+    const { type, save, findByRole, getByLabelText, submit } = setup(true);
+    type('Current password', 'correct horse');
+    type('New password', 'new horse 12');
+    type('Confirm new password', 'new horse 12');
+    save();
+    expect((await findByRole('status')).textContent).toBe('Password saved.');
+    expect(submit).toHaveBeenCalledWith({
+      currentPassword: 'correct horse',
+      newPassword: 'new horse 12',
+      confirmPassword: 'new horse 12',
+    });
+    for (const label of ['Current password', 'New password', 'Confirm new password']) {
+      expect((getByLabelText(label) as HTMLInputElement).value, label).toBe('');
+    }
+    await waitFor(() => expect(nav.refresh).toHaveBeenCalled());
+  });
+
+  it('REQ-120: server field errors show under their fields', async () => {
+    const { type, save, findByText } = setup(true, {
+      ok: false,
+      code: 'VALIDATION_ERROR',
+      fieldErrors: { currentPassword: 'currentPasswordIncorrect' },
+    });
+    type('Current password', 'wrong');
+    type('New password', 'new horse 12');
+    type('Confirm new password', 'new horse 12');
+    save();
+    const error = await findByText('The current password is incorrect.');
+    expect(error.closest('[id]')?.id).toBe('account-current-error');
+  });
+});
+```
+- `src/components/user-menu.test.tsx`, add inside the `describe`:
+```tsx
+  it('REQ-128: the menu links to Account between My events and Sign out', () => {
+    const { getByText, container } = renderWithIntl(
+      <UserMenu name="Ana" initial="A" signOutAction={vi.fn()} />,
+    );
+    expect(getByText('Account').closest('a')?.getAttribute('href')).toBe('/account');
+    const items = [...container.querySelectorAll('.menu-pop a, .menu-pop button')].map((el) => el.textContent);
+    expect(items).toEqual(['My events', 'Account', 'Sign out']);
+  });
+```
+Red: the form tests fail with `not implemented`; the menu test fails (no Account link). Commit
+`test(account): set-password form and account link`.
+**Implementation** (commit `feat(account): account page`):
+1. `SetPasswordForm`: `<form noValidate>` with an `h2` (`className="h3"`, text `account.changePasswordTitle` when
+   `hasPassword`, else `account.setPasswordTitle`), then, only without a password, `<p className="hint">` with
+   `account.setPasswordHint`. Fields: "Current password" (`account-current`, only when `hasPassword`,
+   `autocomplete="current-password"`), "New password" (`account-new`, `FieldHint` id `account-new-hint` with
+   `auth.passwordHint`), "Confirm new password" (`account-confirm`), all `type="password"`; the new ones
+   `autocomplete="new-password"`. Form alert for non-validation failures (`errors.<code>`), and after success
+   `<p className="small" role="status">{t('account.passwordSaved')}</p>`. Submit
+   `<Button type="submit" variant="primary" loading={submitting}>{t('account.savePassword')}</Button>` in
+   `.form-foot`. Handler:
+```ts
+const values = { currentPassword, newPassword, confirmPassword };
+const parsed = setPasswordInputSchema.safeParse(values);
+const errors: FieldErrors = parsed.success ? {} : { ...ValidationError.fromZod(parsed.error).fieldErrors };
+if (hasPassword && currentPassword === '' && !errors.currentPassword) errors.currentPassword = 'required';
+if (Object.keys(errors).length > 0) { setFieldErrors(errors); setSaved(false); return; }
+setFieldErrors({}); setFormError(null); setSaved(false); setSubmitting(true);
+const result = await submit(values);
+setSubmitting(false);
+if (result.ok) {
+  setCurrentPassword(''); setNewPassword(''); setConfirmPassword(''); setSaved(true);
+  router.refresh();
+  return;
+}
+if (result.code === 'VALIDATION_ERROR') setFieldErrors(result.fieldErrors ?? {});
+else setFormError(t(`errors.${result.code}`));
+```
+   (`router` from `useRouter()` of `@/i18n/navigation`.)
+2. `src/app/[locale]/account/page.tsx`:
+```tsx
+/** Account page: set or change the password (REQ-128, REQ-120). */
+export default async function AccountPage({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params;
+  const path = `/${locale}/account`;
+  const userId = await requireUserId(path);
+  const t = await getTranslations();
+  let account: AccountView;
+  try {
+    account = await getServices().getAccount.execute({ userId });
+  } catch (error) {
+    if (error instanceof UnauthenticatedError) redirect(signInRedirectPath(path));
+    throw error;
+  }
+  return (
+    <main className="page">
+      <div className="col-640">
+        <h1 className="h2">{t('account.title')}</h1>
+        {account.email && <p className="muted">{t('account.signedInEmail', { email: account.email })}</p>}
+        <div className="panel">
+          <SetPasswordForm hasPassword={account.hasPassword} submit={setPasswordAction} />
+        </div>
+      </div>
+    </main>
+  );
+}
+```
+   (imports: `redirect` from `next/navigation`, `getTranslations`, `UnauthenticatedError`, `AccountView`,
+   `getServices`, `requireUserId`, `signInRedirectPath`, `SetPasswordForm`, `setPasswordAction` from `./actions`).
+3. `src/components/user-menu.tsx`: between the "My events" `Link` and the sign-out `form`, add
+   `<Link href="/account" onClick={close}><Icon icon={UserRound} />{t('nav.account')}</Link>` (`UserRound` from
+   `lucide-react`).
+**Done when:** `npx vitest run --project unit src/components/set-password-form.test.tsx
+src/components/user-menu.test.tsx` passes; `npm run typecheck` and `npm run lint` pass. (The page is covered by
+TASK-267.)
+**TDD exception:** none
+
+### TASK-265 — The cleared-password notice under the header
+**Phase:** 10 · **Requirements:** REQ-123 · **Status:** todo · **Revision:** 1
+**Files:** src/components/password-notice.tsx, src/components/password-notice.test.tsx,
+src/components/password-notice-slot.tsx, src/app/[locale]/layout.tsx, src/app/globals.css
+**Interface:** C15 `PasswordNoticeProps`; `export function PasswordNotice(props: PasswordNoticeProps):
+React.JSX.Element | null`; `export async function PasswordNoticeSlot(): Promise<React.JSX.Element | null>`.
+**Steps (red commit):** `'use client'` `PasswordNotice` stub that throws `new Error('not implemented')`.
+**Test first** (new file `src/components/password-notice.test.tsx`):
+```tsx
+// @vitest-environment jsdom
+import { describe, expect, it, vi } from 'vitest';
+import { fireEvent, waitFor } from '@testing-library/react';
+import type { ActionResult } from '@/lib/action-result';
+import { renderWithIntl } from '@/test/render';
+import { PasswordNotice } from './password-notice';
+
+const nav = vi.hoisted(() => ({ push: vi.fn(), refresh: vi.fn(), replace: vi.fn() }));
+vi.mock('@/i18n/navigation', () => ({
+  useRouter: () => nav,
+  usePathname: () => '/',
+  Link: ({ href, children, ...rest }: { href: string; children: React.ReactNode }) => (
+    <a href={href} {...rest}>
+      {children}
+    </a>
+  ),
+}));
+
+const TEXT =
+  'You signed in with Google, so the password on this account was removed to keep it safe. Set a new password in Account to sign in with your email again.';
+
+describe('PasswordNotice', () => {
+  it('REQ-123: explains the cleared password and links to Account', () => {
+    const { getByRole } = renderWithIntl(<PasswordNotice dismiss={vi.fn()} />);
+    const notice = getByRole('status');
+    expect(notice.className).toContain('notice');
+    expect(notice.textContent).toContain(TEXT);
+    expect(getByRole('link', { name: 'Go to Account' }).getAttribute('href')).toBe('/account');
+    expect(getByRole('button', { name: 'Dismiss' })).not.toBeNull();
+  });
+
+  it('REQ-123: Dismiss hides the notice and refreshes the page', async () => {
+    const dismiss = vi.fn(async (): Promise<ActionResult<null>> => ({ ok: true, data: null }));
+    const { getByRole, queryByRole } = renderWithIntl(<PasswordNotice dismiss={dismiss} />);
+    fireEvent.click(getByRole('button', { name: 'Dismiss' }));
+    await waitFor(() => expect(queryByRole('status')).toBeNull());
+    expect(dismiss).toHaveBeenCalledTimes(1);
+    expect(nav.refresh).toHaveBeenCalled();
+  });
+
+  it('REQ-123: a failed dismissal keeps the notice', async () => {
+    const dismiss = vi.fn(async (): Promise<ActionResult<null>> => ({ ok: false, code: 'INTERNAL_ERROR' }));
+    const { getByRole } = renderWithIntl(<PasswordNotice dismiss={dismiss} />);
+    fireEvent.click(getByRole('button', { name: 'Dismiss' }));
+    await waitFor(() => expect(dismiss).toHaveBeenCalled());
+    expect(getByRole('status')).not.toBeNull();
+  });
+});
+```
+Red: all fail with `not implemented`. Commit `test(account): cleared-password notice`.
+**Implementation** (commit `feat(account): cleared-password notice`):
+1. `PasswordNotice`: state `hidden`, `busy`; returns `null` when hidden; otherwise
+```tsx
+<div className="notice" role="status">
+  <Icon icon={KeyRound} />
+  <div>
+    <p>{t('account.passwordClearedNotice')}</p>
+    <div className="btn-row">
+      <Link className={buttonClass('secondary', 'sm')} href="/account">{t('account.goToAccount')}</Link>
+      <Button variant="ghost" size="sm" loading={busy} onClick={onDismiss}>{t('account.dismiss')}</Button>
+    </div>
+  </div>
+</div>
+```
+   `onDismiss`: `setBusy(true); const result = await dismiss(); setBusy(false); if (result.ok) { setHidden(true);
+   router.refresh(); }`. (`KeyRound` from `lucide-react`; `Link`, `useRouter` from `@/i18n/navigation`.)
+2. `src/components/password-notice-slot.tsx` (server component, no `'use client'`):
+```tsx
+/** Shows the cleared-password notice under the header while it is pending for the signed-in user (REQ-123). */
+export async function PasswordNoticeSlot(): Promise<React.JSX.Element | null> {
+  const userId = await getCurrentUserId();
+  if (!userId) return null;
+  try {
+    const account = await getServices().getAccount.execute({ userId });
+    if (!account.passwordNotice) return null;
+  } catch (error) {
+    if (error instanceof UnauthenticatedError) return null;
+    throw error;
+  }
+  return (
+    <div className="site-notice">
+      <PasswordNotice dismiss={dismissPasswordNoticeAction} />
+    </div>
+  );
+}
+```
+   (`dismissPasswordNoticeAction` from `@/app/[locale]/account/actions`.)
+3. `src/app/[locale]/layout.tsx`: render `<PasswordNoticeSlot />` between `<SiteHeader … />` and `{children}`.
+4. `src/app/globals.css`: right after the `.notice .i { … }` rule, in the same block, add (spacing only, no color):
+```css
+  .site-notice {
+    max-width: 960px;
+    margin: 16px auto 0;
+    padding: 0 16px;
+  }
+  @media (min-width: 640px) {
+    .site-notice {
+      padding: 0 24px;
+    }
+  }
+```
+**Done when:** `npx vitest run --project unit src/components/password-notice.test.tsx src/app/theme-tokens.test.ts`
+passes; `npm run typecheck`, `npm run lint` and `npm run format:check` pass. (The page behavior is covered by
+TASK-267.)
+**TDD exception:** none
+
+### TASK-266 — Every sign-in link goes to the sign-in page
+**Phase:** 10 · **Requirements:** REQ-02, REQ-39, REQ-80, REQ-81 · **Status:** todo · **Revision:** 1
+**Files:** src/lib/auth-redirect.ts, src/lib/auth-redirect.test.ts, src/components/site-header.tsx,
+src/app/[locale]/page.tsx, messages/en.json, messages/fr.json, messages/pt-BR.json, e2e/auth.spec.ts,
+e2e/header.spec.ts, e2e/home.spec.ts
+**Interface:** `signInRedirectPath(callbackPath: string): string` (C7, same signature, new result).
+**Test first:** in `src/lib/auth-redirect.test.ts` replace the test `REQ-02: signInRedirectPath builds the login URL`
+with:
+```ts
+  it('REQ-02: signInRedirectPath goes to the sign-in page of the path locale', () => {
+    expect(signInRedirectPath('/fr/events/new')).toBe('/fr/sign-in?callbackUrl=%2Ffr%2Fevents%2Fnew');
+    expect(signInRedirectPath('/pt-BR/dashboard')).toBe('/pt-BR/sign-in?callbackUrl=%2Fpt-BR%2Fdashboard');
+    expect(signInRedirectPath('/dashboard')).toBe('/en/sign-in?callbackUrl=%2Fdashboard');
+    expect(signInRedirectPath('https://evil.com')).toBe('/en/sign-in?callbackUrl=%2F');
+  });
+```
+Red: the new expectations fail against `/api/login…`. Commit `test(auth): sign-in links go to the sign-in page`.
+**Implementation** (commit `feat(auth): sign-in links go to the sign-in page`):
+1. `src/lib/auth-redirect.ts`:
+```ts
+import { routing } from '@/i18n/routing';
+
+/** Builds the sign-in page URL, in the callback path's locale, that returns to `callbackPath` (REQ-02, BR-95). */
+export function signInRedirectPath(callbackPath: string): string {
+  const safe = sanitizeCallbackUrl(callbackPath);
+  const first = safe.split(/[/?#]/)[1] ?? '';
+  const locale = (routing.locales as readonly string[]).includes(first) ? first : routing.defaultLocale;
+  return `/${locale}/sign-in?callbackUrl=${encodeURIComponent(safe)}`;
+}
+```
+2. `messages/*.json`: `nav.signIn` becomes en "Sign in", fr "Se connecter", pt-BR "Entrar"; delete `nav.signInShort`
+   from all three.
+3. `src/components/site-header.tsx`: the signed-out link keeps its `className` and `href` and its content becomes
+   `{t('nav.signIn')}` (delete both `<span>`s).
+4. `src/app/[locale]/page.tsx`: the signed-out primary link keeps its `className` and `href`, loses `<GoogleMark />`
+   (remove the import) and reads `{t('nav.signIn')}`.
+5. E2E updates (same commit):
+   - `e2e/auth.spec.ts`, replace the test with:
+```ts
+test.describe('REQ-02: protected routes redirect signed-out visitors', () => {
+  test('REQ-02: a signed-out visitor to /en/dashboard lands on the sign-in page, whose Google link starts Google', async ({
+    page,
+  }) => {
+    await page.goto('/en/dashboard');
+    await expect(page).toHaveURL(/\/en\/sign-in\?callbackUrl=%2Fen%2Fdashboard$/);
+    const google = page.locator('main').getByRole('link', { name: 'Continue with Google' });
+    await expect(google).toHaveAttribute('href', '/api/login?callbackUrl=%2Fen%2Fdashboard');
+    await page.route('https://accounts.google.com/**', (route) => route.abort());
+    const request = page.waitForRequest((r) => r.url().startsWith('https://accounts.google.com/'));
+    await google.click().catch(() => undefined);
+    expect(new URL((await request).url()).searchParams.get('redirect_uri')).toMatch(
+      /\/api\/auth\/callback\/google$/,
+    );
+  });
+
+  test('REQ-02: the Account page also sends a signed-out visitor to sign in', async ({ page }) => {
+    await page.goto('/en/account');
+    await expect(page).toHaveURL(/\/en\/sign-in\?callbackUrl=%2Fen%2Faccount$/);
+  });
+});
+```
+   - `e2e/header.spec.ts`, first test: the link is `banner.getByRole('link', { name: 'Sign in', exact: true })` with
+     `href` `/en/sign-in?callbackUrl=%2Fen%2Fdashboard`, visible at the default width and at 375 px (keep the language
+     select width checks). Second test: after opening the menu also expect
+     `banner.getByRole('link', { name: 'Account', exact: true })` to have `href` `/en/account`.
+   - `e2e/home.spec.ts`: `main.getByRole('link', { name: 'Sign in', exact: true })` with `href`
+     `/en/sign-in?callbackUrl=%2Fen%2Fdashboard` (signed out) and count 0 (signed in), in place of the
+     "Sign in with Google" assertions.
+**Done when:** `npx vitest run --project unit src/lib/auth-redirect.test.ts src/i18n` passes;
+`E2E_PORT=3100 npm run test:e2e -- e2e/auth.spec.ts e2e/header.spec.ts e2e/home.spec.ts` passes;
+`git grep -n "signInShort\|Sign in with Google" -- src messages e2e` prints nothing; `npm run typecheck` and
+`npm run lint` pass.
+**TDD exception:** none
+
+### TASK-267 — E2E journeys: register, sign in, refusals, Account and the notice
+**Phase:** 10 · **Requirements:** REQ-116, REQ-117, REQ-118, REQ-120, REQ-123, REQ-125, REQ-126, REQ-130 ·
+**Status:** todo · **Revision:** 1
+**Files:** e2e/helpers/factories.ts, e2e/password-auth.spec.ts
+**Steps:**
+1. `e2e/helpers/factories.ts`: add `import { hashPassword } from '@/lib/password';` and:
+```ts
+/** Creates a user who signs in with email and password (scrypt hash), without the UI. */
+export async function createPasswordUser(email: string, name: string, password: string): Promise<{ id: string }> {
+  const user = await db.user.create({ data: { email, name, passwordHash: await hashPassword(password) } });
+  return { id: user.id };
+}
+
+/** Creates a Google-only user: no password, one linked Google account row. */
+export async function createGoogleUser(email: string, name: string): Promise<{ id: string }> {
+  const user = await db.user.create({
+    data: {
+      email,
+      name,
+      accounts: { create: { type: 'oidc', provider: 'google', providerAccountId: `google-${randomUUID()}` } },
+    },
+  });
+  return { id: user.id };
+}
+```
+2. New `e2e/password-auth.spec.ts`:
+```ts
+import { test, expect, type Page } from '@playwright/test';
+import { db, resetDatabase } from './helpers/db';
+import { SESSION_COOKIE, signInAs } from './helpers/auth';
+import { createGoogleUser, createPasswordUser } from './helpers/factories';
+
+test.beforeEach(async () => {
+  await resetDatabase();
+});
+
+/** Fills and submits the email/password form on the current sign-in page. */
+async function signInWithPassword(page: Page, email: string, password: string) {
+  const main = page.locator('main');
+  await main.getByLabel('Email').fill(email);
+  await main.getByLabel('Password', { exact: true }).fill(password);
+  await main.getByRole('button', { name: 'Sign in', exact: true }).click();
+}
+
+/** Opens the account menu and signs out. */
+async function signOut(page: Page) {
+  const banner = page.getByRole('banner');
+  await banner.getByLabel('Account menu').click();
+  await banner.getByRole('button', { name: 'Sign out' }).click();
+  await expect(banner.getByLabel('Account menu')).toHaveCount(0);
+}
+
+test.describe('REQ-130: email and password need no Google credentials', () => {
+  test('REQ-116: a visitor registers, is signed in at once, signs out and signs in again', async ({
+    page,
+    context,
+  }) => {
+    await page.goto('/en/register');
+    const main = page.locator('main');
+    await main.getByLabel('Name').fill('Ana Lima');
+    await main.getByLabel('Email').fill('  Ana@Example.com ');
+    await main.getByLabel('Password', { exact: true }).fill('correct horse');
+    await main.getByLabel('Confirm password').fill('correct horse');
+    await main.getByRole('button', { name: 'Create account' }).click();
+
+    await expect(page).toHaveURL(/\/en\/dashboard$/);
+    await expect(page.getByRole('banner').getByLabel('Account menu')).toHaveText('A');
+    const row = await db.user.findUniqueOrThrow({ where: { email: 'ana@example.com' } });
+    expect(row.name).toBe('Ana Lima');
+    expect(row.passwordHash).toMatch(/^scrypt\$32768\$8\$1\$/);
+
+    await signOut(page);
+    expect((await context.cookies()).some((c) => c.name === SESSION_COOKIE)).toBe(false);
+
+    await page.goto('/en/sign-in');
+    await signInWithPassword(page, 'ana@example.com', 'correct horse');
+    await expect(page).toHaveURL(/\/en\/dashboard$/);
+    await expect(page.getByRole('banner').getByLabel('Account menu')).toBeVisible();
+  });
+});
+
+test.describe('REQ-118: one generic sign-in error', () => {
+  test('REQ-118: wrong password, unknown email and a Google-only account show the same error', async ({ page }) => {
+    await createPasswordUser('ana@example.com', 'Ana', 'correct horse');
+    await createGoogleUser('gil@example.com', 'Gil');
+    for (const [email, password] of [
+      ['ana@example.com', 'wrong horse'],
+      ['nobody@example.com', 'correct horse'],
+      ['gil@example.com', 'correct horse'],
+    ]) {
+      await page.goto('/en/sign-in');
+      await signInWithPassword(page, email, password);
+      await expect(page.locator('main').getByRole('alert')).toHaveText('Email or password is incorrect.');
+      await expect(page).toHaveURL(/\/en\/sign-in$/);
+    }
+  });
+});
+
+test.describe('REQ-117: registration refusal for a Google account', () => {
+  test('REQ-117: registering with the email of a Google-only account is refused with guidance', async ({ page }) => {
+    const gil = await createGoogleUser('gil@example.com', 'Gil');
+    await page.goto('/en/register');
+    const main = page.locator('main');
+    await main.getByLabel('Name').fill('Gil Two');
+    await main.getByLabel('Email').fill('GIL@example.com');
+    await main.getByLabel('Password', { exact: true }).fill('another horse');
+    await main.getByLabel('Confirm password').fill('another horse');
+    await main.getByRole('button', { name: 'Create account' }).click();
+
+    await expect(main.getByRole('alert')).toHaveText(
+      'This email already has an account that uses Google. Sign in with Google, then set a password in Account.',
+    );
+    expect(await db.user.count()).toBe(1);
+    const row = await db.user.findUniqueOrThrow({ where: { id: gil.id } });
+    expect(row.name).toBe('Gil');
+    expect(row.passwordHash).toBeNull();
+  });
+});
+
+test.describe('REQ-120: set and change a password on Account', () => {
+  test('REQ-120: a Google-only user sets a password and can then sign in with it', async ({ page, context }) => {
+    await createGoogleUser('gil@example.com', 'Gil');
+    await signInAs(context, { email: 'gil@example.com', name: 'Gil' });
+    await page.goto('/en/account');
+    const main = page.locator('main');
+    await expect(main.getByRole('heading', { level: 1, name: 'Account' })).toBeVisible();
+    await expect(main.getByText('Signed in as gil@example.com')).toBeVisible();
+    await expect(main.getByRole('heading', { level: 2, name: 'Set a password' })).toBeVisible();
+    await expect(main.getByLabel('Current password')).toHaveCount(0);
+    await main.getByLabel('New password').fill('gil password 1');
+    await main.getByLabel('Confirm new password').fill('gil password 1');
+    await main.getByRole('button', { name: 'Save password' }).click();
+    await expect(main.getByRole('status')).toHaveText('Password saved.');
+    await expect(main.getByRole('heading', { level: 2, name: 'Change password' })).toBeVisible();
+
+    await signOut(page);
+    await page.goto('/en/sign-in');
+    await signInWithPassword(page, 'gil@example.com', 'gil password 1');
+    await expect(page).toHaveURL(/\/en\/dashboard$/);
+  });
+
+  test('REQ-120: changing a password needs the current one', async ({ page, context }) => {
+    await createPasswordUser('ana@example.com', 'Ana', 'correct horse');
+    await signInAs(context, { email: 'ana@example.com', name: 'Ana' });
+    await page.goto('/en/account');
+    const main = page.locator('main');
+    await expect(main.getByRole('heading', { level: 2, name: 'Change password' })).toBeVisible();
+    await main.getByLabel('Current password').fill('wrong horse');
+    await main.getByLabel('New password').fill('new horse 12');
+    await main.getByLabel('Confirm new password').fill('new horse 12');
+    await main.getByRole('button', { name: 'Save password' }).click();
+    await expect(main.getByText('The current password is incorrect.')).toBeVisible();
+
+    await main.getByLabel('Current password').fill('correct horse');
+    await main.getByRole('button', { name: 'Save password' }).click();
+    await expect(main.getByRole('status')).toHaveText('Password saved.');
+  });
+});
+
+test.describe('REQ-126: back to the requested page', () => {
+  test('REQ-126: a signed-out visitor to a protected page signs in with a password and comes back', async ({
+    page,
+  }) => {
+    await createPasswordUser('ana@example.com', 'Ana', 'correct horse');
+    await page.goto('/en/events/new');
+    await expect(page).toHaveURL(/\/en\/sign-in\?callbackUrl=%2Fen%2Fevents%2Fnew$/);
+    await signInWithPassword(page, 'ana@example.com', 'correct horse');
+    await expect(page).toHaveURL(/\/en\/events\/new$/);
+  });
+});
+
+test.describe('REQ-123: the cleared-password notice', () => {
+  test('REQ-123: the notice shows on every page until it is dismissed', async ({ page, context }) => {
+    const user = await db.user.create({
+      data: { email: 'ana@example.com', name: 'Ana', passwordNotice: true, passwordClearedAt: new Date() },
+    });
+    await signInAs(context, { email: 'ana@example.com', name: 'Ana' });
+    const notice = page.getByRole('status').filter({ hasText: 'the password on this account was removed' });
+
+    await page.goto('/en/dashboard');
+    await expect(notice).toBeVisible();
+    await expect(notice.getByRole('link', { name: 'Go to Account' })).toHaveAttribute('href', '/en/account');
+    await page.goto('/en/account');
+    await expect(notice).toBeVisible();
+
+    await notice.getByRole('button', { name: 'Dismiss' }).click();
+    await expect(notice).toHaveCount(0);
+    await page.reload();
+    await expect(notice).toHaveCount(0);
+    expect((await db.user.findUniqueOrThrow({ where: { id: user.id } })).passwordNotice).toBe(false);
+  });
+});
+
+test.describe('REQ-125: the hash never reaches the browser', () => {
+  test('REQ-125: the session endpoint has only id, name and email', async ({ page }) => {
+    await createPasswordUser('ana@example.com', 'Ana', 'correct horse');
+    await page.goto('/en/sign-in');
+    await signInWithPassword(page, 'ana@example.com', 'correct horse');
+    await expect(page).toHaveURL(/\/en\/dashboard$/);
+
+    const response = await page.request.get('/api/auth/session');
+    const body = await response.text();
+    expect(body).not.toContain('scrypt');
+    expect(Object.keys(JSON.parse(body).user).sort()).toEqual(['email', 'id', 'name']);
+  });
+});
+```
+Commit `test(e2e): email and password journeys`. These tests exercise behavior built in TASK-247 … TASK-266, so they
+pass when written; if one fails, that is a defect in an earlier task: fix it in a `fix(<scope>): …` commit that names
+the failing test, or return `SPEC_FAILURE` when the spec and the behavior disagree.
+**Done when:** `E2E_PORT=3100 npm run test:e2e -- e2e/password-auth.spec.ts` passes (8 tests); `npm run typecheck`
+and `npm run lint` pass.
+**TDD exception:** journey tests over behavior already driven by unit tests (like the Phase 5 journeys); mention it in
+the PR notes.
+
+### TASK-268 — E2E: accessibility and French layout of the new pages
+**Phase:** 10 · **Requirements:** REQ-129 · **Status:** todo · **Revision:** 1
+**Files:** e2e/a11y.spec.ts, e2e/i18n-layout.spec.ts
+**Steps:**
+1. `e2e/a11y.spec.ts`: change the `./helpers/db` import to `import { db, resetDatabase } from './helpers/db';` and add
+   at the end:
+```ts
+/** Label, target-size, hidden-icon and focus-ring checks for the current page (REQ-129). */
+async function checkAccessiblePage(page: Page) {
+  expect(await labelOffenders(page)).toEqual([]);
+  expect(await targetSizeOffenders(page)).toEqual([]);
+  expect(await exposedSvgCount(page)).toBe(0);
+  const rings = await focusRings(page);
+  expect(rings.length).toBeGreaterThan(3);
+  expect(rings.filter((r) => r.style !== 'solid' || r.width !== '2px')).toEqual([]);
+}
+
+test.describe('REQ-129: sign-in, register and account pages', () => {
+  test('REQ-129: labels, target sizes, hidden icons and focus rings in both themes', async ({ page, context }) => {
+    for (const theme of ['dark', 'light'] as const) {
+      await context.clearCookies();
+      await context.addCookies([{ name: 'theme', value: theme, domain: 'localhost', path: '/' }]);
+      for (const path of ['/en/sign-in', '/en/register']) {
+        await page.goto(path);
+        await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
+        await checkAccessiblePage(page);
+      }
+
+      const email = `ally-${theme}@example.com`;
+      await db.user.create({ data: { email, name: 'Ally', passwordNotice: true } });
+      await signInAs(context, { email, name: 'Ally' });
+      await page.goto('/en/account');
+      await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
+      await expect(page.getByRole('status').filter({ hasText: 'password on this account was removed' })).toBeVisible();
+      await checkAccessiblePage(page);
+    }
+  });
+});
+```
+2. `e2e/i18n-layout.spec.ts`: change the `./helpers/db` import to `import { db, resetDatabase } from './helpers/db';`
+   and add inside the existing `describe`:
+```ts
+  test('REQ-129: French sign-in, register and account pages have no clipped text and no horizontal scrolling', async ({
+    page,
+    context,
+  }) => {
+    await db.user.create({ data: { email: 'fr-layout@example.com', name: 'Ana', passwordNotice: true } });
+    for (const width of [375, 1280]) {
+      await page.setViewportSize({ width, height: 800 });
+      await context.clearCookies();
+      for (const path of ['/fr/sign-in', '/fr/register']) {
+        await page.goto(path);
+        expect(await layoutProblems(page), `${path} @ ${width}px`).toEqual([]);
+      }
+      await signInAs(context, { email: 'fr-layout@example.com', name: 'Ana' });
+      await page.goto('/fr/account');
+      expect(await layoutProblems(page), `/fr/account @ ${width}px`).toEqual([]);
+    }
+  });
+```
+Commit `test(e2e): accessibility and french layout of the sign-in pages`. If a check fails, fix the page or component
+(existing classes only, Phase 10 rule 8) in a `fix(ui): …` commit that names the failing check.
+**Done when:** `E2E_PORT=3100 npm run test:e2e -- e2e/a11y.spec.ts e2e/i18n-layout.spec.ts` passes; `npm run lint`
+passes.
+**TDD exception:** checks over pages built in TASK-262 … TASK-265, like the Phase 6 accessibility tasks; mention it in
+the PR notes.
+
+### TASK-269 — README: two sign-in methods, password security, what is left out
+**Phase:** 10 · **Requirements:** REQ-130, REQ-125, REQ-119, REQ-121 · **Status:** todo · **Revision:** 1
+**Files:** README.md
+**Steps:** edit only the places below; keep every line at 120 characters or fewer, except table rows (Prettier
+ignores `*.md`).
+1. "Live demo": replace the two-line blockquote (`> Google sign-in runs in Testing mode: …`) with:
+   ```md
+   > Sign in with email and password: **Sign in → Create an account** — no Google test-user access needed. Google
+   > sign-in also works but runs in Testing mode (a Google account must be added as a test user). Guests never need to
+   > sign in.
+   ```
+2. "60-second walkthrough", step 2 becomes `2. Create an account (name, email, password) — or sign in with Google.`
+3. "Features → Bonus": replace the `**Google SSO with per-event roles**` bullet (both lines) with:
+   ```md
+   - **Sign in with Google or email and password, with per-event roles** — register with a name, email and password,
+     or use Google; one person can use both on the same account (set a password from **Account**). There is no admin
+     role, only Organizer (for the events you own) and Guest (everywhere else).
+   ```
+4. "Security and abuse protection": add these bullets after the existing ones:
+   ```md
+   - Passwords are hashed with `scrypt` from `node:crypto` (a random salt per user, N = 32768, r = 8, p = 1) and
+     checked in constant time; a hash is never logged or sent to the browser. Sessions are encrypted JWT cookies.
+   - Failed sign-ins are limited to 5 per email and 20 per client IP per 15 minutes, stored as hashes only. A wrong
+     password, an unknown email and a Google-only account get the same message after the same hashing work.
+   - Google signs in to an existing account only when Google has verified the email. A password set before that was
+     never verified, so it is removed and the user is told (a notice under the header), and sessions opened with it
+     end: this defeats account pre-hijacking.
+   - Known trade-off (account enumeration): registering with the email of a Google account says so, so the person
+     knows to sign in with Google and add a password in Account. It reveals that the email has an account;
+     registration refusals count against the per-IP sign-in limit.
+   ```
+5. "Run locally → One command (Docker)": in the bullet that starts with "`.env.local` is optional", replace the words
+   from "an `AUTH_SECRET` is generated" through "until the container restarts;" with:
+   ```md
+   you can register and sign in with email and password (an `AUTH_SECRET` is generated at each container start, so
+   sessions last only until the container restarts; accounts stay in the database);
+   ```
+   and re-wrap that bullet (continuation lines indented by two spaces).
+6. "Run locally → Development (Node)": replace the bullet that starts with `Without Google credentials the public side
+   works fully` (through `…the evaluator account is already a test user.`) with:
+   ```md
+   - Without Google credentials everything works except "Continue with Google": register at `/en/register` with an
+     email and password. Google sign-in needs your own OAuth client (`AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET`, redirect
+     URI `http://localhost:3000/api/auth/callback/google`; steps in docs/plan.md, HUMAN-02) — or use the
+     [live demo](#live-demo).
+   ```
+7. "What I left out and why": add three rows after "Per-PR preview deployments":
+   ```md
+   | Password reset | Needs email sending, which is out of scope. A user who forgets a password can sign in with Google (same email) and set a new one in Account. |
+   | Email verification | Needs email sending; registration signs in at once. Because the email is not verified, a later Google sign-in with that email removes the password (see Security). |
+   | Ending other sessions after a password change | Sessions are JWTs with no server-side store; only the Google-link password removal ends password sessions. |
+   ```
+   and append to the reason of the "Publishing the Google OAuth app" row: ` Evaluators can also register with email
+   and password.`
+8. Check: `git grep -n "Sign in with Google" README.md` prints only lines that are about Google itself (not a
+   description of the only way to sign in).
+
+Commit `docs: email and password sign-in in the README`.
+**Test first:** —
+**Done when:** `npm run format:check` passes; every changed line is at most 120 characters, except table rows (the
+existing rows are longer too); `git diff main -- README.md` touches only the sections listed above.
 **TDD exception:** docs
