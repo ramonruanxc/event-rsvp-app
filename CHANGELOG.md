@@ -8,6 +8,41 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- Email and password sign-in alongside Google (A6): register with a name, email and password (REQ-115, REQ-116,
+  REQ-127); sign in with one generic error for a wrong password, an unknown email or a Google-only account, after
+  the same hashing work (REQ-118, REQ-126); failed sign-ins limited per email and per client IP (REQ-119); set or
+  change a password on a new Account page, reachable from the user menu (REQ-120, REQ-128).
+- Passwords hashed with `scrypt` from `node:crypto` (a random salt per user, N = 32768, r = 8, p = 1) and checked
+  in constant time; the hash never leaves the server (REQ-114, REQ-125).
+- Google now signs in to an existing account only when Google has verified the email; linking clears a password
+  that was set before that verification and ends the sessions it opened, with a notice shown under the header
+  until a new password is set or the notice is dismissed (REQ-121, REQ-122, REQ-123).
+- Sessions switched from database rows to encrypted JWT cookies; users and linked accounts stay in PostgreSQL
+  (REQ-124).
+- Sign-in, register and account pages translated in English, French and Portuguese (Brazil), checked for WCAG 2.2
+  AA contrast and focus in both themes (REQ-129).
+- Email/password sign-in needs only the database and `AUTH_SECRET`; it works in the one-command Docker run and the
+  E2E suite without Google credentials or `.env.local` (REQ-130).
+
+### Changed
+
+- Every "Sign in" link (header, home page, organizer-route redirect) now leads to the sign-in page, which offers
+  both Google and email/password, instead of starting Google sign-in directly (amends REQ-01, REQ-02, REQ-39,
+  REQ-80, REQ-81).
+- README, `docs/DESIGN.md` and `docs/diagrams/user-flows.mmd`/`.svg` updated: the top bar and user flow now read
+  "Sign in" (Google or email/password), not "Sign in with Google" (TASK-269, doc-sync).
+
+### Security
+
+- Known trade-off (account enumeration): registering with the email of an existing Google account says so, so the
+  person knows to sign in with Google and add a password in Account; this reveals that the email has an account,
+  and registration refusals count against the per-IP sign-in limit (REQ-117, REQ-119).
+- Known limitation (pre-existing, documented, not fixed in this phase): `src/lib/client-ip.ts` trusts the
+  `X-Forwarded-For` / `X-Real-IP` headers without a defined trusted-proxy boundary; noted by the reviewer on PR #16
+  (incident #24/#25, `docs/pipeline/failures.md`).
+
+### Added
+
 - One-command local run: `docker compose up --build` builds a Node 22 image, starts Postgres and the app, and the
   app container migrates, seeds and serves in order, stopping without serving if any step fails (REQ-108, REQ-111,
   REQ-112).

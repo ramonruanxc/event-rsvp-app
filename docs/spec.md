@@ -1755,7 +1755,7 @@ behavior was checked in the installed sources (`next-auth` 5.0.0-beta.32, `@auth
 
 ### REQ-114 — Passwords are hashed with scrypt, a per-user salt and a constant-time check
 **Rules:** BR-151, BR-152
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - `hashPassword(password)` (`src/lib/password.ts`, C15) returns `scrypt$32768$8$1$<salt>$<key>`: `scrypt` from
   `node:crypto` with N = 32768, r = 8, p = 1 and `maxmem` 64 MiB (Node's default of 32 MiB rejects these parameters;
@@ -1775,7 +1775,7 @@ behavior was checked in the installed sources (`next-auth` 5.0.0-beta.32, `@auth
 
 ### REQ-115 — Registration input: normalized email, 8–128 character password, matching confirmation
 **Rules:** BR-145, BR-147, BR-148, BR-149, BR-150
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - `normalizeEmail("  Ana@Example.COM ")` → `"ana@example.com"`
 - `emailSchema`: `"  Ana@Example.COM "` → `"ana@example.com"`; `""` and a missing value → `required`; `"nope"` and
@@ -1799,7 +1799,7 @@ behavior was checked in the installed sources (`next-auth` 5.0.0-beta.32, `@auth
 
 ### REQ-116 — Registering creates a password account and signs in at once
 **Rules:** BR-01, BR-145, BR-146, BR-147
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - `RegisterUserService.execute({ values: { name: "Ana Lima", email: "  Ana@Example.COM ", password: "correct horse",
   confirmPassword: "correct horse" }, ipHash: "h1" })` stores one user `{ name: "Ana Lima", email: "ana@example.com",
@@ -1820,7 +1820,7 @@ behavior was checked in the installed sources (`next-auth` 5.0.0-beta.32, `@auth
 
 ### REQ-117 — Registration is refused for an email that already has an account
 **Rules:** BR-157, BR-158
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - Given user `gil@example.com` without a password (a Google-only account), registering `"GIL@example.com"` →
   `GoogleAccountExistsError` (`GOOGLE_ACCOUNT_EXISTS`: "This email already has an account that uses Google. Sign in
@@ -1840,7 +1840,7 @@ behavior was checked in the installed sources (`next-auth` 5.0.0-beta.32, `@auth
 
 ### REQ-118 — Email/password sign-in with one generic error
 **Rules:** BR-01, BR-147, BR-155
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - `SignInWithPasswordService.execute({ values: { email: " ANA@example.com ", password: "correct horse" }, ipHash })`
   for user `ana@example.com` whose hash matches → returns exactly `{ id, name: "Ana", email: "ana@example.com" }`
@@ -1866,7 +1866,7 @@ behavior was checked in the installed sources (`next-auth` 5.0.0-beta.32, `@auth
 
 ### REQ-119 — Failed sign-ins are limited per email and per client IP
 **Rules:** BR-156, BR-80
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - Rules (C15): `SIGNIN_EMAIL_RULE = { name: "signin-email", limit: 5, windowMs: 900_000 }`, `SIGNIN_IP_RULE =
   { name: "signin-ip", limit: 20, windowMs: 900_000 }`. Windows are fixed as in REQ-55: 12:00:00.000–12:14:59.999 UTC
@@ -1892,7 +1892,7 @@ behavior was checked in the installed sources (`next-auth` 5.0.0-beta.32, `@auth
 
 ### REQ-120 — Account: set a password, or change it with the current one
 **Rules:** BR-148, BR-150, BR-159, BR-160, BR-161
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - `SetPasswordService.execute({ userId, values })`:
   - `userId` null, or no such user → `UnauthenticatedError`
@@ -1916,7 +1916,7 @@ behavior was checked in the installed sources (`next-auth` 5.0.0-beta.32, `@auth
 
 ### REQ-121 — Google links to an existing account only after proving the email
 **Rules:** BR-162
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - The Google provider sets `allowDangerousEmailAccountLinking: true`, so Auth.js links a Google sign-in to the existing
   user with the same email instead of failing with `OAuthAccountNotLinked`
@@ -1937,7 +1937,7 @@ behavior was checked in the installed sources (`next-auth` 5.0.0-beta.32, `@auth
 
 ### REQ-122 — Linking Google clears the password and ends the sessions it opened
 **Rules:** BR-163
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - `events.linkAccount` calls `LinkGoogleAccountService.execute({ userId: user.id, provider: account.provider })`
 - For provider `"google"` and a user with a password, the service sets `passwordHash` to null, `passwordClearedAt` to
@@ -1957,7 +1957,7 @@ behavior was checked in the installed sources (`next-auth` 5.0.0-beta.32, `@auth
 
 ### REQ-123 — The user is told when Google cleared their password
 **Rules:** BR-164
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - `GetAccountService.execute({ userId })` → `{ email, hasPassword, passwordNotice }` (`AccountView`, C15).
   `DismissPasswordNoticeService.execute({ userId })` sets `passwordNotice` to false. Both throw `UnauthenticatedError`
@@ -1976,7 +1976,7 @@ behavior was checked in the installed sources (`next-auth` 5.0.0-beta.32, `@auth
 
 ### REQ-124 — Sessions are JWTs; users and accounts stay in PostgreSQL
 **Rules:** BR-165, BR-166, BR-167, BR-168
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - `authConfig.session.strategy` is `"jwt"`. The Prisma adapter stays configured in `src/auth.ts`, so `User` and
   `Account` rows are still written by Google sign-in and registration. The `Session` table stays (additive migration)
@@ -1994,7 +1994,7 @@ behavior was checked in the installed sources (`next-auth` 5.0.0-beta.32, `@auth
 
 ### REQ-125 — The password hash never leaves the server
 **Rules:** BR-153
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - Services return `AuthUser` (`id`, `name`, `email`) and `AccountView` (`email`, `hasPassword`, `passwordNotice`) only.
   `authorize` returns the `AuthUser` as it is, so the hash never reaches the token or the session
@@ -2008,7 +2008,7 @@ behavior was checked in the installed sources (`next-auth` 5.0.0-beta.32, `@auth
 
 ### REQ-126 — Sign-in page with Google and email/password
 **Rules:** BR-154, BR-95
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - `/<locale>/sign-in?callbackUrl=<path>` shows, in a panel: the heading "Sign in" (`h1`); a "Continue with Google"
   link (Google mark, secondary, `lg`) to `/api/login?callbackUrl=<encoded path>`; a divider; the email/password form;
@@ -2032,7 +2032,7 @@ behavior was checked in the installed sources (`next-auth` 5.0.0-beta.32, `@auth
 
 ### REQ-127 — Register page
 **Rules:** BR-145, BR-146, BR-158
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - `/<locale>/register?callbackUrl=<path>` shows, in a panel: the heading "Create an account" (`h1`), the register
   form, a divider, the text "Already have an account?" and a "Sign in" link (secondary button style) to
@@ -2049,7 +2049,7 @@ behavior was checked in the installed sources (`next-auth` 5.0.0-beta.32, `@auth
 
 ### REQ-128 — Account page and its menu entry
 **Rules:** BR-159, BR-160
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - `/<locale>/account` requires a session (signed out → REQ-02). It shows the heading "Account" (`h1`), "Signed in as
   ana@example.com" (`account.signedInEmail`, only when the user has an email) and, in a panel, the set-password form
@@ -2068,7 +2068,7 @@ behavior was checked in the installed sources (`next-auth` 5.0.0-beta.32, `@auth
 
 ### REQ-129 — Sign-in, register and account pages: three languages and WCAG 2.2 AA in both themes
 **Rules:** BR-169
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - Every new message key exists in `en`, `fr` and `pt-BR` with the texts of C16 (REQ-52's parity test enforces it)
 - The pages use only existing classes, primitives and tokens (no new color value). The only CSS added is the spacing
@@ -2083,7 +2083,7 @@ behavior was checked in the installed sources (`next-auth` 5.0.0-beta.32, `@auth
 
 ### REQ-130 — Email/password needs no Google credentials and no `.env.local`
 **Rules:** BR-170, BR-136
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - Registration and password sign-in use only the database and `AUTH_SECRET` (it encrypts the JWT and salts the IP
   hash). They read no Google or AI variable

@@ -65,8 +65,9 @@ Prose max width 65ch. Numbers in counts and dates use `font-variant-numeric: tab
 ## Layout
 
 - **Top bar** (all pages): logo mark (24 px) + "Event RSVP" wordmark left; right: language select, theme toggle
-  (sun/moon icon button with `aria-pressed`), then "Sign in with Google" or the user menu (avatar initial, Dashboard,
-  Sign out). Height 56 px, `--surface-2`, bottom border.
+  (sun/moon icon button with `aria-pressed`), then "Sign in" (leads to the sign-in page, which offers Google and
+  email/password) or the user menu (avatar initial, Dashboard, Account, Sign out). Height 56 px, `--surface-2`,
+  bottom border.
 - Content column: event and form pages max 640 px; dashboard max 880 px; home max 960 px. Side padding 16 px on
   phones, 24 px from 640 px.
 - Mobile-first; single column below 640 px; dashboard rows stack meta under the title below 640 px.
@@ -122,8 +123,8 @@ globe, trash-2, pencil, map-pin, users. Decorative icons `aria-hidden`.
   v4 through `@theme inline`.
 - Header mark: the logo redrawn as an inline SVG (indigo `#3630B0` calendar, turquoise `#3BDBD1` check) so it has no
   background box in the dark theme; favicon `src/app/icon.svg` from the same SVG.
-- Below 480 px the language select collapses to a 40 px globe button (native select, full names in the list) and
-  "Sign in with Google" shortens to "Sign in".
+- Below 480 px the language select collapses to a 40 px globe button (native select, full names in the list). "Sign
+  in" (Phase 10, A6) already reads the same at every width, so there is no longer a short form to switch to.
 
 ## Approved mockup
 
@@ -134,3 +135,6 @@ Where the mockup and this file disagree, this file wins.
 
 - 2026-09-24: contrast fixes found while building the mockup: dark `--primary` 0.62 → 0.55 (on-primary 3.73 → 5.01:1),
   new `--border-input` (inputs were 1.5:1), new `--on-danger`; copy: "Cancel RSVP", "See the demo event", "Copied".
+- 2026-09-25 (Phase 10, A6, doc-sync): top bar and user menu updated for email/password sign-in — "Sign in" (not
+  "Sign in with Google") leads to a sign-in page offering both methods, the user menu gains "Account", and the
+  narrow-width short label no longer applies (see `docs/plan.md`, Phase 10 note 20).

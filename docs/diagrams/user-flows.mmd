@@ -2,9 +2,9 @@
 title: Event RSVP App — User flows (Organizer & Guest)
 ---
 flowchart TB
-  subgraph ORG["ORGANIZER · signed in with Google"]
+  subgraph ORG["ORGANIZER · signed in with Google or email/password"]
     direction TB
-    H["Home"] --> LOGIN{{"Sign in with Google"}}
+    H["Home"] --> LOGIN{{"Sign in<br/><small>Google or email/password</small>"}}
     LOGIN --> D["Dashboard · My events<br/><small>upcoming / past · going · declined · people</small>"]
     D -->|"empty state"| SAMPLE["Create sample event<br/><small>+5 demo RSVPs</small>"]
     D --> NEW["New event form<br/><small>name · description · date · time · timezone · location?</small>"]

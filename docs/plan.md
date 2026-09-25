@@ -9816,7 +9816,7 @@ added), `src/components/user-menu.test.tsx` (TASK-264, one test added), `src/lib
 `e2e/a11y.spec.ts`, `e2e/i18n-layout.spec.ts` (TASK-268, tests added). Every other test keeps passing unchanged.
 
 ### TASK-247 — Phase 10 message keys
-**Phase:** 10 · **Requirements:** REQ-129 · **Status:** todo · **Revision:** 1
+**Phase:** 10 · **Requirements:** REQ-129 · **Status:** done · **Revision:** 1
 **Files:** messages/en.json, messages/fr.json, messages/pt-BR.json
 **Steps:**
 1. Add the keys of C16 to each catalog exactly as given: `nav.account` as the last key of `nav`; the objects `auth`
@@ -9831,7 +9831,7 @@ Commit `chore(i18n): phase 10 message keys`.
 **TDD exception:** chore (message content; guarded by the existing parity test)
 
 ### TASK-248 — Password hashing with scrypt
-**Phase:** 10 · **Requirements:** REQ-114 · **Status:** todo · **Revision:** 1
+**Phase:** 10 · **Requirements:** REQ-114 · **Status:** done · **Revision:** 1
 **Files:** src/lib/password.ts, src/lib/password.test.ts
 **Interface:** C15 `src/lib/password.ts`.
 **Steps (red commit):** create `src/lib/password.ts` with `PasswordHasher`, `SCRYPT_PARAMS`, `DUMMY_PASSWORD_HASH`,
@@ -9955,7 +9955,7 @@ export async function verifyPassword(password: string, stored: string): Promise<
 **TDD exception:** none
 
 ### TASK-249 — Credential errors, validation keys, email normalization and schemas
-**Phase:** 10 · **Requirements:** REQ-115 · **Status:** todo · **Revision:** 1
+**Phase:** 10 · **Requirements:** REQ-115 · **Status:** done · **Revision:** 1
 **Files:** src/domain/errors.ts, src/domain/errors.test.ts, src/domain/credentials.ts, src/domain/credentials.test.ts,
 src/domain/schemas.ts, src/domain/schemas.test.ts, src/domain/types.ts, src/lib/action-result.test.ts
 **Interface:** C15 `errors.ts`, `credentials.ts`, `schemas.ts`, `types.ts` additions.
@@ -10087,7 +10087,7 @@ Red: the credentials and schema tests fail with `not implemented`; the errors te
 **TDD exception:** none
 
 ### TASK-250 — Password columns and the user repository
-**Phase:** 10 · **Requirements:** REQ-116, REQ-117, REQ-122, REQ-123, REQ-125 · **Status:** todo · **Revision:** 1
+**Phase:** 10 · **Requirements:** REQ-116, REQ-117, REQ-122, REQ-123, REQ-125 · **Status:** done · **Revision:** 1
 **Files:** prisma/schema.prisma, prisma/migrations/20260925200000_password_auth/migration.sql,
 src/repositories/interfaces.ts, src/repositories/prisma/prisma-user-repository.ts,
 src/repositories/prisma/prisma-user-repository.int.test.ts, src/repositories/prisma/prisma-user-repository.test.ts,
@@ -10262,7 +10262,7 @@ exits 0; `npm run typecheck` and `npm run lint` pass; `git diff main -- prisma/m
 **TDD exception:** none (the migration is exercised by the integration test)
 
 ### TASK-251 — Sign-in rate-limit rules and a non-incrementing check
-**Phase:** 10 · **Requirements:** REQ-119 · **Status:** todo · **Revision:** 1
+**Phase:** 10 · **Requirements:** REQ-119 · **Status:** done · **Revision:** 1
 **Files:** src/services/rate-limiter.ts, src/services/rate-limiter.test.ts, src/repositories/interfaces.ts,
 src/repositories/memory/memory-rate-limit-repository.ts, src/repositories/prisma/prisma-rate-limit-repository.ts,
 src/repositories/prisma/prisma-rate-limit-repository.int.test.ts
@@ -10325,7 +10325,7 @@ and `npm run lint` pass.
 **TDD exception:** none
 
 ### TASK-252 — SignInWithPasswordService: generic failure, equal work, failed-attempt limits
-**Phase:** 10 · **Requirements:** REQ-118, REQ-119, REQ-125 · **Status:** todo · **Revision:** 1
+**Phase:** 10 · **Requirements:** REQ-118, REQ-119, REQ-125 · **Status:** done · **Revision:** 1
 **Files:** src/services/sign-in-with-password.ts, src/services/sign-in-with-password.test.ts, src/test/fake-hasher.ts
 **Interface:** C15 `SignInWithPasswordService`.
 **Steps (red commit):**
@@ -10492,7 +10492,7 @@ export class SignInWithPasswordService {
 **TDD exception:** none
 
 ### TASK-253 — RegisterUserService: create, or refuse an email that has an account
-**Phase:** 10 · **Requirements:** REQ-116, REQ-117, REQ-119 · **Status:** todo · **Revision:** 1
+**Phase:** 10 · **Requirements:** REQ-116, REQ-117, REQ-119 · **Status:** done · **Revision:** 1
 **Files:** src/services/register-user.ts, src/services/register-user.test.ts
 **Interface:** C15 `RegisterUserService`.
 **Steps (red commit):** create the class with a stub `execute` (TSDoc on the class
@@ -10616,7 +10616,7 @@ and `npm run lint` pass.
 **TDD exception:** none
 
 ### TASK-254 — SetPasswordService: set without, change with the current password
-**Phase:** 10 · **Requirements:** REQ-120 · **Status:** todo · **Revision:** 1
+**Phase:** 10 · **Requirements:** REQ-120 · **Status:** done · **Revision:** 1
 **Files:** src/services/set-password.ts, src/services/set-password.test.ts
 **Interface:** C15 `SetPasswordService`.
 **Steps (red commit):** class with a stub `execute` (TSDoc on the class
@@ -10706,7 +10706,7 @@ and `npm run lint` pass.
 **TDD exception:** none
 
 ### TASK-255 — Account view and notice dismissal
-**Phase:** 10 · **Requirements:** REQ-123 · **Status:** todo · **Revision:** 1
+**Phase:** 10 · **Requirements:** REQ-123 · **Status:** done · **Revision:** 1
 **Files:** src/services/get-account.ts, src/services/dismiss-password-notice.ts, src/services/account.test.ts
 **Interface:** C15 `GetAccountService`, `DismissPasswordNoticeService`.
 **Steps (red commit):** both classes with stub `execute` methods. TSDoc: `GetAccountService`
@@ -10777,7 +10777,7 @@ user.passwordHash !== null, passwordNotice: user.passwordNotice }`; `DismissPass
 **TDD exception:** none
 
 ### TASK-256 — Linking Google clears the password; password sessions are re-checked
-**Phase:** 10 · **Requirements:** REQ-122 · **Status:** todo · **Revision:** 1
+**Phase:** 10 · **Requirements:** REQ-122 · **Status:** done · **Revision:** 1
 **Files:** src/domain/account-policy.ts, src/domain/account-policy.test.ts, src/services/link-google-account.ts,
 src/services/validate-password-session.ts, src/services/link-google-account.test.ts
 **Interface:** C15 `passwordSessionValid`, `LinkGoogleAccountService`, `ValidatePasswordSessionService`.
@@ -10887,7 +10887,7 @@ return passwordSessionValid(input.pwdAt, await this.deps.users.findById(input.us
 **TDD exception:** none
 
 ### TASK-257 — JWT sessions and the E2E sign-in helper
-**Phase:** 10 · **Requirements:** REQ-01, REQ-124 · **Status:** todo · **Revision:** 1
+**Phase:** 10 · **Requirements:** REQ-01, REQ-124 · **Status:** done · **Revision:** 1
 **Files:** src/auth.config.ts, src/auth.config.test.ts, src/auth.ts, e2e/helpers/auth.ts, e2e/sessions.spec.ts
 **Interface:** `authConfig` (`satisfies NextAuthConfig`); `signInAs(context, { email, name }): Promise<{ id: string }>`
 keeps its signature.
@@ -11027,7 +11027,7 @@ the new helper: `E2E_PORT=3100 npm run test:e2e` (needs `docker compose up -d db
 **TDD exception:** none (the E2E helper is test infrastructure; the whole suite is its test)
 
 ### TASK-258 — Credentials provider: authorize, the jwt callback and the container wiring
-**Phase:** 10 · **Requirements:** REQ-118, REQ-119, REQ-122, REQ-125 · **Status:** todo · **Revision:** 1
+**Phase:** 10 · **Requirements:** REQ-118, REQ-119, REQ-122, REQ-125 · **Status:** done · **Revision:** 1
 **Files:** src/lib/auth-callbacks.ts, src/lib/auth-callbacks.test.ts, src/lib/container.ts, src/auth.ts
 **Interface:** C15 `src/lib/auth-callbacks.ts` (complete `AuthCallbackDeps` and `AuthCallbacks` interfaces).
 **Steps (red commit):** create `src/lib/auth-callbacks.ts` with `RateLimitedSignIn` (full, TSDoc from C15), both
@@ -11223,7 +11223,7 @@ currentSession = () => auth();
 **TDD exception:** none (`container.ts` and `auth.ts` are wiring, exercised by the E2E run and by TASK-267)
 
 ### TASK-259 — Google sign-in: verified email only, and clearing on link
-**Phase:** 10 · **Requirements:** REQ-121, REQ-122 · **Status:** todo · **Revision:** 1
+**Phase:** 10 · **Requirements:** REQ-121, REQ-122 · **Status:** done · **Revision:** 1
 **Files:** src/domain/account-policy.ts, src/domain/account-policy.test.ts, src/lib/auth-callbacks.ts,
 src/lib/auth-callbacks.test.ts, src/lib/auth-callbacks.int.test.ts, src/auth.ts
 **Interface:** C15 `allowGoogleSignIn`, `AuthCallbacks.signIn`, `AuthCallbacks.linkAccount`.
@@ -11383,7 +11383,7 @@ async linkAccount({ user, account }) {
 **TDD exception:** none
 
 ### TASK-260 — Sign-in and register server actions
-**Phase:** 10 · **Requirements:** REQ-116, REQ-117, REQ-118, REQ-119 · **Status:** todo · **Revision:** 1
+**Phase:** 10 · **Requirements:** REQ-116, REQ-117, REQ-118, REQ-119 · **Status:** done · **Revision:** 1
 **Files:** src/app/[locale]/actions.ts, src/app/[locale]/actions.test.ts
 **Interface:** C15 `signInWithPasswordAction`, `registerAction`.
 **Steps (red commit):** add both actions to `src/app/[locale]/actions.ts` (it already starts with `'use server'` and
@@ -11529,7 +11529,7 @@ and `npm run lint` pass.
 **TDD exception:** none
 
 ### TASK-261 — Account server actions
-**Phase:** 10 · **Requirements:** REQ-120, REQ-123 · **Status:** todo · **Revision:** 1
+**Phase:** 10 · **Requirements:** REQ-120, REQ-123 · **Status:** done · **Revision:** 1
 **Files:** src/app/[locale]/account/actions.ts, src/app/[locale]/account/actions.test.ts
 **Interface:** C15 `setPasswordAction`, `dismissPasswordNoticeAction`.
 **Steps (red commit):** new file starting with `'use server';`, both actions as stubs, TSDoc
@@ -11593,7 +11593,7 @@ Red: all fail with `not implemented`. Commit `test(account): account actions`.
 **TDD exception:** none
 
 ### TASK-262 — Sign-in page with Google and email/password
-**Phase:** 10 · **Requirements:** REQ-126, REQ-118, REQ-119 · **Status:** todo · **Revision:** 1
+**Phase:** 10 · **Requirements:** REQ-126, REQ-118, REQ-119 · **Status:** done · **Revision:** 1
 **Files:** src/components/password-sign-in-form.tsx, src/components/password-sign-in-form.test.tsx,
 src/app/[locale]/sign-in/page.tsx, src/auth.config.ts, src/auth.config.test.ts, e2e/sign-in.spec.ts
 **Interface:** C15 `PasswordSignInFormProps`; `export function PasswordSignInForm(props: PasswordSignInFormProps):
@@ -11833,7 +11833,7 @@ passes; `E2E_PORT=3100 npm run test:e2e -- e2e/sign-in.spec.ts` passes; `npm run
 **TDD exception:** none (the page is thin wiring; its E2E is in this task)
 
 ### TASK-263 — Register page
-**Phase:** 10 · **Requirements:** REQ-127, REQ-116, REQ-117, REQ-119 · **Status:** todo · **Revision:** 2
+**Phase:** 10 · **Requirements:** REQ-127, REQ-116, REQ-117, REQ-119 · **Status:** done · **Revision:** 2
 **Files:** src/components/register-form.tsx, src/components/register-form.test.tsx,
 src/app/[locale]/register/page.tsx
 **Resuming at Revision 2:** the red commit `test(auth): register form` (Revision 1) is already on the branch. Do not
@@ -11949,7 +11949,7 @@ test in a new commit `test(auth): register form sends the browser-trimmed email`
   `type="email"` input, which trims it; it now expects `'Ana@Example.com'` (Phase 10 note 21).
 
 ### TASK-264 — Account page, set-password form and the menu link
-**Phase:** 10 · **Requirements:** REQ-128, REQ-120, REQ-80 · **Status:** todo · **Revision:** 1
+**Phase:** 10 · **Requirements:** REQ-128, REQ-120, REQ-80 · **Status:** done · **Revision:** 1
 **Files:** src/components/set-password-form.tsx, src/components/set-password-form.test.tsx,
 src/app/[locale]/account/page.tsx, src/components/user-menu.tsx, src/components/user-menu.test.tsx
 **Interface:** C15 `SetPasswordFormProps`; `export function SetPasswordForm(props: SetPasswordFormProps):
@@ -12113,7 +12113,7 @@ TASK-267.)
 **TDD exception:** none
 
 ### TASK-265 — The cleared-password notice under the header
-**Phase:** 10 · **Requirements:** REQ-123 · **Status:** todo · **Revision:** 1
+**Phase:** 10 · **Requirements:** REQ-123 · **Status:** done · **Revision:** 1
 **Files:** src/components/password-notice.tsx, src/components/password-notice.test.tsx,
 src/components/password-notice-slot.tsx, src/app/[locale]/layout.tsx, src/app/globals.css
 **Interface:** C15 `PasswordNoticeProps`; `export function PasswordNotice(props: PasswordNoticeProps):
@@ -12228,7 +12228,7 @@ TASK-267.)
 **TDD exception:** none
 
 ### TASK-266 — Every sign-in link goes to the sign-in page
-**Phase:** 10 · **Requirements:** REQ-02, REQ-39, REQ-80, REQ-81 · **Status:** todo · **Revision:** 1
+**Phase:** 10 · **Requirements:** REQ-02, REQ-39, REQ-80, REQ-81 · **Status:** done · **Revision:** 1
 **Files:** src/lib/auth-redirect.ts, src/lib/auth-redirect.test.ts, src/components/site-header.tsx,
 src/app/[locale]/page.tsx, messages/en.json, messages/fr.json, messages/pt-BR.json, e2e/auth.spec.ts,
 e2e/header.spec.ts, e2e/home.spec.ts
@@ -12303,7 +12303,7 @@ test.describe('REQ-02: protected routes redirect signed-out visitors', () => {
 
 ### TASK-267 — E2E journeys: register, sign in, refusals, Account and the notice
 **Phase:** 10 · **Requirements:** REQ-116, REQ-117, REQ-118, REQ-120, REQ-123, REQ-125, REQ-126, REQ-130 ·
-**Status:** todo · **Revision:** 1
+**Status:** done · **Revision:** 1
 **Files:** e2e/helpers/factories.ts, e2e/password-auth.spec.ts
 **Steps:**
 1. `e2e/helpers/factories.ts`: add `import { hashPassword } from '@/lib/password';` and:
@@ -12517,7 +12517,7 @@ and `npm run lint` pass.
 the PR notes.
 
 ### TASK-268 — E2E: accessibility and French layout of the new pages
-**Phase:** 10 · **Requirements:** REQ-129 · **Status:** todo · **Revision:** 1
+**Phase:** 10 · **Requirements:** REQ-129 · **Status:** done · **Revision:** 1
 **Files:** e2e/a11y.spec.ts, e2e/i18n-layout.spec.ts
 **Steps:**
 1. `e2e/a11y.spec.ts`: change the `./helpers/db` import to `import { db, resetDatabase } from './helpers/db';` and add
@@ -12584,7 +12584,7 @@ passes.
 the PR notes.
 
 ### TASK-269 — README: two sign-in methods, password security, what is left out
-**Phase:** 10 · **Requirements:** REQ-130, REQ-125, REQ-119, REQ-121 · **Status:** todo · **Revision:** 1
+**Phase:** 10 · **Requirements:** REQ-130, REQ-125, REQ-119, REQ-121 · **Status:** done · **Revision:** 1
 **Files:** README.md
 **Steps:** edit only the places below; keep every line at 120 characters or fewer, except table rows (Prettier
 ignores `*.md`).
