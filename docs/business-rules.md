@@ -727,12 +727,12 @@ BR above.
 
 ## Open questions
 
-**Open** — amendment A3 (2026-09-24), to confirm at spec approval:
+**Open** — none.
 
-1. Default provider order Anthropic → OpenRouter (BR-119) is a proposed default from the human's request, not a
-   confirmed decision — to confirm at spec approval.
-2. Not retrying on another provider after invalid model output (BR-122) is a proposed default from the human's
-   request, not a confirmed decision — to confirm at spec approval.
+**Resolved — A3** — decided by the human (Ramon) on 2026-09-24, at Phase 7 spec kickoff:
+
+1. Default provider order `anthropic,openrouter` → BR-119 confirmed as written (no change).
+2. No cross-provider retry after invalid model output → BR-122 confirmed as written (no change).
 
 **Resolved** — decided by the human (Ramon) on 2026-09-24:
 
