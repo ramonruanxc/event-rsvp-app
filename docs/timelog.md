@@ -183,6 +183,7 @@ Pipeline agents working autonomously. Reported separately from human active time
 | 2026-09-25 10:51:53 | Human approved Phase 8 (amendment A4): reasoning control + harder eval with stricter gate |
 | 2026-09-25 12:53:50 | Implementer agent ran the Phase 8 eval (12:07:35–12:53:50) on four models: none passes the stricter gate; measured spend USD 1.20 (key USD 1.36 of 6) |
 | 2026-09-25 13:19:44 | Human decision (option A): deliver Phase 8 as a measurement; Sonnet 5 stays the default; production reasoning effort `omit` via Vercel (HUMAN-07, human); prompt hardening recorded as next step |
+| 2026-09-25 13:22:10 | HUMAN-07 done by the human: `OPENROUTER_REASONING_EFFORT=omit` set in Vercel production |
 
 ## Time report
 
