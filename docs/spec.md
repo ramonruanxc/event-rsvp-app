@@ -1085,6 +1085,8 @@ the default already applied in this spec (REQ-31, REQ-84, TASK-176).
 - Every focusable control shows, when focused from the keyboard, `outline: 2px solid var(--link)` (offset 2 px;
   −2 px inside the stepper and the dashboard event rows). The segmented control's radio inputs are transparent; its
   ring is drawn on the visible segment (`input:focus-visible + span`)
+- The date and time inputs hide Chromium's picker indicator and clear button (an untabbable, ring-less stop); the
+  picker stays reachable through REQ-131
 - E2E: the first Tab on `/en` focuses an element whose computed `outline-style` is `solid` and `outline-width` `2px`
 - E2E: tabbing through the guest event page, the owner event page and the new-event page, every focused element
   (for segment radios: its next sibling `span`) has `outline-style: solid` and `outline-width: 2px`
@@ -2097,6 +2099,32 @@ behavior was checked in the installed sources (`next-auth` 5.0.0-beta.32, `@auth
 **Test level:** e2e (a `describe` block around REQ-116's journey). The container path is not re-tested (Phase 10 note
 16)
 
+### REQ-131 — The event date and time can be picked, not only typed
+**Rules:** BR-15, BR-104, BR-103. No rule yet says "the date and time can be picked from the browser's picker"; the
+analyst backfills it at doc-sync (incident 26).
+**Status:** todo
+**Acceptance criteria:**
+- REQ-66's CSS stays: Chromium's `::-webkit-calendar-picker-indicator` and `::-webkit-clear-button` of the date and
+  time inputs remain hidden (no ring-less tab stop)
+- Given the new-event (or edit-event) form in a browser that has `HTMLInputElement.prototype.showPicker`, when the
+  organizer clicks the "Date" field, then `showPicker()` is called on that `#date` input; clicking the "Time" field
+  calls it on the `#time` input
+- Each field has an icon button inside its right edge: "Open calendar" (lucide `CalendarDays`) for Date and
+  "Open time picker" (lucide `Clock`) for Time. `type="button"` (it never submits the form), the icon is hidden from
+  assistive technology (REQ-78), 32×32 px (REQ-71), and the global 2 px `--link` focus ring (REQ-66, DESIGN.md)
+- Activating the button (click, or Enter / Space from the keyboard) focuses its input, then calls `showPicker()` on it
+- If `showPicker` is missing, the button still focuses the field and nothing else happens; if `showPicker()` throws
+  (e.g. `NotAllowedError` without user activation, `InvalidStateError` when already open), the error is swallowed:
+  nothing is shown and the field still accepts typed values
+- Accessible names, message keys `eventForm.openDatePicker` / `eventForm.openTimePicker`:
+  en "Open calendar" / "Open time picker"; fr "Ouvrir le calendrier" / "Ouvrir le sélecteur d'heure";
+  pt-BR "Abrir calendário" / "Abrir seletor de horário". The English date name must not contain "date": the E2E
+  suite finds the date field with `getByLabel('Date')`, a case-insensitive substring match
+- Unchanged: the inputs keep `id`, `aria-invalid` and `aria-describedby` (error and AI "missing" hints, REQ-51,
+  REQ-70), their visible labels (REQ-68), and REQ-66 / REQ-67 / REQ-71 / REQ-78 E2E checks on `/en/events/new` pass
+**Test level:** unit (component, `showPicker` mocked on the prototype) + the existing E2E accessibility suite as a
+regression check. Opening the native picker itself is not asserted (Playwright cannot see it)
+
 ---
 
 ## Tooling requirements
@@ -2418,7 +2446,7 @@ These requirements are code in the repository and are TDD'd like product code. T
 | BR-12 | REQ-16 (no notifier dependency); non-functional: no email capability exists in the system |
 | BR-13 | REQ-14 (no end-time field), REQ-41 |
 | BR-14 | REQ-11, REQ-14 |
-| BR-15 | REQ-07, REQ-14 |
+| BR-15 | REQ-07, REQ-14, REQ-131 |
 | BR-16 | REQ-08, REQ-14 |
 | BR-17 | REQ-09, REQ-14 |
 | BR-18 | REQ-09, REQ-14 |
@@ -2506,8 +2534,8 @@ These requirements are code in the repository and are TDD'd like product code. T
 | BR-100 | REQ-63 |
 | BR-101 | REQ-65 |
 | BR-102 | REQ-65 |
-| BR-103 | REQ-66 |
-| BR-104 | REQ-67 |
+| BR-103 | REQ-66, REQ-131 |
+| BR-104 | REQ-67, REQ-131 |
 | BR-105 | REQ-68 |
 | BR-106 | REQ-69 |
 | BR-107 | REQ-70 |
@@ -2581,4 +2609,6 @@ amends BR-01, BR-52, BR-95 and BR-136 (REQ-01, REQ-02, REQ-39, REQ-80, REQ-81 am
 BR-97 … BR-118 added by amendment A2 (REQ-62 … REQ-85). BR-119 …
 BR-126 added by amendment A3 (REQ-86 … REQ-89, REQ-94 … REQ-98). Amendment A4 adds no business rule: REQ-99 (BR-64)
 and tooling REQ-100 … REQ-107. BR-127 … BR-144 added by amendment A5 (REQ-108 … REQ-113).
+REQ-131 (Phase 11, incident 26) adds no business rule yet: it cites BR-15, BR-103 and BR-104, and the analyst
+backfills a rule that the date and time can be picked, not only typed, at doc-sync.
 Tooling: REQ-90, REQ-91, REQ-92, REQ-93, REQ-100 … REQ-107.
