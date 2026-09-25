@@ -20,11 +20,9 @@ export const GENERATED_SECRET_NOTICE =
   'start: AUTH_SECRET is not set, generated one for this container run (sign-in sessions end when the container restarts)';
 
 /** Copy of `env` with AUTH_SECRET set: the supplied non-blank value, else a generated one (REQ-109). */
-export function withAuthSecret(
-  _env: Env,
-  _generate: () => string,
-): { env: Env; generated: boolean } {
-  throw new Error('not implemented');
+export function withAuthSecret(env: Env, generate: () => string): { env: Env; generated: boolean } {
+  if (env.AUTH_SECRET?.trim()) return { env: { ...env }, generated: false };
+  return { env: { ...env, AUTH_SECRET: generate() }, generated: true };
 }
 
 /** Everything runStart needs from the outside world (REQ-108). */
@@ -36,6 +34,7 @@ export interface StartDeps {
 }
 
 /** Runs START_STEPS in order with AUTH_SECRET ensured; stops at the first failing step and returns its code (REQ-108, REQ-109). */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- stub parameter, implemented in TASK-240
 export async function runStart(_deps: StartDeps): Promise<number> {
   throw new Error('not implemented');
 }
