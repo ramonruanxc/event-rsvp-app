@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { formatEventDateTime } from './format-date';
+import { dateTileParts, formatEventDateTime, formatShortDateTime } from './format-date';
 
 describe('formatEventDateTime', () => {
   const instant = new Date('2026-10-02T23:00:00.000Z');
@@ -39,5 +39,36 @@ describe('formatEventDateTime', () => {
     expect(result).toContain('October 2, 2026');
     expect(result).toMatch(/7:00\sPM/);
     expect(result).toContain('EDT');
+  });
+});
+
+describe('dateTileParts', () => {
+  it('REQ-82: the date tile shows month, day and weekday in the event timezone', () => {
+    expect(dateTileParts(new Date('2026-10-02T23:00:00.000Z'), 'America/New_York', 'en')).toEqual({
+      month: 'OCT',
+      day: '2',
+      weekday: 'Fri',
+    });
+    expect(dateTileParts(new Date('2026-10-03T02:00:00.000Z'), 'America/New_York', 'en')).toEqual({
+      month: 'OCT',
+      day: '2',
+      weekday: 'Fri',
+    });
+    expect(dateTileParts(new Date('2026-10-02T23:00:00.000Z'), 'America/New_York', 'fr')).toEqual({
+      month: 'OCT.',
+      day: '2',
+      weekday: 'ven.',
+    });
+  });
+});
+
+describe('formatShortDateTime', () => {
+  it('REQ-85: the short date-time keeps the timezone label', () => {
+    const result = formatShortDateTime(
+      new Date('2026-09-24T14:02:00.000Z'),
+      'America/New_York',
+      'en',
+    ).replace(/\s/g, ' ');
+    expect(result).toBe('Sep 24, 10:02 AM EDT');
   });
 });
