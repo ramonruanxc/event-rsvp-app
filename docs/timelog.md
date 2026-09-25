@@ -125,6 +125,10 @@ Pipeline agents working autonomously. Reported separately from human active time
 | Implementer TASK-263–269 (batch B, part 2) | sonnet | 2026-09-25 16:31:40 | 2026-09-25 16:51:59 | 20m 19s | 11/11 done; unit 469, E2E 83/83 |
 | Reviewer PR #16 | sonnet | 2026-09-25 16:52:40 | 2026-09-25 17:03:11 | 10m 31s | APPROVE, 0 findings, 1 nit; incident #25 |
 | Analyst: doc-sync PR #16 + directed README | sonnet | 2026-09-25 17:03:40 | 2026-09-25 17:13:48 | 10m 08s | statuses, DESIGN.md, user-flows diagram, README rewrite |
+| Spec-writer: REQ-131, TASK-270 (pickers) | opus | 2026-09-25 18:01:10 | 2026-09-25 18:11:10 | 10m 00s | one task, dry-run verified |
+| Analyst: BR-171–172, BR-64/65/121/137 amended | sonnet | 2026-09-25 18:13:00 | 2026-09-25 18:16:51 | 3m 51s | AI error causes + 20 s budget |
+| Spec-writer: REQ-132–133, TASK-271–272 | opus | 2026-09-25 18:17:10 | 2026-09-25 18:28:17 | 11m 07s | dry-run verified |
+| Implementer TASK-270–272 | sonnet | 2026-09-25 18:28:33 | 2026-09-25 18:42:40 | 14m 07s | 3/3 first attempt |
 
 ## Events
 
