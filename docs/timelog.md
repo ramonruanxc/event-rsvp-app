@@ -17,7 +17,7 @@ Event times are taken from session timestamps. All times in America/Fortaleza (U
 | 6 | Ship (final verification, Dependabot triage, time report) | 2026-09-25 10:10:04 | 2026-09-25 10:17:22 |
 | 8 | Post-delivery: harder AI evaluation + reasoning control (amendment A4) | 2026-09-25 10:51:53 | 2026-09-25 13:38:28 |
 | 9 | Post-delivery: containerized one-command local run (amendment A5) | 2026-09-25 14:02:26 | 2026-09-25 14:56:51 |
-| 10 | Post-delivery: email and password sign-in alongside Google (amendment A6) | 2026-09-25 14:56:51 | — |
+| 10 | Post-delivery: email and password sign-in alongside Google (amendment A6) | 2026-09-25 14:56:51 | 2026-09-25 17:40:17 |
 
 ## Pauses
 
@@ -123,6 +123,7 @@ Pipeline agents working autonomously. Reported separately from human active time
 | Spec-writer: TASK-263 revision 1/2 | opus | 2026-09-25 16:29:35 | 2026-09-25 16:31:30 | 1m 55s | keep `type="email"`, assert trimmed value |
 | Implementer TASK-263–269 (batch B, part 2) | sonnet | 2026-09-25 16:31:40 | 2026-09-25 16:51:59 | 20m 19s | 11/11 done; unit 469, E2E 83/83 |
 | Reviewer PR #16 | sonnet | 2026-09-25 16:52:40 | 2026-09-25 17:03:11 | 10m 31s | APPROVE, 0 findings, 1 nit; incident #25 |
+| Analyst: doc-sync PR #16 + directed README | sonnet | 2026-09-25 17:03:40 | 2026-09-25 17:13:48 | 10m 08s | statuses, DESIGN.md, user-flows diagram, README rewrite |
 
 ## Events
 
@@ -209,6 +210,14 @@ Pipeline agents working autonomously. Reported separately from human active time
 | 2026-09-25 14:58:10 | Human pre-authorized every spec approval and merge for Phase 10; DOC questions take the analyst's recommendation |
 | 2026-09-25 14:58:34 | PR #15 merged by the orchestrator (human authorized); Phase 9 closed |
 | 2026-09-25 15:02:35 | DOC-Q5 (5 failures per email / 20 per IP per 15 min) and DOC-Q6 (banner + Account notice) resolved with the analyst's recommendations under the human pre-authorization |
+| 2026-09-25 16:29:29 | Implementer stopped TASK-263 with a SPEC failure (incident #24); spec-writer revision 1/2 resolved it; batch resumed 16:31:40 |
+| 2026-09-25 17:03:11 | Reviewer approved PR #16 (0 findings, 1 nit on client-IP header trust); incident #25 logged by the orchestrator |
+| 2026-09-25 17:15:00 | Human asked for a shorter, directed README (Start here + "Want to know more?"); done by the analyst at doc-sync |
+| 2026-09-25 17:39:40 | Human confirmed the Phase 10 merge |
+| 2026-09-25 17:40:17 | PR #16 merged by the orchestrator; Phase 10 closed |
+| 2026-09-25 17:42:30 | Orchestrator smoke-tested production after the deploy: sign-in and register pages in en/fr/pt-BR, organizer routes redirect to sign-in, demo event, `.ics`, security headers. Registering and signing in with a password in production is left to the human (agents never create accounts or type passwords) |
+| 2026-09-25 17:47:30 | Orchestrator ran `docker compose up --build` on a fresh clone of `main` with an empty database and no `.env.local`: AUTH_SECRET generated, migrate → seed → serve, smoke 3/3 |
+| 2026-09-25 17:49:00 | Human registered with email and password, signed out and signed in again on that local container: all worked |
 
 ## Time report
 
