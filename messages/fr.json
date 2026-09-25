@@ -8,13 +8,18 @@
     "language": "Langue",
     "myEvents": "Mes événements",
     "signIn": "Se connecter avec Google",
-    "signOut": "Se déconnecter"
+    "signInShort": "Se connecter",
+    "signOut": "Se déconnecter",
+    "darkTheme": "Thème sombre",
+    "accountMenu": "Menu du compte",
+    "signedInAs": "Connecté en tant que {name}"
   },
   "languages": { "en": "English", "fr": "Français", "pt-BR": "Português (Brasil)" },
   "home": {
     "headline": "Planifiez un événement. Partagez un seul lien. Voyez qui vient.",
     "explanation": "Créez un événement en quelques secondes — décrivez-le avec vos propres mots et laissez l'IA remplir le formulaire. Les invités répondent depuis un seul lien sans compte, et vous voyez la liste des invités et les totaux au même endroit.",
-    "demoLink": "Voir un événement de démonstration"
+    "demoLink": "Voir un événement de démonstration",
+    "previewCaption": "Ce que voit un invité après avoir touché votre lien. Une page, une réponse."
   },
   "dashboard": {
     "title": "Mes événements",
@@ -24,7 +29,16 @@
     "createSample": "Créer un événement d'exemple",
     "empty": "Vous n'avez pas encore d'événement.",
     "noUpcoming": "Aucun événement à venir.",
-    "noPast": "Aucun événement passé."
+    "noPast": "Aucun événement passé.",
+    "stepsIntro": "Trois étapes, environ une minute :",
+    "step1Title": "Créez un événement",
+    "step1Text": "Remplissez le formulaire, ou décrivez l'événement en une phrase et laissez l'IA le remplir.",
+    "step2Title": "Partagez un seul lien",
+    "step2Text": "Envoyez le lien d'invitation dans n'importe quelle discussion. Les invités n'ont pas besoin de compte.",
+    "step3Title": "Suivez les réponses",
+    "step3Text": "Voyez qui vient et combien de personnes, dans une seule liste.",
+    "sampleHint": "L'exemple contient cinq invités fictifs pour que vous puissiez explorer. Supprimez-le une fois terminé.",
+    "noReplies": "Pas encore de réponses"
   },
   "totals": {
     "summary": "Y vont : {going} · Déclinés : {declined} · Personnes : {people}",
@@ -40,7 +54,11 @@
     "timezone": "Fuseau horaire",
     "location": "Lieu (facultatif)",
     "save": "Enregistrer l'événement",
-    "saving": "Enregistrement…"
+    "saving": "Enregistrement…",
+    "groupWhat": "Quoi",
+    "groupWhen": "Quand",
+    "groupWhere": "Où",
+    "timezoneHint": "Les invités voient la date et l'heure dans ce fuseau horaire."
   },
   "ai": {
     "label": "Décrivez votre événement",
@@ -48,7 +66,9 @@
     "fill": "Remplir avec l'IA",
     "filling": "Remplissage…",
     "missingHint": "Introuvable dans votre texte — veuillez le remplir.",
-    "notAnEvent": "Impossible de trouver les détails d'un événement dans ce texte."
+    "notAnEvent": "Impossible de trouver les détails d'un événement dans ce texte.",
+    "filled": "{count, plural, one {# champ rempli} other {# champs remplis}} · vérifiez-les ci-dessous",
+    "needed": "Requis"
   },
   "event": {
     "edit": "Modifier",
@@ -64,7 +84,20 @@
     "colResponse": "Réponse",
     "colPeople": "Personnes",
     "colUpdated": "Dernière mise à jour",
-    "remove": "Retirer"
+    "remove": "Retirer",
+    "endedPill": "Terminé",
+    "endedHint": "Les réponses sont closes : elles ne peuvent plus être envoyées ni modifiées.",
+    "inviteLink": "Lien d'invitation",
+    "inviteHint": "Toute personne disposant de ce lien peut répondre. Les invités n'ont pas besoin de compte.",
+    "copied": "Copié",
+    "deleteConfirmAction": "Supprimer",
+    "keep": "Conserver",
+    "removeNamed": "Retirer {name}",
+    "removeConfirm": "Retirer {name} de la liste des invités ?",
+    "declined": "Décliné",
+    "actions": "Actions",
+    "updatedPrefix": "Mis à jour",
+    "peopleSuffix": "{count, plural, one {personne} other {personnes}}"
   },
   "rsvp": {
     "title": "Viendrez-vous ?",
@@ -77,7 +110,13 @@
     "youreNotGoing": "Vous ne venez pas",
     "change": "Modifier",
     "cancel": "Annuler",
-    "formRejected": "Nous n'avons pas pu envoyer votre réponse. Veuillez réessayer."
+    "formRejected": "Nous n'avons pas pu envoyer votre réponse. Veuillez réessayer.",
+    "nameHint": "L'organisateur voit ce nom sur la liste des invités.",
+    "answer": "Votre réponse",
+    "partySizeHint": "Jusqu'à 10.",
+    "decrease": "Une personne de moins",
+    "increase": "Une personne de plus",
+    "savedAs": "Enregistré au nom de {name}. Vous pouvez modifier votre réponse depuis ce navigateur jusqu'au début de l'événement."
   },
   "sample": {
     "name": "Exemple : Soirée du vendredi",
