@@ -12,9 +12,9 @@ Event times are taken from session timestamps. All times in America/Fortaleza (U
 | 1 | Spec definition (business rules, scope, gaps, design) | 2026-09-24 12:06:04 | 2026-09-24 13:35:54 |
 | 2 | Pipeline bootstrap (repo, agents, skills) + spec writing | 2026-09-24 13:35:54 | 2026-09-24 14:50:06 |
 | 3 | Plan (produced with the spec in phase 2) | — | — |
-| 4 | Execution | 2026-09-24 14:50:06 | — |
-| 5 | Review | — | — |
-| 6 | Ship (deploy + README) | — | — |
+| 4 | Execution (plan phases 0–7, incl. per-PR review and merge) | 2026-09-24 14:50:06 | 2026-09-25 02:26:39 |
+| 5 | Review (interleaved with execution: one reviewer + doc-sync per PR) | — | — |
+| 6 | Ship (final verification, Dependabot triage, time report) | 2026-09-25 10:10:04 | 2026-09-25 10:17:22 |
 
 ## Pauses
 
@@ -24,8 +24,8 @@ Event times are taken from session timestamps. All times in America/Fortaleza (U
 | 2 | 2 — Pipeline bootstrap + spec | 2026-09-24 14:04:38 | 2026-09-24 14:39:47 | 35m 09s | Human away; spec-writer agent ran meanwhile (see Agent runs) |
 | 3 | 4 — Execution | 2026-09-24 15:27:44 | 2026-09-24 15:44:10 | 16m 26s | Work break; pipeline kept running |
 | 4 | 4 — Execution | 2026-09-24 18:59:23 | 2026-09-24 19:20:18 | 20m 55s | Work and calls; pipeline kept running |
-| 5 | 4 — Execution | 2026-09-24 19:24:11 | 2026-09-24 21:28:38 | — | Break; pipeline kept running (duration computed in the final report) |
-| 6 | 4 — Execution | 2026-09-25 01:02:49 | — | — | Sleep; pipeline kept running |
+| 5 | 4 — Execution | 2026-09-24 19:24:11 | 2026-09-24 21:28:38 | 2h 04m 27s | Break; pipeline kept running (duration computed in the final report) |
+| 6 | 4 — Execution | 2026-09-25 01:02:49 | 2026-09-25 10:10:04 | 9h 07m 15s | Sleep; pipeline kept running |
 
 ## Agent runs
 
@@ -174,3 +174,26 @@ Pipeline agents working autonomously. Reported separately from human active time
 | 2026-09-25 01:22:17 | Real eval via OpenRouter: only claude-sonnet-5 passes the gate (Haiku 4.5 and gpt-4o-mini invent data); measured spend USD 0.1283 |
 | 2026-09-25 01:33:48 | TASK-218: code default model follows the eval (claude-sonnet-5); phase 7 complete |
 | 2026-09-25 01:35:43 | Phase 6 complete: 36/36 tasks (TASK-182 characterization found a real focus-ring defect, fixed) |
+| 2026-09-25 10:10:04 | Human back; tested plan for AI fill; Nageeb added as Google test user; Dependabot triaged (6 alerts dismissed as tolerable risk, PR #1 rebased) |
+| 2026-09-25 10:17:22 | Final time report |
+
+## Time report
+
+Timer: 2026-09-24 12:06:04 → 2026-09-25 10:17:22 (America/Fortaleza). Phase 0 (comprehension, 25 min) is untimed.
+
+| | Time |
+|---|---|
+| Wall clock | 22h 11m |
+| Paused (6 pauses: breaks, work calls, sleep) | 13h 03m |
+| **Human active time** | **9h 07m** |
+| Agent run time (sum of all agent runs; many ran in parallel and during pauses) | 13h 48m |
+
+| Phase | Wall clock | Active (wall clock minus pauses) |
+|---|---|---|
+| 1 — Spec definition | 1h 29m | 0h 50m |
+| 2 — Pipeline bootstrap + spec | 1h 14m | 0h 39m |
+| 4 — Execution, review, merges | 11h 36m | 7h 30m |
+| 6 — Ship | 0h 07m | 0h 07m |
+
+Active time includes the human's review and decisions while agents ran; agent runs overlapped each other (parallel
+worktrees) and continued during pauses, which is why their sum exceeds the active time.
