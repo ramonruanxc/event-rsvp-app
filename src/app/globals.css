@@ -99,7 +99,8 @@
      reports document.activeElement as the host input but matches neither :focus nor
      :focus-visible, so no ring is drawn while it briefly holds keyboard focus (REQ-66).
      Hiding the pseudo-elements removes that untabbable stop; the segments keep the outer
-     :focus-visible ring above. */
+     :focus-visible ring above. The picker stays reachable by clicking the field or its icon
+     button (REQ-131). */
   input[type='date']::-webkit-clear-button,
   input[type='time']::-webkit-clear-button,
   input[type='date']::-webkit-calendar-picker-indicator,
@@ -566,6 +567,20 @@
     top: 12px;
     color: var(--text-muted);
     pointer-events: none;
+  }
+  /* Date/time field with its picker button inside the right edge (REQ-131). */
+  .picker-wrap {
+    position: relative;
+  }
+  .picker-wrap .input {
+    padding-right: 44px;
+  }
+  .picker-btn {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 32px;
+    height: 32px;
   }
   .input:hover,
   .select:hover,

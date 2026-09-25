@@ -58,7 +58,9 @@
     "groupWhat": "O quê",
     "groupWhen": "Quando",
     "groupWhere": "Onde",
-    "timezoneHint": "Os convidados veem a data e a hora neste fuso horário."
+    "timezoneHint": "Os convidados veem a data e a hora neste fuso horário.",
+    "openDatePicker": "Abrir calendário",
+    "openTimePicker": "Abrir seletor de horário"
   },
   "ai": {
     "label": "Descreva seu evento",

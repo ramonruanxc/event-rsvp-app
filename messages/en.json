@@ -58,7 +58,9 @@
     "groupWhat": "What",
     "groupWhen": "When",
     "groupWhere": "Where",
-    "timezoneHint": "Guests see the date and time in this timezone."
+    "timezoneHint": "Guests see the date and time in this timezone.",
+    "openDatePicker": "Open calendar",
+    "openTimePicker": "Open time picker"
   },
   "ai": {
     "label": "Describe your event",
