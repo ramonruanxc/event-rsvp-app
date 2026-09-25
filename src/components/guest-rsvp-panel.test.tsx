@@ -121,9 +121,7 @@ describe('GuestRsvpPanel', () => {
       />,
     );
 
-    expect(
-      screen.getByRole('heading', { level: 2, name: "You're going · 1 person" }),
-    ).toBeTruthy();
+    expect(screen.getByRole('heading', { level: 2, name: "You're going · 1 person" })).toBeTruthy();
   });
 
   test('REQ-70: the ended notice shows a clock icon, the closed-replies line and the own answer with an icon', () => {
