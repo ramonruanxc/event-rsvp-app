@@ -33,8 +33,14 @@ export function parseAiProviders(value: string | undefined): AiProviderName[] {
 
 /** Builds the provider list in AI_PROVIDERS order, skipping providers without a key (BR-119, BR-120). */
 export function buildAiProviders(
-  _env: ProviderEnv,
-  _factories: Record<AiProviderName, () => AiModelClient>,
+  env: ProviderEnv,
+  factories: Record<AiProviderName, () => AiModelClient>,
 ): AiProvider[] {
-  throw new Error('not implemented');
+  return parseAiProviders(env.AI_PROVIDERS)
+    .filter((name) => (env[PROVIDER_KEY_ENV[name]] ?? '').trim() !== '')
+    .map((name) => ({
+      name,
+      client: factories[name](),
+      model: env[PROVIDER_MODEL_ENV[name]]?.trim() || DEFAULT_MODELS[name],
+    }));
 }
