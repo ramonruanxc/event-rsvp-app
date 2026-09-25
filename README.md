@@ -4,9 +4,12 @@ Create an event, share one link, see who's coming.
 
 ## Live demo
 
-**Production URL:** <!-- release agent fills this -->
+**Production URL:** https://event-rsvp-app-flax.vercel.app
 
-**Demo event (no sign-in needed):** append `/e/demoPicnic` to the production URL above.
+**Demo event (no sign-in needed):** https://event-rsvp-app-flax.vercel.app/e/demoPicnic
+
+> Google sign-in runs in Testing mode: an evaluator's Google account must be added as a test user. Guests never
+> need to sign in.
 
 ## 60-second walkthrough
 
@@ -45,6 +48,13 @@ Create an event, share one link, see who's coming.
   anything.
 - **Dark/light theme with WCAG 2.2 AA checks** — dark theme by default, switchable from the header; automated
   contrast and focus-ring checks guard both themes.
+
+### Security and abuse protection
+
+- RSVP submissions are rate-limited to 10 per 10 minutes per client; only a salted hash of the IP is stored.
+- A hidden honeypot field rejects automated spam submissions without revealing why.
+- Every response carries `X-Frame-Options`, `Referrer-Policy` and `X-Content-Type-Options` headers.
+- User content always renders as text (no raw HTML); authorization is enforced in the services, not only in the UI.
 
 ## Architecture
 

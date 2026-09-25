@@ -19,16 +19,22 @@ sequenceDiagram
   else allowed
     C->>S: parse(text, timezone, now)
     Note over S: Timezone priority:<br/>1. explicit in text ("7pm EST")<br/>2. form field (browser prefill)<br/>3. none → missing["timezone"]
-    S->>M: prompt + context "Today is Thu 2026-09-24 23:00, America/Fortaleza"<br/>timeout 10s
-    alt timeout or API error
+    Note over M: Anthropic SDK client is created lazily, on the first call<br/>(a missing API key never breaks pages that don't use AI)
+    S->>M: prompt + context "Today is Thu 2026-09-24 23:00, America/Fortaleza"<br/>timeout 10s, no retries
+    alt timeout (10s) or API error
       M-->>S: error
       S-->>O: "Couldn't fill automatically — please fill the form"
     else structured response
-      M-->>S: { name, description, date, time, timezone, location }
-      S->>Z: validate
+      M-->>S: { isEvent, name, description, date, time, timezone, location }
+      S->>Z: validate per field
       Z-->>S: valid fields + missing[]
-      S-->>C: ParseResult
-      C-->>O: fill form · highlight missing fields
+      alt isEvent is false
+        S-->>C: notAnEvent: true, all fields null
+        C-->>O: "Couldn't find event details in that text."
+      else isEvent is true
+        S-->>C: ParseResult (fields + missing[])
+        C-->>O: fill form · highlight missing fields
+      end
     end
   end
   Note over O,Z: The AI never saves. The Organizer reviews and clicks Save.

@@ -2662,7 +2662,7 @@ fake clients, E2E uses the mock server (TASK-124) with the dummy key `test-key` 
 the real API (HUMAN-05).
 
 ### TASK-110 — Fixed-window rate limiter
-**Phase:** 4 · **Requirements:** REQ-55 · **Status:** todo · **Revision:** 1
+**Phase:** 4 · **Requirements:** REQ-55 · **Status:** done · **Revision:** 1
 **Files:** src/services/rate-limiter.ts, src/services/rate-limiter.test.ts
 **Interface:** C5 `RateLimitRule`, `RSVP_RULE`, `AI_RULE`, `windowStart`, `RateLimiter`
 **Test first:**
@@ -2677,7 +2677,7 @@ the real API (HUMAN-05).
 **TDD exception:** none
 
 ### TASK-111 — Atomic Postgres counter
-**Phase:** 4 · **Requirements:** REQ-55 · **Status:** todo · **Revision:** 1
+**Phase:** 4 · **Requirements:** REQ-55 · **Status:** done · **Revision:** 1
 **Files:** src/repositories/prisma/prisma-rate-limit-repository.ts, src/repositories/prisma/prisma-rate-limit-repository.int.test.ts
 **Interface:** `export class PrismaRateLimitRepository implements RateLimitRepository { constructor(private readonly prisma: PrismaClient) }`
 **Test first:** `REQ-55: 15 concurrent increments return 1 to 15 exactly once` —
@@ -2695,7 +2695,7 @@ return Number(rows[0].count);
 **TDD exception:** none
 
 ### TASK-112 — AI output schema and per-field validation
-**Phase:** 4 · **Requirements:** REQ-43 · **Status:** todo · **Revision:** 3
+**Phase:** 4 · **Requirements:** REQ-43 · **Status:** done · **Revision:** 3
 **Files:** src/lib/ai/types.ts, src/lib/ai/output.ts, src/lib/ai/output.test.ts
 **Interface:** C6 (types.ts verbatim);
 ```ts
@@ -2728,7 +2728,7 @@ const VALID_RAW = { isEvent: true, name: 'Team dinner', description: 'Dinner wit
 - r3 — preventive review (lessons #9–#13), not a failure revision: shared `VALID_RAW` fixture spelled out (#11).
 
 ### TASK-113 — Timezone priority
-**Phase:** 4 · **Requirements:** REQ-46 · **Status:** todo · **Revision:** 2
+**Phase:** 4 · **Requirements:** REQ-46 · **Status:** done · **Revision:** 2
 **Files:** src/lib/ai/output.ts, src/lib/ai/output.test.ts
 **Test first:** two tests, each with a first assertion that fails before this task (after TASK-112 the timezone is
 the model value if valid, else `null`, and the form timezone is ignored). Assert on `result.fields.timezone` and
@@ -2751,7 +2751,7 @@ the model value if valid, else `null`, and the form timezone is ignored). Assert
   after TASK-112 (#13), so each is merged as a later assertion into a test whose first assertion fails first.
 
 ### TASK-114 — Missing fields list
-**Phase:** 4 · **Requirements:** REQ-45, REQ-46 · **Status:** todo · **Revision:** 3
+**Phase:** 4 · **Requirements:** REQ-45, REQ-46 · **Status:** done · **Revision:** 3
 **Files:** src/lib/ai/output.ts, src/lib/ai/output.test.ts
 **Test first:** (before this task `missing` is always `[]`, so each test fails on its first assertion)
 - `REQ-45: missing lists every null field in form order` —
@@ -2769,7 +2769,7 @@ the model value if valid, else `null`, and the form timezone is ignored). Assert
   TASK-113, where it could not pass.
 
 ### TASK-132 — Non-event text is flagged and empty
-**Phase:** 4 · **Requirements:** REQ-45 · **Status:** todo · **Revision:** 1
+**Phase:** 4 · **Requirements:** REQ-45 · **Status:** done · **Revision:** 1
 **Files:** src/lib/ai/output.ts, src/lib/ai/output.test.ts
 **Interface:** `normalizeAiOutput(raw, formTimezone)` (unchanged signature; C6 `ParseEventResult.notAnEvent`)
 **Test first:** `REQ-45: non-event text returns notAnEvent with every field empty and missing` — raw
@@ -2783,7 +2783,7 @@ Red reason: before this task the fields are filled from the raw values and `notA
 **TDD exception:** none
 
 ### TASK-115 — Reference line in the organizer's timezone
-**Phase:** 4 · **Requirements:** REQ-44 · **Status:** todo · **Revision:** 1
+**Phase:** 4 · **Requirements:** REQ-44 · **Status:** done · **Revision:** 1
 **Files:** src/lib/ai/prompt.ts, src/lib/ai/prompt.test.ts
 **Interface:** `export function buildReferenceLine(now: Date, timeZone: string | null): string`
 **Test first:** `REQ-44: the reference uses the organizer's local day` (REQ-44 Fortaleza example);
@@ -2794,7 +2794,7 @@ Red reason: before this task the fields are filled from the raw values and `notA
 **TDD exception:** none
 
 ### TASK-116 — Delimited user message and system prompt
-**Phase:** 4 · **Requirements:** REQ-44 · **Status:** todo · **Revision:** 1
+**Phase:** 4 · **Requirements:** REQ-44 · **Status:** done · **Revision:** 1
 **Files:** src/lib/ai/prompt.ts, src/lib/ai/prompt.test.ts
 **Interface:** `export const SYSTEM_PROMPT: string`;
 `export function buildUserMessage(input: { text: string; now: Date; timezone: string | null }): string` →
@@ -2820,7 +2820,7 @@ location: the place as written in the text, or null.
 **TDD exception:** none
 
 ### TASK-117 — Promise timeout helper
-**Phase:** 4 · **Requirements:** REQ-47 · **Status:** todo · **Revision:** 2
+**Phase:** 4 · **Requirements:** REQ-47 · **Status:** done · **Revision:** 2
 **Files:** src/lib/with-timeout.ts, src/lib/with-timeout.test.ts
 **Interface:** `export class TimeoutError extends Error {}`; `export function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T>`
 (clears its timer when the promise settles). `TimeoutError` sets `this.name = 'TimeoutError'`.
@@ -2843,7 +2843,7 @@ The `p.catch(() => {})` line attaches a handler before the timer fires, so Vites
   pending" without an unhandled rejection).
 
 ### TASK-118 — AiEventParser
-**Phase:** 4 · **Requirements:** REQ-45, REQ-47 · **Status:** todo · **Revision:** 2
+**Phase:** 4 · **Requirements:** REQ-45, REQ-47 · **Status:** done · **Revision:** 2
 **Files:** src/services/ai-event-parser.ts, src/services/ai-event-parser.test.ts
 **Interface:**
 ```ts
@@ -2880,7 +2880,7 @@ team.', date: '2026-10-02', time: '19:00', timezone: null, location: "Mario's" }
   here (#9); exact fixture (#11) and fake-timer steps.
 
 ### TASK-119 — Anthropic model client
-**Phase:** 4 · **Requirements:** REQ-47, REQ-43 · **Status:** todo · **Revision:** 2
+**Phase:** 4 · **Requirements:** REQ-47, REQ-43 · **Status:** done · **Revision:** 2
 **Files:** src/lib/ai/anthropic-model-client.ts, src/lib/ai/anthropic-model-client.test.ts, package.json, package-lock.json
 **Interface:** `export function createAnthropicModelClient(client?: Anthropic): AiModelClient` (no `server-only`
 import here: the eval runner uses it from Node; the key only ever comes from `process.env.ANTHROPIC_API_KEY`, and the
@@ -2925,7 +2925,7 @@ export function createAnthropicModelClient(client?: Anthropic): AiModelClient {
   uses, lockfile validated with npm 10 (#10); lazy SDK creation so `getServices()` never needs the key.
 
 ### TASK-120 — ParseEventTextService with the daily limit
-**Phase:** 4 · **Requirements:** REQ-48 · **Status:** todo · **Revision:** 1
+**Phase:** 4 · **Requirements:** REQ-48 · **Status:** done · **Revision:** 1
 **Files:** src/services/parse-event-text.ts, src/services/parse-event-text.test.ts
 **Interface:** C5 `ParseEventTextService`
 **Algorithm:** `text` trimmed: empty → `ValidationError({ text: 'required' })`, longer than 2000 → `ValidationError({ text: 'tooLong' })`;
@@ -2955,7 +2955,7 @@ const call = (userId = 'u1') => service.execute({ userId, text: 'Dinner', timezo
 - r2 — preventive review (lessons #9–#13), not a failure revision: exact fixture and clock (#11).
 
 ### TASK-121 — Fill-with-AI action (signed-in only)
-**Phase:** 4 · **Requirements:** REQ-49 · **Status:** todo · **Revision:** 2
+**Phase:** 4 · **Requirements:** REQ-49 · **Status:** done · **Revision:** 2
 **Files:** src/app/[locale]/events/new/ai-actions.ts, src/app/[locale]/events/new/ai-actions.test.ts, src/lib/container.ts
 **Interface:** `parseEventTextAction(text: string, timezone: string | null): Promise<ActionResult<ParseEventResult>>` ('use server').
 Same shape as the existing `createEventAction` in `./actions.ts`: `getCurrentUserId()`; `null` →
@@ -2985,7 +2985,7 @@ vi.mock('@/lib/container', () => ({ getServices: () => ({ parseEventText: { exec
   `rateLimiter` constant, imports) matching the current `container.ts`; action body mirrors `createEventAction`.
 
 ### TASK-122 — The AI path never writes an event
-**Phase:** 4 · **Requirements:** REQ-50 · **Status:** todo · **Revision:** 2
+**Phase:** 4 · **Requirements:** REQ-50 · **Status:** done · **Revision:** 2
 **Files:** src/services/parse-event-text.int.test.ts
 **Test first (characterization test — the service has no event dependency by construction):**
 `REQ-50: parsing text leaves the events table unchanged` — `beforeEach(resetDatabase)` (`@/test/db`); `prisma` from
@@ -3002,7 +3002,7 @@ parser `{ parse: vi.fn().mockResolvedValue(result) }` (`result` as in TASK-120);
   starting count; `AiEventParser` type check added (REQ-50 names both constructors).
 
 ### TASK-123 — Fill-with-AI panel in the event form
-**Phase:** 4 · **Requirements:** REQ-51 · **Status:** todo · **Revision:** 3
+**Phase:** 4 · **Requirements:** REQ-51 · **Status:** done · **Revision:** 3
 **Files:** src/components/event-form.tsx, src/components/event-form.test.tsx, src/app/[locale]/events/new/page.tsx
 **Interface:** `EventFormProps` gains an optional prop (existing props `initialValues` and `submit` unchanged; the
 edit page passes no `aiFill`, so it shows no AI panel):
@@ -3069,7 +3069,7 @@ Red reason: before this task there is no "Describe your event" field, so every t
   `fieldErrors`, call arguments), exact fixtures and assertions (#11), stated red reason (#13).
 
 ### TASK-133 — Fill with AI shows "Couldn't find event details" for non-event text
-**Phase:** 4 · **Requirements:** REQ-51 · **Status:** todo · **Revision:** 2
+**Phase:** 4 · **Requirements:** REQ-51 · **Status:** done · **Revision:** 2
 **Files:** src/components/event-form.tsx, src/components/event-form.test.tsx
 **Interface:** unchanged (`EventFormProps.aiFill` from TASK-123); message key `ai.notAnEvent` (C8, already in
 `messages/*.json` since TASK-07).
@@ -3091,7 +3091,7 @@ Red reason: before this task every field is in `missing`, so six hints and six `
   (the `ai.notAnEvent` key is not under `errors.*`) and that `missing` is cleared.
 
 ### TASK-124 — Mock Anthropic server for E2E
-**Phase:** 4 · **Requirements:** — · **Status:** todo · **Revision:** 2
+**Phase:** 4 · **Requirements:** — · **Status:** done · **Revision:** 2
 **Files:** e2e/mock-anthropic.mjs, playwright.config.ts
 **Rule (same as ENV incident #3 for `E2E_PORT`):** the mock is **never reused** (`reuseExistingServer: false`, also
 locally) and its port comes only from the shell variable `MOCK_AI_PORT` (default `4010`). If Playwright reports that
@@ -3162,7 +3162,7 @@ webServer: [
   port from `MOCK_AI_PORT` (default 4010), app's `ANTHROPIC_BASE_URL` follows that port; mock binds `127.0.0.1`.
 
 ### TASK-125 — Fill with AI end-to-end
-**Phase:** 4 · **Requirements:** REQ-51, REQ-50 · **Status:** todo · **Revision:** 2
+**Phase:** 4 · **Requirements:** REQ-51, REQ-50 · **Status:** done · **Revision:** 2
 **Files:** e2e/ai.spec.ts
 **Setup:** `test.beforeEach(async () => { await resetDatabase(); })` (`./helpers/db`, also exports `db`); each test
 starts with `await signInAs(context, { email: 'organizer@example.com', name: 'Organizer' })` (`./helpers/auth`) and
@@ -3187,7 +3187,7 @@ alone also matches `Timezone`). The project's browser timezone is `America/New_Y
   assertions; the expected timezone is derived from the mock output (`null`) and the browser timezone (#11).
 
 ### TASK-126 — Eval: score a case
-**Phase:** 4 · **Requirements:** REQ-91 · **Status:** todo · **Revision:** 2
+**Phase:** 4 · **Requirements:** REQ-91 · **Status:** done · **Revision:** 2
 **Files:** evals/event-parser/types.ts, evals/event-parser/score.ts, evals/event-parser/score.test.ts
 **Interface:**
 ```ts
@@ -3219,7 +3219,7 @@ export function scoreCase(evalCase: EvalCase, outcome: ParseEventResult | { erro
 - r2 (DOC-Q2 / BR-96, not a failure revision): `expected.notAnEvent` and its test added.
 
 ### TASK-127 — Eval: summary and gate
-**Phase:** 4 · **Requirements:** REQ-91 · **Status:** todo · **Revision:** 2
+**Phase:** 4 · **Requirements:** REQ-91 · **Status:** done · **Revision:** 2
 **Files:** evals/event-parser/score.ts, evals/event-parser/score.test.ts
 **Interface:** `export interface Summary { total: number; passed: number; overall: number; byCategory: Record<Category, { total: number; passed: number; rate: number }> }`;
 `export function summarize(results: CaseResult[]): Summary` (`overall = passed / total`, `0` when `total` is 0;
@@ -3245,7 +3245,7 @@ const many = (n: number, category: Category, passed: boolean) => Array.from({ le
 - r2 — preventive review (lessons #9–#13), not a failure revision: exact fixtures and derived expected values (#11).
 
 ### TASK-128 — Eval: Markdown report
-**Phase:** 4 · **Requirements:** REQ-91 · **Status:** todo · **Revision:** 2
+**Phase:** 4 · **Requirements:** REQ-91 · **Status:** done · **Revision:** 2
 **Files:** evals/event-parser/report.ts, evals/event-parser/report.test.ts
 **Interface:** `export function renderReport(summary: Summary, results: CaseResult[], meta: { model: string; date: string }): string`
 **Layout** (lines joined with `\n`; `pct(x) = Math.round(x * 100) + '%'`; `<…>` are placeholders):
@@ -3296,7 +3296,7 @@ const md = renderReport(summarize(results), results, { model: 'claude-haiku-4-5'
   missing; full layout and fixture given, expected values derived from it (#11).
 
 ### TASK-130 — Eval cases
-**Phase:** 4 · **Requirements:** REQ-92 · **Status:** todo · **Revision:** 3
+**Phase:** 4 · **Requirements:** REQ-92 · **Status:** done · **Revision:** 3
 **Files:** evals/event-parser/cases.schema.ts, evals/event-parser/cases.test.ts, evals/event-parser/cases.json
 **Interface:** `export const evalCaseSchema` (zod for `EvalCase`; matcher = string | null | object with the four
 optional keys; `expected` also accepts optional `missing: AiField[]` and optional `notAnEvent: boolean`) and
@@ -3381,7 +3381,7 @@ is the form timezone; expectations list only the fields that are checked).
   `evalCasesSchema` (#9); dataset re-checked mechanically against both tests and the day-rollover dates (#11).
 
 ### TASK-129 — Eval: command-line runner
-**Phase:** 4 · **Requirements:** REQ-91 · **Status:** todo · **Revision:** 2
+**Phase:** 4 · **Requirements:** REQ-91 · **Status:** done · **Revision:** 2
 **Depends on:** TASK-126–TASK-128 (`scoreCase`, `summarize`, `gate`, `renderReport`) and TASK-130 (`evalCasesSchema`)
 **Files:** evals/event-parser/run.ts, evals/event-parser/run.test.ts, package.json
 **Interface:** `npm run eval -- --model <id> [--cases <path>] [--out <dir>]`; add the C9 script
@@ -3417,6 +3417,7 @@ Red: the stub `run.ts` is the single line `throw new Error('not implemented');` 
 ### HUMAN-05 — Anthropic API key
 **Phase:** 4 · **Owner:** human · **When:** on the Phase 4 branch after TASK-129, before TASK-131 (steps 1–4); step 5
 after TASK-131.
+**Status:** done (human, 2026-09-24)
 **Needed for exactly two things:** (a) TASK-131, the real evaluation run on your machine (`npm run eval` reads
 `.env.local`); (b) "Fill with AI" in production (Vercel). **Not needed** for anything else: unit and integration
 tests use fake clients, E2E uses the mock server (TASK-124) with the dummy `ANTHROPIC_API_KEY=test-key` from
@@ -3436,6 +3437,7 @@ the app works (the SDK is only created on the first AI call, TASK-119).
 
 ### TASK-131 — Run the evaluation on Haiku and Sonnet
 **Phase:** 4 · **Requirements:** REQ-91, REQ-92 · **Status:** todo · **Revision:** 1
+**Note:** Moved to Phase 7 (human decision 2026-09-24): the real evaluation runs through OpenRouter once the second provider lands.
 **Files:** docs/evals/<date>-claude-haiku-4-5.md, docs/evals/<date>-claude-sonnet-5.md, docs/evals/README.md
 **Steps:** `npm run eval -- --model claude-haiku-4-5`, then `npm run eval -- --model claude-sonnet-5`. If a command
 exits 2, stop and return `ENV_FAILURE` (no key). Write `docs/evals/README.md` with a table
