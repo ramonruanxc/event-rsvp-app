@@ -82,15 +82,23 @@ Diagrams: [agent pipeline](docs/diagrams/agent-pipeline.svg), [user flows](docs/
 
 ## Run locally
 
-Prerequisites: Node 22, Docker.
+Prerequisites: Node 22 (npm 10), Docker. Docker runs PostgreSQL only; the app runs on Node.
 
 ```bash
+npm ci
 docker compose up -d
-cp .env.example .env.local   # then fill in the values (see docs/plan.md, HUMAN-04)
+cp .env.example .env.local   # then fill in the values (see below and docs/plan.md, HUMAN-04)
 npx dotenv -e .env.local -- prisma migrate dev
 npx dotenv -e .env.local -- prisma db seed
 npm run dev
 ```
+
+- `AUTH_SECRET`: generate it with
+  `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"` and paste the output.
+- Without Google credentials the public side works fully: the seeded demo event at `/en/e/demoPicnic`, RSVP,
+  "Add to calendar" (`.ics`) and language/theme switches. Signing in as an organizer needs your own Google OAuth client
+  (`AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET`, redirect URI `http://localhost:3000/api/auth/callback/google`; steps in
+  docs/plan.md, HUMAN-02) — or use the [live demo](#live-demo), where the evaluator account is already a test user.
 
 - AI: set `OPENROUTER_API_KEY` in `.env.local` (`npm run openrouter:key` creates the OpenRouter key with a USD 3 spend
   limit from the system variable `OPENROUTER_MANAGMENT_KEY` and writes it there). OpenRouter is the default and only
@@ -101,8 +109,11 @@ npm run dev
   the listed order and failover needs more than one. A listed provider without a key is skipped; with no key "Fill with
   AI" shows its fallback message and the manual form still works.
 
-The app serves on `http://localhost:3000`. If port 3000 is already in use, set `E2E_PORT` and run
-`npm run dev -- -p 3100` instead.
+The app serves on `http://localhost:3000`. If port 3000 is already in use, run `npm run dev -- -p 3100` instead
+(and set `E2E_PORT=3100` for the E2E suite). A different port also needs its own Google redirect URI.
+
+This sequence was run end to end on a fresh clone with an empty database on 2026-09-25 (orchestrator): migrate, seed,
+demo event page, RSVP stored, `.ics` download; sign-in without Google credentials fails at Google as expected.
 
 ## Tests
 

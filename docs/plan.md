@@ -1006,7 +1006,7 @@ TASK-06.)
    # Database (docker compose defaults)
    DATABASE_URL=postgresql://rsvp:rsvp@localhost:5432/rsvp
    DATABASE_URL_UNPOOLED=postgresql://rsvp:rsvp@localhost:5432/rsvp
-   # Auth.js — generate AUTH_SECRET with: npx auth secret --raw
+   # Auth.js — generate AUTH_SECRET with: node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
    AUTH_SECRET=
    AUTH_GOOGLE_ID=
    AUTH_GOOGLE_SECRET=
@@ -1688,7 +1688,7 @@ skipped (ENV incident #8). Production is deployed only from Git (`main`); do not
 3. **Settings → Environment Variables** (Production): check that `DATABASE_URL` (pooled) and `DATABASE_URL_UNPOOLED`
    (direct) exist. If the integration used other names, add these two yourself with the pooled and the direct
    connection strings shown in the Neon dashboard.
-4. Add (Production): `AUTH_SECRET` = output of `npx auth secret --raw` run on your machine; `AUTH_TRUST_HOST` = `true`.
+4. Add (Production): `AUTH_SECRET` = output of `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"` run on your machine; `AUTH_TRUST_HOST` = `true`.
 5. **Settings → Git**: Production Branch = `main`.
 6. Deploy `main` so it picks up the variables. Use the first option that applies:
    - a deployment of `main` exists in **Deployments** → open it → **Redeploy**;
@@ -1735,7 +1735,7 @@ skipped (ENV incident #8). Production is deployed only from Git (`main`); do not
 **Phase:** 0 · **Owner:** human · **When:** any time (steps 1–3 needed only to sign in locally with `npm run dev`);
 step 4 before TASK-10 if port 3000 is busy on your machine
 1. Copy `.env.example` to `.env.local` (ignored by git).
-2. Fill `AUTH_SECRET` (`npx auth secret --raw`), and `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` from HUMAN-02.
+2. Fill `AUTH_SECRET` (`node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"`), and `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` from HUMAN-02.
 3. `docker compose up -d`, `npx dotenv -e .env.local -- prisma migrate dev`, `npm run dev`.
 4. **If port 3000 is busy on your machine** (needed before TASK-10/TASK-11 run):
    - E2E: set `E2E_PORT=3100` in your **user environment** so every shell (including the agents' shells) sees it:
