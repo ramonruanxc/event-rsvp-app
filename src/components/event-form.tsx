@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
-import { ChevronDown } from 'lucide-react';
+import { Check, ChevronDown, Sparkles } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from '@/i18n/navigation';
 import { ValidationError, type ErrorCode, type FieldErrors } from '@/domain/errors';
@@ -16,6 +16,7 @@ import {
   FieldError,
   FieldHint,
   FieldLabel,
+  NeededBadge,
 } from '@/components/ui/field';
 import { Icon } from '@/components/ui/icon';
 import { Button } from '@/components/ui/button';
@@ -51,6 +52,7 @@ export function EventForm({ initialValues, submit, aiFill }: EventFormProps) {
   const [filling, setFilling] = useState(false);
   const [missing, setMissing] = useState<AiField[]>([]);
   const [aiNotice, setAiNotice] = useState<ErrorCode | 'notAnEvent' | null>(null);
+  const [filledCount, setFilledCount] = useState<number | null>(null);
 
   // Only the browser knows its own timezone; deferred to an effect so the server-rendered
   // markup (which cannot know it) matches the first client render (REQ-13).
@@ -73,6 +75,7 @@ export function EventForm({ initialValues, submit, aiFill }: EventFormProps) {
     if (!aiFill) return;
     setFilling(true);
     setAiNotice(null);
+    setFilledCount(null);
     const result = await aiFill(aiText, timezone || null);
     setFilling(false);
 
@@ -95,6 +98,7 @@ export function EventForm({ initialValues, submit, aiFill }: EventFormProps) {
     if (fields.location !== null) setLocation(fields.location);
     if (fields.timezone !== null) setTimezone(fields.timezone);
     setMissing(result.data.missing);
+    setFilledCount(Object.values(fields).filter((v) => v !== null).length);
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -134,24 +138,46 @@ export function EventForm({ initialValues, submit, aiFill }: EventFormProps) {
     return undefined;
   }
 
+  /** "Needed" badge for a field the AI left empty, or nothing (REQ-70, REQ-83). */
+  const needed = (field: AiField) =>
+    missing.includes(field) ? <NeededBadge>{t('ai.needed')}</NeededBadge> : undefined;
+
   return (
     <form onSubmit={handleSubmit} noValidate>
       {aiFill && (
-        <div>
-          <label htmlFor="ai-text">{t('ai.label')}</label>
+        <div className="ai-panel">
+          <label className="label" htmlFor="ai-text">
+            <Icon icon={Sparkles} className="text-link" />
+            {t('ai.label')}
+          </label>
           <textarea
+            className="textarea"
             id="ai-text"
+            rows={3}
             value={aiText}
             placeholder={t('ai.placeholder')}
             onChange={(e) => setAiText(e.target.value)}
           />
-          <button type="button" onClick={handleAiFill} disabled={filling}>
-            {filling ? t('ai.filling') : t('ai.fill')}
-          </button>
+          <div className="ai-foot">
+            <Button onClick={handleAiFill} loading={filling}>
+              <Icon icon={Sparkles} />
+              {t('ai.fill')}
+            </Button>
+            <p className="small ai-status" role="status">
+              {filling ? (
+                <span>{t('ai.filling')}</span>
+              ) : filledCount !== null ? (
+                <span className="ok">
+                  <Icon icon={Check} />
+                  {t('ai.filled', { count: filledCount })}
+                </span>
+              ) : null}
+            </p>
+          </div>
           {aiNotice && (
-            <div role="alert">
+            <Alert>
               {aiNotice === 'notAnEvent' ? t('ai.notAnEvent') : t(`errors.${aiNotice}`)}
-            </div>
+            </Alert>
           )}
         </div>
       )}
@@ -160,8 +186,10 @@ export function EventForm({ initialValues, submit, aiFill }: EventFormProps) {
 
       <fieldset className="form-group">
         <legend className="h3">{t('eventForm.groupWhat')}</legend>
-        <Field>
-          <FieldLabel htmlFor="name">{t('eventForm.name')}</FieldLabel>
+        <Field missing={missing.includes('name')}>
+          <FieldLabel htmlFor="name" badge={needed('name')}>
+            {t('eventForm.name')}
+          </FieldLabel>
           <input
             className="input"
             id="name"
@@ -175,8 +203,10 @@ export function EventForm({ initialValues, submit, aiFill }: EventFormProps) {
             <FieldHint id="name-missing">{t('ai.missingHint')}</FieldHint>
           )}
         </Field>
-        <Field>
-          <FieldLabel htmlFor="description">{t('eventForm.description')}</FieldLabel>
+        <Field missing={missing.includes('description')}>
+          <FieldLabel htmlFor="description" badge={needed('description')}>
+            {t('eventForm.description')}
+          </FieldLabel>
           <textarea
             className="textarea"
             id="description"
@@ -198,8 +228,10 @@ export function EventForm({ initialValues, submit, aiFill }: EventFormProps) {
       <fieldset className="form-group">
         <legend className="h3">{t('eventForm.groupWhen')}</legend>
         <div className="pair">
-          <Field>
-            <FieldLabel htmlFor="date">{t('eventForm.date')}</FieldLabel>
+          <Field missing={missing.includes('date')}>
+            <FieldLabel htmlFor="date" badge={needed('date')}>
+              {t('eventForm.date')}
+            </FieldLabel>
             <input
               className="input"
               id="date"
@@ -214,8 +246,10 @@ export function EventForm({ initialValues, submit, aiFill }: EventFormProps) {
               <FieldHint id="date-missing">{t('ai.missingHint')}</FieldHint>
             )}
           </Field>
-          <Field>
-            <FieldLabel htmlFor="time">{t('eventForm.time')}</FieldLabel>
+          <Field missing={missing.includes('time')}>
+            <FieldLabel htmlFor="time" badge={needed('time')}>
+              {t('eventForm.time')}
+            </FieldLabel>
             <input
               className="input"
               id="time"
@@ -231,8 +265,10 @@ export function EventForm({ initialValues, submit, aiFill }: EventFormProps) {
             )}
           </Field>
         </div>
-        <Field className="mt-4">
-          <FieldLabel htmlFor="timezone">{t('eventForm.timezone')}</FieldLabel>
+        <Field className="mt-4" missing={missing.includes('timezone')}>
+          <FieldLabel htmlFor="timezone" badge={needed('timezone')}>
+            {t('eventForm.timezone')}
+          </FieldLabel>
           <div className="select-wrap">
             <select
               className="select"
@@ -262,8 +298,10 @@ export function EventForm({ initialValues, submit, aiFill }: EventFormProps) {
 
       <fieldset className="form-group">
         <legend className="h3">{t('eventForm.groupWhere')}</legend>
-        <Field>
-          <FieldLabel htmlFor="location">{t('eventForm.location')}</FieldLabel>
+        <Field missing={missing.includes('location')}>
+          <FieldLabel htmlFor="location" badge={needed('location')}>
+            {t('eventForm.location')}
+          </FieldLabel>
           <input
             className="input"
             id="location"
