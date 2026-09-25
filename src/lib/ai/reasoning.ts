@@ -18,6 +18,9 @@ export type ReasoningEffortSetting = (typeof REASONING_EFFORT_SETTINGS)[number];
 export const DEFAULT_REASONING_EFFORT: ReasoningEffortSetting = 'low';
 
 /** Reads OPENROUTER_REASONING_EFFORT: trimmed, lower-cased; unset, blank or unknown → DEFAULT_REASONING_EFFORT (REQ-99). */
-export function resolveReasoningEffort(_value: string | undefined): ReasoningEffortSetting {
-  throw new Error('not implemented');
+export function resolveReasoningEffort(value: string | undefined): ReasoningEffortSetting {
+  const normalized = value?.trim().toLowerCase() ?? '';
+  return (REASONING_EFFORT_SETTINGS as readonly string[]).includes(normalized)
+    ? (normalized as ReasoningEffortSetting)
+    : DEFAULT_REASONING_EFFORT;
 }
