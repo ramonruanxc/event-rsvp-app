@@ -15,7 +15,7 @@ Event times are taken from session timestamps. All times in America/Fortaleza (U
 | 4 | Execution (plan phases 0–7, incl. per-PR review and merge) | 2026-09-24 14:50:06 | 2026-09-25 02:26:39 |
 | 5 | Review (interleaved with execution: one reviewer + doc-sync per PR) | — | — |
 | 6 | Ship (final verification, Dependabot triage, time report) | 2026-09-25 10:10:04 | 2026-09-25 10:17:22 |
-| 8 | Post-delivery: harder AI evaluation + reasoning control (amendment A4) | 2026-09-25 10:51:53 | — |
+| 8 | Post-delivery: harder AI evaluation + reasoning control (amendment A4) | 2026-09-25 10:51:53 | 2026-09-25 13:38:28 |
 
 ## Pauses
 
@@ -184,6 +184,8 @@ Pipeline agents working autonomously. Reported separately from human active time
 | 2026-09-25 12:53:50 | Implementer agent ran the Phase 8 eval (12:07:35–12:53:50) on four models: none passes the stricter gate; measured spend USD 1.20 (key USD 1.36 of 6) |
 | 2026-09-25 13:19:44 | Human decision (option A): deliver Phase 8 as a measurement; Sonnet 5 stays the default; production reasoning effort `omit` via Vercel (HUMAN-07, human); prompt hardening recorded as next step |
 | 2026-09-25 13:22:10 | HUMAN-07 done by the human: `OPENROUTER_REASONING_EFFORT=omit` set in Vercel production |
+| 2026-09-25 13:38:28 | PR #13 merged by the orchestrator (human pre-authorized); Phase 8 closed |
+| 2026-09-25 13:48:02 | Orchestrator ran README "Run locally" on a fresh clone with an empty Docker database: migrate, seed, demo page, RSVP stored, `.ics` OK; found 3 doc gaps (missing `npm ci`, obsolete `npx auth secret --raw`, no note that organizer sign-in needs Google credentials) — incident #23 |
 
 ## Time report
 
