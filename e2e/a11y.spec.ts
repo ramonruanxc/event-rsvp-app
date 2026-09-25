@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 import { resetDatabase } from './helpers/db';
 import { signInAs } from './helpers/auth';
 import { createOwner, createEvent, createRsvp } from './helpers/factories';
@@ -109,5 +109,139 @@ test.describe('REQ-67: keyboard-only interaction', () => {
     await tabTo(page, 'summary');
     await page.keyboard.press('Enter');
     await expect(page.getByRole('banner').getByRole('link', { name: 'My events' })).toBeVisible();
+  });
+});
+
+/** Ids of `main` form controls with no visible label (REQ-68). */
+async function labelOffenders(page: Page): Promise<string[]> {
+  return page.evaluate(() => {
+    const offenders: string[] = [];
+    const elements = document.querySelectorAll(
+      'main input:not([type="hidden"]), main select, main textarea',
+    );
+    for (const el of Array.from(elements)) {
+      if (el.closest('[aria-hidden="true"]')) continue;
+      const label = (el as HTMLInputElement).labels?.[0];
+      let offender = false;
+      if (!label) {
+        offender = true;
+      } else {
+        const rect = label.getBoundingClientRect();
+        if (rect.width <= 1 || rect.height <= 1 || label.classList.contains('sr-only')) {
+          offender = true;
+        }
+      }
+      if (offender) offenders.push((el as HTMLElement).id);
+    }
+    return offenders;
+  });
+}
+
+/** Number of `svg` elements not hidden from assistive technology (REQ-78). */
+async function exposedSvgCount(page: Page): Promise<number> {
+  return page.evaluate(
+    () =>
+      [...document.querySelectorAll('svg')].filter((s) => !s.closest('[aria-hidden="true"]'))
+        .length,
+  );
+}
+
+/** `"tag text WxH"` for every interactive control smaller than 24x24 px (REQ-71). */
+async function targetSizeOffenders(page: Page): Promise<string[]> {
+  return page.evaluate(() => {
+    const offenders: string[] = [];
+    const elements = document.querySelectorAll(
+      'a[href], button, input:not([type="hidden"]), select, textarea, summary',
+    );
+    for (const el of Array.from(elements)) {
+      if (el.getAttribute('tabindex') === '-1') continue;
+      if (el.closest('[aria-hidden="true"]')) continue;
+      const rect = el.getBoundingClientRect();
+      if (rect.width === 0 && rect.height === 0) continue;
+      const width = Math.round(rect.width);
+      const height = Math.round(rect.height);
+      if (width < 24 || height < 24) {
+        offenders.push(
+          `${el.tagName.toLowerCase()} ${(el.textContent ?? '').trim()} ${width}x${height}`,
+        );
+      }
+    }
+    return offenders;
+  });
+}
+
+test.describe('REQ-68, REQ-71, REQ-78: labels, hidden icons and target sizes', () => {
+  test('REQ-68: every form input in main has a visible label', async ({ page, context }) => {
+    const owner = await createOwner();
+    const event = await createEvent(owner.id);
+
+    await page.goto(`/en/e/${event.slug}`);
+    expect(await labelOffenders(page)).toEqual([]);
+
+    const { id: ownerId } = await signInAs(context, {
+      email: 'labels@example.com',
+      name: 'Labels',
+    });
+    const ownerEvent = await createEvent(ownerId);
+    await createRsvp(ownerEvent.id, 'Maria', 'GOING', 3);
+    await page.goto(`/en/e/${ownerEvent.slug}`);
+    expect(await labelOffenders(page)).toEqual([]);
+
+    await page.goto('/en/events/new');
+    expect(await labelOffenders(page)).toEqual([]);
+  });
+
+  test('REQ-78: no svg is exposed to assistive technology', async ({ page, context }) => {
+    const owner = await createOwner();
+    const event = await createEvent(owner.id);
+
+    await page.goto('/en');
+    expect(await exposedSvgCount(page)).toBe(0);
+
+    await page.goto(`/en/e/${event.slug}`);
+    expect(await exposedSvgCount(page)).toBe(0);
+
+    await page.getByLabel('Your name').fill('Maria');
+    await page.getByRole('button', { name: 'Send RSVP' }).click();
+    await expect(page.getByText("You're going · 1 person")).toBeVisible();
+    expect(await exposedSvgCount(page)).toBe(0);
+
+    const { id: ownerId } = await signInAs(context, { email: 'svg@example.com', name: 'Svg' });
+    const ownerEvent = await createEvent(ownerId);
+    await createRsvp(ownerEvent.id, 'Maria', 'GOING', 3);
+    await page.goto(`/en/e/${ownerEvent.slug}`);
+    expect(await exposedSvgCount(page)).toBe(0);
+
+    await page.goto('/en/dashboard');
+    expect(await exposedSvgCount(page)).toBe(0);
+
+    await page.goto('/en/events/new');
+    expect(await exposedSvgCount(page)).toBe(0);
+  });
+
+  test('REQ-71: every interactive control is at least 24x24 px', async ({ page, context }) => {
+    const owner = await createOwner();
+    const event = await createEvent(owner.id);
+
+    await page.goto('/en');
+    expect(await targetSizeOffenders(page)).toEqual([]);
+
+    await page.goto(`/en/e/${event.slug}`);
+    expect(await targetSizeOffenders(page)).toEqual([]);
+
+    const { id: ownerId } = await signInAs(context, {
+      email: 'targets@example.com',
+      name: 'Targets',
+    });
+    const ownerEvent = await createEvent(ownerId);
+    await createRsvp(ownerEvent.id, 'Maria', 'GOING', 3);
+    await page.goto(`/en/e/${ownerEvent.slug}`);
+    expect(await targetSizeOffenders(page)).toEqual([]);
+
+    await page.goto('/en/dashboard');
+    expect(await targetSizeOffenders(page)).toEqual([]);
+
+    await page.goto('/en/events/new');
+    expect(await targetSizeOffenders(page)).toEqual([]);
   });
 });
