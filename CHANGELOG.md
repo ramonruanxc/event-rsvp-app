@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Security
+
+- RSVP submissions are rate-limited to 10 per 10 minutes per hashed IP address; the limit is enforced before
+  validation and nothing is stored once it is reached (REQ-56).
+- A hidden honeypot field on the RSVP form silently rejects likely-bot submissions without revealing the
+  mechanism to the sender (REQ-58).
+- Every response carries `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin` and
+  `X-Content-Type-Options: nosniff` (REQ-60).
+- Confirmed user-supplied event text (e.g. the description) is always rendered as text, never as HTML (REQ-61).
+
 ### Added
 
 - "Fill with AI" on the new-event form: describe an event in your own words and the AI fills name, description,

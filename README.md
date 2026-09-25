@@ -4,7 +4,7 @@ Create an event, share one link, see who's coming.
 
 ## Status
 
-Phase 4 of 7 merged: natural-language event creation with AI.
+Phase 5 of 7 merged: abuse protection and hardening.
 
 **Live demo:** https://event-rsvp-app-flax.vercel.app
 
@@ -35,6 +35,9 @@ Phase 4 of 7 merged: natural-language event creation with AI.
 - "Fill with AI" on the new-event form: describe the event in your own words (English, French or Brazilian
   Portuguese) and the form fields are filled in automatically. Production AI is enabled once a provider key is
   configured on the deployment; the manual form always works on its own.
+- RSVP submissions are rate-limited to 10 per 10 minutes per hashed IP address.
+- A hidden honeypot field on the RSVP form rejects automated spam submissions.
+- Every response carries `X-Frame-Options`, `Referrer-Policy` and `X-Content-Type-Options` security headers.
 
 ### Evaluation
 

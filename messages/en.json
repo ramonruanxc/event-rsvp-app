@@ -76,7 +76,8 @@
     "youreGoing": "You're going ({count})",
     "youreNotGoing": "You're not going",
     "change": "Change",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "formRejected": "We couldn't send your RSVP. Please try again."
   },
   "sample": {
     "name": "Sample: Friday get-together",

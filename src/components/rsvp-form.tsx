@@ -32,10 +32,23 @@ export function RsvpForm({ initial, submit, onDone }: RsvpFormProps) {
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState<ErrorCode | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [honeypot, setHoneypot] = useState('');
 
   function errorFor(field: 'name' | 'status' | 'partySize'): string | null {
     const key = fieldErrors[field];
     return key ? t(`validation.${key}`) : null;
+  }
+
+  /**
+   * Text for the top-level alert. Covers action-level failures (e.g. `DUPLICATE_NAME`,
+   * `RATE_LIMITED`) as well as server-side form validation failures that carry no specific
+   * field (e.g. a filled honeypot, REQ-58). Form-level failures show rsvp.formRejected, which
+   * never reveals the honeypot.
+   */
+  function formAlert(): string | null {
+    if (formError) return t(`errors.${formError}`);
+    if (fieldErrors.form) return t('rsvp.formRejected');
+    return null;
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -51,8 +64,7 @@ export function RsvpForm({ initial, submit, onDone }: RsvpFormProps) {
     setFieldErrors({});
     setFormError(null);
     setSubmitting(true);
-    // TASK-143 adds the honeypot field; for now it is always empty.
-    const result = await submit(parsed.data, '');
+    const result = await submit(parsed.data, honeypot);
     setSubmitting(false);
 
     if (result.ok) {
@@ -70,7 +82,7 @@ export function RsvpForm({ initial, submit, onDone }: RsvpFormProps) {
   return (
     <form onSubmit={handleSubmit} noValidate>
       <h2>{t('rsvp.title')}</h2>
-      {formError && <div role="alert">{t(`errors.${formError}`)}</div>}
+      {formAlert() && <div role="alert">{formAlert()}</div>}
 
       <div>
         <label htmlFor="rsvp-name">{t('rsvp.name')}</label>
@@ -123,6 +135,19 @@ export function RsvpForm({ initial, submit, onDone }: RsvpFormProps) {
           {errorFor('partySize') && <p id="rsvp-party-size-error">{errorFor('partySize')}</p>}
         </div>
       )}
+
+      <div aria-hidden="true" className="absolute -left-[9999px]">
+        <label htmlFor="website">Website</label>
+        <input
+          id="website"
+          name="website"
+          type="text"
+          tabIndex={-1}
+          autoComplete="off"
+          value={honeypot}
+          onChange={(e) => setHoneypot(e.target.value)}
+        />
+      </div>
 
       <button type="submit" disabled={submitting}>
         {t('rsvp.submit')}

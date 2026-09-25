@@ -1,4 +1,4 @@
-import { NotFoundError, ValidationError } from '@/domain/errors';
+import { NotFoundError, RateLimitedError, ValidationError } from '@/domain/errors';
 import { toNameKey } from '@/domain/name-key';
 import { assertNotEnded } from '@/domain/policies';
 import { rsvpInputSchema } from '@/domain/schemas';
@@ -6,6 +6,7 @@ import type { Clock, OwnRsvp } from '@/domain/types';
 import { generateEditToken, hashToken } from '@/lib/crypto';
 import { editTokenExpiry } from '@/lib/edit-token-cookie';
 import type { EventRepository, RsvpRepository } from '@/repositories/interfaces';
+import { RSVP_RULE, type RateLimiter } from './rate-limiter';
 
 /** Outcome of submitting an RSVP: whether it was created or edited, plus the cookie to set (REQ-23, REQ-24). */
 export interface SubmitRsvpResult {
@@ -22,6 +23,7 @@ export class SubmitRsvpService {
       events: EventRepository;
       rsvps: RsvpRepository;
       now: Clock;
+      rateLimiter?: RateLimiter;
       newToken?: () => string;
     },
   ) {}
@@ -34,6 +36,13 @@ export class SubmitRsvpService {
     ipHash: string;
     honeypot: string;
   }): Promise<SubmitRsvpResult> {
+    if (this.deps.rateLimiter) {
+      const { allowed } = await this.deps.rateLimiter.consume(RSVP_RULE, input.ipHash);
+      if (!allowed) throw new RateLimitedError();
+    }
+
+    if (input.honeypot.trim() !== '') throw new ValidationError({ form: 'invalidFormat' });
+
     const parsed = rsvpInputSchema.safeParse(input.values);
     if (!parsed.success) throw ValidationError.fromZod(parsed.error);
 
