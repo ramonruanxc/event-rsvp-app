@@ -76,7 +76,8 @@
     "youreGoing": "Você vai ({count})",
     "youreNotGoing": "Você não vai",
     "change": "Alterar",
-    "cancel": "Cancelar"
+    "cancel": "Cancelar",
+    "formRejected": "Não foi possível enviar sua confirmação. Tente novamente."
   },
   "sample": {
     "name": "Exemplo: Encontro de sexta-feira",

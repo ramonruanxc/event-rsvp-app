@@ -3445,7 +3445,7 @@ production model is the cheapest one that passes the gate (Haiku if it passes). 
 Order: TASK-140 → TASK-147. (TASK-148, README, moved to the end of Phase 6 — amendment A2.)
 
 ### TASK-140 — RSVP rate limit in the service
-**Phase:** 5 · **Requirements:** REQ-56 · **Status:** todo · **Revision:** 2
+**Phase:** 5 · **Requirements:** REQ-56 · **Status:** done · **Revision:** 2
 **Files:** src/services/submit-rsvp.ts, src/services/submit-rsvp.test.ts
 **Interface:** `SubmitRsvpService` deps (today `{ events, rsvps, now, newToken? }`) gain `rateLimiter?: RateLimiter`
 (C5; `RateLimiter` and `RSVP_RULE` from `./rate-limiter`, TASK-110). When present, as the **first line** of
@@ -3476,7 +3476,7 @@ const going = (name: string) => ({ name, status: 'GOING', partySize: 1 });
   current test file.
 
 ### TASK-141 — Wire the RSVP rate limit and prove IPs are stored hashed
-**Phase:** 5 · **Requirements:** REQ-56 · **Status:** todo · **Revision:** 2
+**Phase:** 5 · **Requirements:** REQ-56 · **Status:** done · **Revision:** 2
 **Files:** src/lib/container.ts, src/services/submit-rsvp.int.test.ts
 **Interface:** in `getServices()` the entry becomes `submitRsvp: new SubmitRsvpService({ events, rsvps, now, rateLimiter })`,
 reusing the `rateLimiter` constant TASK-121 created (one `RateLimiter` for RSVP and AI; their keys differ by rule name).
@@ -3496,7 +3496,7 @@ Commit the container wiring as `chore(services): …` and the test as `test(serv
   shared `rateLimiter` constant from TASK-121, and the exact integration setup from `@/test/db`.
 
 ### TASK-142 — Honeypot in the service
-**Phase:** 5 · **Requirements:** REQ-58 · **Status:** todo · **Revision:** 2
+**Phase:** 5 · **Requirements:** REQ-58 · **Status:** done · **Revision:** 2
 **Files:** src/services/submit-rsvp.ts, src/services/submit-rsvp.test.ts
 **Interface:** step 0b in `execute` (after the TASK-140 rate-limit line, before `rsvpInputSchema.safeParse`):
 `if (input.honeypot.trim() !== '') throw new ValidationError({ form: 'invalidFormat' });`
@@ -3513,8 +3513,9 @@ Commit the container wiring as `chore(services): …` and the test as `test(serv
   (#13); merged as the last assertions of the filled-honeypot test, which fails first.
 
 ### TASK-143 — Honeypot field in the RSVP form
-**Phase:** 5 · **Requirements:** REQ-58 · **Status:** todo · **Revision:** 2
-**Files:** src/components/rsvp-form.tsx, src/components/rsvp-form.test.tsx
+**Phase:** 5 · **Requirements:** REQ-58 · **Status:** done · **Revision:** 3
+**Files:** src/components/rsvp-form.tsx, src/components/rsvp-form.test.tsx, messages/en.json, messages/fr.json,
+messages/pt-BR.json
 **Interface:** `RsvpFormProps.submit` already is `(values, honeypot: string) => …` and the action already forwards
 `honeypot` to the service; today the form passes `''` (comment "TASK-143 adds the honeypot field"). Add state
 `const [honeypot, setHoneypot] = useState('')`, replace `submit(parsed.data, '')` and its comment with
@@ -3536,11 +3537,37 @@ Commit the container wiring as `chore(services): …` and the test as `test(serv
 Red reason: before this task there is no `input[name="website"]`.
 **Done when:** tests pass (the existing `REQ-31: submits the values` test still expects `''`, the initial value).
 **TDD exception:** none
+**Revision 3 delta (form-level error copy; the field, state and the two tests above are already on the branch):**
+The branch already renders a `role="alert"` for `fieldErrors.form` through `formAlert()` in `rsvp-form.tsx`, but
+with `t('errors.VALIDATION_ERROR')` ("Please fix the highlighted fields."), which is wrong because no field is
+highlighted. Spec: "Form-level validation errors" under Conventions, and REQ-58.
+- Test to change (red first, its own `test(rsvp): …` commit) — in `rsvp-form.test.tsx`, the existing test
+  `REQ-58: a rejected honeypot shows a generic form error and keeps the values`: keep its arrange/act and the
+  "website" and kept-values assertions; replace `expect(alert.textContent).toBe('Please fix the highlighted fields.');`
+  with `expect(alert.textContent).toBe("We couldn't send your RSVP. Please try again.");` and add
+  `expect(screen.queryByText('Please fix the highlighted fields.')).toBeNull();` and
+  `expect(screen.queryByText('This value is not valid.')).toBeNull();`.
+  Red reason: the alert still shows "Please fix the highlighted fields.".
+- Fix (its own `fix(rsvp): …` commit):
+  - `rsvp-form.tsx`, in `formAlert()`: `if (fieldErrors.form) return t('errors.VALIDATION_ERROR');` becomes
+    `if (fieldErrors.form) return t('rsvp.formRejected');`. In its TSDoc, replace the sentence
+    `Always generic: never reveals the honeypot.` with
+    `Form-level failures show rsvp.formRejected, which never reveals the honeypot.` Nothing else changes.
+  - Add one key to the `rsvp` object of each catalog, right after `"cancel"` (straight ASCII apostrophes, no dashes):
+    - `messages/en.json`: `"formRejected": "We couldn't send your RSVP. Please try again."`
+    - `messages/fr.json`: `"formRejected": "Nous n'avons pas pu envoyer votre réponse. Veuillez réessayer."`
+    - `messages/pt-BR.json`: `"formRejected": "Não foi possível enviar sua confirmação. Tente novamente."`
+  - Do **not** add `FORM_REJECTED` (or any value) to `ErrorCode`, `src/domain/errors.ts`, `errors.*` in the
+    catalogs, or `toActionError`; do not change `errors.VALIDATION_ERROR`.
+- Done when: the changed test passes, `src/i18n/messages.test.ts` (REQ-52 key parity) passes, all other tests,
+  lint and typecheck pass.
 - r2 — preventive review (lessons #9–#13), not a failure revision: aligned with the current form (signature and
   action already carry `honeypot`; only the `''` literal changes); exact assertions.
+- r3 — SPEC failure revision 1/2: form-level error copy (PR #8 round 2 reviewer SPEC finding; new key
+  `rsvp.formRejected` instead of `errors.VALIDATION_ERROR` for `fieldErrors.form`).
 
 ### TASK-144 — Security headers
-**Phase:** 5 · **Requirements:** REQ-60 · **Status:** todo · **Revision:** 2
+**Phase:** 5 · **Requirements:** REQ-60 · **Status:** done · **Revision:** 2
 **Files:** security-headers.mjs, src/security-headers.test.ts, next.config.ts, e2e/security.spec.ts
 **Interface:**
 ```js
@@ -3567,7 +3594,7 @@ Unit test import: `import { securityHeaders } from '../security-headers.mjs';` (
   intent; now keeps `withNextIntl` and states the import, stub and exact header values.
 
 ### TASK-145 — User content renders as text (E2E)
-**Phase:** 5 · **Requirements:** REQ-61 · **Status:** todo · **Revision:** 1
+**Phase:** 5 · **Requirements:** REQ-61 · **Status:** done · **Revision:** 1
 **Files:** e2e/security.spec.ts
 **Test first (characterization test — React escaping + the lint rule of TASK-02):**
 `REQ-61: an HTML description is shown literally and never executed` — event with description
@@ -3577,7 +3604,7 @@ Unit test import: `import { securityHeaders } from '../security-headers.mjs';` (
 **TDD exception:** none (characterization test, convention 13)
 
 ### TASK-146 — Journey: a guest RSVPs to the public demo event
-**Phase:** 5 · **Requirements:** REQ-40, REQ-23, REQ-39 · **Status:** todo · **Revision:** 1
+**Phase:** 5 · **Requirements:** REQ-40, REQ-23, REQ-39 · **Status:** done · **Revision:** 1
 **Files:** e2e/journeys.spec.ts
 **Test first (characterization test):** `REQ-40: a visitor opens the demo from the home page and RSVPs` —
 `await seedDemo(db, new Date())` (import from `../src/lib/demo-seed`); `/en` → click "See a demo event" → "Community
@@ -3587,7 +3614,7 @@ Picnic in the Park"; RSVP as "Evaluator", Going, 2 → "You're going (2)"; the t
 **TDD exception:** none (characterization test, convention 13)
 
 ### TASK-147 — Journey: organizer creates an event with AI and sees the guest list
-**Phase:** 5 · **Requirements:** REQ-51, REQ-34, REQ-23 · **Status:** todo · **Revision:** 1
+**Phase:** 5 · **Requirements:** REQ-51, REQ-34, REQ-23 · **Status:** done · **Revision:** 1
 **Files:** e2e/journeys.spec.ts
 **Test first (characterization test):** `REQ-34: organizer fills with AI, shares, and sees a guest's RSVP` — organizer
 context: `/en/events/new` → "Fill with AI" (mock) → "Save event" → read the slug from the URL; guest context (new,

@@ -33,7 +33,7 @@ to `{ ok: false, code }` and the UI shows the translated message for the code (`
 
 | Code | Domain error class | Meaning | English message (`messages/en.json`) |
 |---|---|---|---|
-| `VALIDATION_ERROR` | `ValidationError` | Input failed the shared zod schema or a domain rule. Carries `fieldErrors` | "Please fix the highlighted fields." |
+| `VALIDATION_ERROR` | `ValidationError` | Input failed the shared zod schema or a domain rule. Carries `fieldErrors` | "Please fix the highlighted fields." (field-level only; see "Form-level validation errors" below) |
 | `NOT_FOUND` | `NotFoundError` | Event (or RSVP) does not exist, or the guest has no valid edit token | "This page does not exist." |
 | `NOT_OWNER` | `NotOwnerError` | The signed-in user is not the event's owner | "Only the organizer can do this." |
 | `EVENT_ENDED` | `EventEndedError` | The event's start time has passed | "This event has ended" |
@@ -43,6 +43,25 @@ to `{ ok: false, code }` and the UI shows the translated message for the code (`
 | `AI_UNAVAILABLE` | `AiUnavailableError` | AI call timed out, errored, or returned unusable output | "Couldn't fill automatically — please fill the form." |
 | `UNAUTHENTICATED` | `UnauthenticatedError` | Action requires a signed-in organizer | "Please sign in to continue." |
 | `INTERNAL_ERROR` | — (any unmapped error) | Unexpected failure; logged server-side, never detailed to the user | "Something went wrong. Please try again." |
+
+#### Form-level validation errors
+
+A `ValidationError` whose `fieldErrors` contains the key `form` is not tied to any input, so no field is highlighted
+and "Please fix the highlighted fields." would mislead. Today the only source is the RSVP honeypot (REQ-58,
+`fieldErrors: { form: "invalidFormat" }`). For it, the RSVP form shows the message key `rsvp.formRejected` in its
+`role="alert"` area (the same element used for `DUPLICATE_NAME` and `RATE_LIMITED`):
+
+| Locale | `rsvp.formRejected` |
+|---|---|
+| `en` | "We couldn't send your RSVP. Please try again." |
+| `fr` | "Nous n'avons pas pu envoyer votre réponse. Veuillez réessayer." |
+| `pt-BR` | "Não foi possível enviar sua confirmação. Tente novamente." |
+
+- `rsvp.formRejected` is a message key, **not** an `ErrorCode`: the action still returns `code: "VALIDATION_ERROR"`,
+  and `ErrorCode` / `toActionError` do not change.
+- The copy never mentions the honeypot, a "website" field, bots or spam (BR-81, BR-83).
+- Field-level `VALIDATION_ERROR`s (any key other than `form`) keep showing the per-field `validation.<key>` messages,
+  and `errors.VALIDATION_ERROR` keeps its text.
 
 ### Validation keys
 
@@ -807,7 +826,7 @@ TASK-172, TASK-180 and TASK-181.
 
 ### REQ-56 — RSVP submissions are limited to 10 per 10 minutes per hashed IP
 **Rules:** BR-79, BR-80
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - `hashIp("203.0.113.7", "salt")` → SHA-256 hex of `"salt:203.0.113.7"`; never equals the raw IP
 - `clientIp(headers)` → first entry of `x-forwarded-for` trimmed (`"203.0.113.7, 10.0.0.1"` → `"203.0.113.7"`), else
@@ -828,13 +847,21 @@ TASK-172, TASK-180 and TASK-181.
 **Test level:** unit (component)
 
 ### REQ-58 — Honeypot field
-**Rules:** BR-81
-**Status:** todo
+**Rules:** BR-81, BR-83
+**Status:** done
 **Acceptance criteria:**
 - `RsvpForm` renders an input `name="website"` inside a container with `aria-hidden="true"`, visually hidden
   (`className="absolute -left-[9999px]"`), `tabIndex={-1}`, `autoComplete="off"`
 - `SubmitRsvpService.execute({ …, honeypot: "http://spam" })` → `ValidationError { form: "invalidFormat" }` and
   nothing is stored; `honeypot: ""` proceeds normally
+- Form-level rejection (see "Form-level validation errors" under Conventions):
+  - Given `RsvpForm` (locale `en`) filled with name "Maria", "Going", party size 3
+  - When "Send RSVP" is clicked and `submit` resolves
+    `{ ok: false, code: "VALIDATION_ERROR", fieldErrors: { form: "invalidFormat" } }`
+  - Then the `role="alert"` element's text is exactly "We couldn't send your RSVP. Please try again."; the page does
+    not show "Please fix the highlighted fields." nor "This value is not valid."; the alert text does not contain
+    "website"; the name input still has "Maria" and the party size input still has "3"
+- `rsvp.formRejected` exists in `en`, `fr` and `pt-BR` with the exact texts of the table above (REQ-52 key parity)
 **Test level:** unit + unit (component)
 
 ### REQ-59 — Errors are mapped and translated; unexpected errors are logged
@@ -851,7 +878,7 @@ TASK-172, TASK-180 and TASK-181.
 
 ### REQ-60 — Security headers
 **Rules:** BR-87
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - `securityHeaders` (exported from `security-headers.mjs`) equals `[{ key: "X-Frame-Options", value: "DENY" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" }, { key: "X-Content-Type-Options",
@@ -861,7 +888,7 @@ TASK-172, TASK-180 and TASK-181.
 
 ### REQ-61 — User content is rendered as plain text
 **Rules:** BR-82
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - ESLint rule `react/no-danger` is `"error"` (lint fails on any `dangerouslySetInnerHTML`)
 - E2E: an event whose description is `<img src=x onerror="window.__xss=1">` shows that text literally on its page and
@@ -1350,7 +1377,7 @@ These requirements are code in the repository and are TDD'd like product code. T
 | BR-80 | REQ-56 |
 | BR-81 | REQ-58 |
 | BR-82 | REQ-61 |
-| BR-83 | REQ-15, REQ-59 |
+| BR-83 | REQ-15, REQ-58, REQ-59 |
 | BR-84 | REQ-59 |
 | BR-85 | REQ-14, REQ-15, REQ-23 |
 | BR-86 | REQ-03, REQ-16, REQ-18, REQ-30, REQ-33 |
