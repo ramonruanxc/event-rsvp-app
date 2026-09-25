@@ -1550,6 +1550,149 @@ test fixture of the traceability check and is unaffected by REQ-99 existing.
   (REQ-97). `.env.example` documents the variable, left empty (= `low`)
 **Test level:** unit (fake `fetch`)
 
+### Local containerized run (amendment A5)
+
+`docker compose up --build` runs the database and the app with one command. The start logic is a small pure module
+(`scripts/docker/start-plan.ts`, C14) behind a thin entrypoint, so it is unit-tested; the image, compose and CI files
+are checked by a unit test that reads them. The decisions taken while writing these requirements are listed in
+`docs/plan.md`, "Phase 9", notes. Verified with a throwaway prototype on 2026-09-25: the build needs no environment
+variable, and the stack answers the three smoke checks of REQ-113.
+
+### REQ-108 — The app container migrates, seeds, then serves, and never serves after a failed step
+**Rules:** BR-127, BR-128, BR-129
+**Status:** todo
+**Acceptance criteria:**
+- The image command is `node --import tsx scripts/docker/start.ts`. The last line of `Dockerfile` is exactly
+  `CMD ["node", "--import", "tsx", "scripts/docker/start.ts"]`
+- `runStart(deps)` (C14) runs `START_STEPS` in this order. Each step is a child process that gets the same
+  environment: `prisma migrate deploy`, then `prisma db seed`, then `next start -H 0.0.0.0 -p 3000`. Before each
+  step it logs `start: migrate`, `start: seed` or `start: serve`
+- Given the migrate step exits with code 3, when `runStart` runs, then it returns 3, logs
+  `start: migrate failed with exit code 3`, and runs neither the seed nor the server. Given the seed exits with 1,
+  then it returns 1 and never runs the server. The container then exits, so it never serves a database it could not
+  migrate or seed
+- Every container start runs all three steps: the first start, a restart, and a new `docker compose up`
+- In a running stack, `docker compose logs app` shows `start: migrate`, `start: seed` and `start: serve` in that order
+**Test level:** unit (fake step runner; static Dockerfile check) + the container smoke check (REQ-113)
+
+### REQ-109 — AUTH_SECRET is generated at start when absent, and kept when supplied
+**Rules:** BR-133, BR-134, BR-138
+**Status:** todo
+**Acceptance criteria:**
+- `withAuthSecret(env, generate)` (C14) handles two cases:
+  - `AUTH_SECRET` is missing, `''` or only spaces (a copied `.env.example` has `AUTH_SECRET=`). It returns
+    `{ env: { ...env, AUTH_SECRET: generate() }, generated: true }`
+  - Any other value. It returns `{ env: <copy of env>, generated: false }` and never calls `generate`
+
+  In both cases the input object is not changed. Example: `{ PATH: '/usr/bin' }` with generator `() =>
+  'generated-secret'` → `{ env: { PATH: '/usr/bin', AUTH_SECRET: 'generated-secret' }, generated: true }`
+- The entrypoint generates the secret with `randomBytes(32).toString('base64')`, the same command the README gives
+- When the secret is generated, `runStart` logs `GENERATED_SECRET_NOTICE` (C14) once, before the first step. The
+  secret is generated once per start, and every step gets the same value. Auth.js and the RSVP IP hash (REQ-56, which
+  uses `AUTH_SECRET` as its salt) both use it. No log line ever contains the secret
+- The secret is not persisted, so each container start makes a new one. Sessions issued before a restart end (BR-134
+  rationale), and the RSVP rate-limit counters (REQ-56) start again. Both are accepted for a local run
+- Compose never sets `AUTH_SECRET` (REQ-112), so its value always comes from `.env.local` or from this generation.
+  Without a secret, Auth.js logs `MissingSecret` on every request (seen in the prototype)
+**Test level:** unit
+
+### REQ-110 — The demo seed converges on repeated container starts
+**Rules:** BR-129, BR-130
+**Status:** todo
+**Acceptance criteria:**
+- The container seeds with `prisma db seed` (`tsx prisma/seed.ts` → `seedDemo`, REQ-40). This needs no code change,
+  because the seed is already idempotent (REQ-40: "running the seed twice changes nothing")
+- Given an empty database, `seedDemo` runs at `2026-09-24T15:00:00.000Z`, again at the same instant, and again at
+  `2026-09-25T15:00:00.000Z` (a restart the next day). After those three runs:
+  - there is exactly 1 event, slug `demoPicnic`, with `startsAt` `2026-10-24T22:00:00.000Z`. The last run is 29 days
+    before that, which is not within 7 days, so REQ-40 does not move it
+  - its RSVPs are exactly the 5 sample guests (compared by name)
+  - there is exactly 1 user
+- In the stack, `docker compose restart app` runs the seed again without error, and the demo page still answers 200
+**Test level:** integration. This is a characterization test: the behavior has existed since REQ-40
+
+### REQ-111 — App image: Node 22, full build, no secrets inside
+**Rules:** BR-139, BR-140, BR-144
+**Status:** todo
+**Acceptance criteria:**
+- The first line of `Dockerfile` is `FROM node:22-bookworm-slim`. This image has Node 22 with npm 10, the same major
+  versions as CI's `node-version: 22` (checked on 2026-09-25: Node 22.23.3, npm 10.9.9). `openssl` is installed for
+  Prisma
+- The image has a single stage: `npm ci`, then `npm run build`, in the image that also runs the app. Prisma's engine
+  is therefore generated for the runtime's own platform, so `prisma/schema.prisma` needs no `binaryTargets`.
+  devDependencies stay in the image because the seed (`tsx`) and the entrypoint (`node --import tsx`) need them
+- The build is the full one:
+  - `next.config.ts` has no `output` setting and does not change
+  - in `package.json`, `build` stays `next build` and `vercel-build` stays
+    `prisma generate && prisma migrate deploy && prisma db seed && next build`
+  - `Dockerfile` never mentions `standalone` or `vercel-build`
+
+  The Vercel build is therefore unchanged
+- No secret goes into the image:
+  - `.dockerignore` excludes `.env*`, `.git`, `node_modules` and `.next`, plus the other entries of TASK-243
+  - no `ARG` or `ENV` line of `Dockerfile` names a `SECRET`, `KEY`, `TOKEN` or `PASSWORD`, and no line mentions `.env`
+  - the build needs no environment variable. Every page is dynamic because the layout reads cookies. The Google
+    fonts are downloaded while the image builds, so the build needs network access
+  - `ls -a /app` in the built image lists no `.env*` file
+- Secrets reach the container only at run time: through compose `env_file` (REQ-112) or through generation (REQ-109)
+**Test level:** unit (static file checks) + one image build by hand (TASK-243)
+
+### REQ-112 — Compose stack: app service, host port, optional `.env.local`, database-only target
+**Rules:** BR-127, BR-131, BR-132, BR-133, BR-138, BR-141
+**Status:** todo
+**Acceptance criteria:**
+- The `db` service of `docker-compose.yml` stays exactly as it is today. A new `app` service has:
+  - `build: .` and `init: true`
+  - `depends_on` → `db` with `condition: service_healthy`
+  - `env_file` → `path: .env.local` with `required: false`. This needs Docker Compose 2.24 or later
+  - `environment:` sets `DATABASE_URL` and `DATABASE_URL_UNPOOLED` to `postgresql://rsvp:rsvp@db:5432/rsvp`, and
+    `AUTH_TRUST_HOST` to `'true'`
+  - `ports: ['${APP_PORT:-3000}:3000']`
+  - a healthcheck that calls `GET http://127.0.0.1:3000/en` and passes when the response is ok (interval 5s, timeout
+    5s, retries 24, start_period 60s). `docker compose up --wait` uses it to know the app is serving
+- With no `.env.local`, `docker compose up --build` starts both containers and the app answers on
+  `http://localhost:3000` (BR-127, BR-131, BR-133)
+- With `APP_PORT=3100 docker compose up --build`, the app answers on `http://localhost:3100`. The container port stays
+  3000 (BR-132)
+- With a `.env.local`, every variable it defines reaches the app through `env_file`, except three. `environment:`
+  always overrides `DATABASE_URL`, `DATABASE_URL_UNPOOLED` and `AUTH_TRUST_HOST`. Inside the container `localhost`
+  is the container itself, so the database URLs must point to the compose database (BR-138)
+- `docker compose up -d db` starts only the `db` container, because `db` depends on nothing (BR-141)
+- `docker-compose.yml` never mentions `AUTH_SECRET`
+**Test level:** unit (static file checks) + a local run with `APP_PORT=3100` (TASK-244) + the CI smoke job (REQ-113)
+
+### REQ-113 — Container smoke check and its non-required CI job
+**Rules:** BR-142, BR-143, BR-135, BR-131, BR-132
+**Status:** todo
+**Acceptance criteria:**
+- `npx tsx scripts/docker/smoke-cli.ts` sends three requests in order to `http://localhost:<APP_PORT, default 3000>`
+  (a blank `APP_PORT` counts as unset). It does not follow redirects:
+  - `GET /en` must answer 200
+  - `GET /en/e/demoPicnic` (the seeded demo event, `DEMO_SLUG`) must answer 200
+  - `GET /e/demoPicnic/calendar.ics` must answer 200 with a content type that starts with `text/calendar`
+- Output: first `smoke: <base url>`, then one line per check.
+  - A passing check prints `✓ /en 200`, `✓ /en/e/demoPicnic 200` or
+    `✓ /e/demoPicnic/calendar.ics 200 text/calendar`
+  - A failing check prints one of `✗ <path> — expected 200, got <status>`,
+    `✗ <path> — request failed: <message>` or
+    `✗ <path> — expected content-type text/calendar, got <content type, or none>`
+
+  The script exits 0 when every line starts with `✓`, and 1 otherwise
+- CI has a new job `container-smoke` in `.github/workflows/ci.yml`, with the same triggers as the other jobs. Its
+  steps are:
+  - checkout, Node 22, `npm ci`
+  - `docker compose up --build -d --wait --wait-timeout 300`
+  - the smoke CLI
+  - `docker compose logs app`, on failure only
+  - `docker compose down -v`, always
+- The runner has no `.env.local`, so the job shows the public side working without it (BR-135): the event page and
+  the `.ics` download. RSVP submission is covered by REQ-23. It needs only the database and the secret of REQ-109
+- The job is not a required check (BR-143). Branch protection's required list stays `commitlint`, `lint`,
+  `typecheck`, `unit`, `integration`, `e2e`, `traceability`. That list is a GitHub setting (HUMAN-03), and this phase
+  does not change it. The job has no `continue-on-error`, so a failure shows on the PR but does not block the merge.
+  The existing jobs do not change
+**Test level:** unit (fake `fetch`; static CI check) + the CI job itself
+
 ---
 
 ## Tooling requirements
@@ -1983,8 +2126,27 @@ These requirements are code in the repository and are TDD'd like product code. T
 | BR-124 | REQ-96 |
 | BR-125 | REQ-97, REQ-98 |
 | BR-126 | REQ-98 (OpenRouter key); Anthropic key: non-functional — spend limit set by hand in the Anthropic console (HUMAN-05 step 2) |
+| BR-127 | REQ-108, REQ-112 |
+| BR-128 | REQ-108 |
+| BR-129 | REQ-108, REQ-110 |
+| BR-130 | REQ-110 (REQ-40 already proves two runs) |
+| BR-131 | REQ-112, REQ-113 |
+| BR-132 | REQ-112, REQ-113 |
+| BR-133 | REQ-109, REQ-112 (the REQ-113 CI job runs with no `.env.local`) |
+| BR-134 | REQ-109 |
+| BR-135 | REQ-113 (event page and `.ics` in the stack without `.env.local`), REQ-109 (secret for Auth.js and the RSVP IP hash); RSVP submission: REQ-23 |
+| BR-136 | REQ-01; non-functional: without `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` Google rejects the sign-in; stated in the README (TASK-246) |
+| BR-137 | REQ-87 (a provider without a key is skipped), REQ-47 (fallback message) |
+| BR-138 | REQ-109 (a supplied `AUTH_SECRET` is kept), REQ-112 (`env_file` `.env.local`) |
+| BR-139 | REQ-111 |
+| BR-140 | REQ-111 |
+| BR-141 | REQ-112 |
+| BR-142 | REQ-113 |
+| BR-143 | REQ-113; non-functional: the required checks are a GitHub setting (HUMAN-03), not changed by Phase 9 |
+| BR-144 | REQ-111 |
 
-126 business rules, 126 covered (BR-12 additionally non-functional; BR-126 partly non-functional for the Anthropic
-key). BR-97 … BR-118 added by amendment A2 (REQ-62 … REQ-85). BR-119 … BR-126 added by amendment A3 (REQ-86 …
-REQ-89, REQ-94 … REQ-98). Amendment A4 adds no business rule: REQ-99 (BR-64) and tooling REQ-100 … REQ-107.
+144 business rules, 144 covered (BR-12 additionally non-functional; BR-126 partly non-functional for the Anthropic
+key; BR-136 and BR-143 partly non-functional). BR-97 … BR-118 added by amendment A2 (REQ-62 … REQ-85). BR-119 …
+BR-126 added by amendment A3 (REQ-86 … REQ-89, REQ-94 … REQ-98). Amendment A4 adds no business rule: REQ-99 (BR-64)
+and tooling REQ-100 … REQ-107. BR-127 … BR-144 added by amendment A5 (REQ-108 … REQ-113).
 Tooling: REQ-90, REQ-91, REQ-92, REQ-93, REQ-100 … REQ-107.
