@@ -12678,7 +12678,7 @@ migration, no new environment variable.
    timers or fake clocks in unit tests.
 
 ### TASK-270 — Open the native date and time pickers from the field and from an icon button
-**Phase:** 11 · **Requirements:** REQ-131 · **Status:** todo · **Revision:** 1
+**Phase:** 11 · **Requirements:** REQ-131 · **Status:** done · **Revision:** 1
 **Files:** src/components/event-form.tsx, src/components/event-form.test.tsx, src/app/globals.css,
 messages/en.json, messages/fr.json, messages/pt-BR.json
 **Interface:** no exported symbol changes. Two module-level helpers in `src/components/event-form.tsx`:
@@ -12889,7 +12889,7 @@ typecheck, format and trace pass.
 **TDD exception:** none
 
 ### TASK-271 — The AI request budget is 20 seconds
-**Phase:** 11 · **Requirements:** REQ-133 · **Status:** todo · **Revision:** 1
+**Phase:** 11 · **Requirements:** REQ-133 · **Status:** done · **Revision:** 1
 **Files:** src/lib/ai/types.ts, src/services/ai-event-parser.test.ts, src/lib/ai/anthropic-model-client.test.ts,
 evals/event-parser/runs.test.ts
 **Interface:** `export const AI_TIMEOUT_MS = 20_000;` (was `10_000`). `MIN_ATTEMPT_MS` stays `1_000`. No other change.
@@ -12950,9 +12950,16 @@ pass; `git grep -n "10_000" src evals` shows no AI budget value. The remaining `
 `src/lib/with-timeout.test.ts` (its own timer) and the run latencies in `evals/event-parser/report.test.ts` and
 `evals/event-parser/score.test.ts` (already-classified runs).
 **TDD exception:** none
+**Review fix (PR #18, CODE finding, not a SPEC revision — the Revision counter above is unchanged per the pipeline
+rule that only SPEC failures bump it):** the reviewer found that raising `AI_TIMEOUT_MS` alone does not guarantee the
+budget is honoured — the route that runs the AI action had no `maxDuration`, so the hosting platform's own function
+timeout could end the request first. Fixed by setting `export const maxDuration = 30` in
+`src/app/[locale]/events/new/page.tsx`, with a test asserting it stays above the AI budget. Whether 30 s is actually
+honoured depends on the Vercel project's compute mode (Fluid Compute vs. the legacy Hobby 10 s cap); this is
+unverifiable from the repository and is checked on the platform after deploy. See `docs/pipeline/failures.md` #27.
 
 ### TASK-272 — A failed AI fill says why: not set up, too slow, or unavailable
-**Phase:** 11 · **Requirements:** REQ-132 · **Status:** todo · **Revision:** 1
+**Phase:** 11 · **Requirements:** REQ-132 · **Status:** done · **Revision:** 1
 **Files:** src/domain/errors.ts, src/services/ai-event-parser.ts, src/services/ai-event-parser.test.ts,
 src/lib/ai/providers-config.test.ts, src/lib/action-result.test.ts, src/components/event-form.test.tsx,
 evals/event-parser/runs.ts, evals/event-parser/runs.test.ts, messages/en.json, messages/fr.json, messages/pt-BR.json,

@@ -102,7 +102,11 @@ loading and error states.
 - **AI panel** (new event): top of the form, `--surface-2` block: label "Describe your event", textarea (3 rows),
   "Fill with AI" secondary button with a sparkle icon; states: working (button loading), filled (brief success line
   "Filled 5 fields · check them below"), missing (fields tinted), not an event / limit / failure (inline alert in the
-  panel).
+  panel). Failure has its own wording per cause: not configured, timed out, or the service is unavailable.
+- **Date / time field with picker button** (event form): a 32×32 px icon button sits inside the field's right edge
+  (`calendar-days` for Date, `clock` for Time), `type="button"`, own focus-visible ring, labelled "Open calendar" /
+  "Open time picker" (never the word "date" in the English name). Clicking the field itself or the button opens the
+  browser's native picker; typing still works when the picker is unavailable.
 
 ## Motion
 
@@ -112,8 +116,8 @@ opacity only.
 
 ## Iconography
 
-`lucide-react` (tree-shaken, 16/20 px, 1.75 stroke): calendar-plus, check, x, clock, copy, sparkles, sun, moon,
-globe, trash-2, pencil, map-pin, users. Decorative icons `aria-hidden`.
+`lucide-react` (tree-shaken, 16/20 px, 1.75 stroke): calendar-plus, calendar-days, check, x, clock, copy, sparkles,
+sun, moon, globe, trash-2, pencil, map-pin, users. Decorative icons `aria-hidden`.
 
 ## Theme implementation notes
 
@@ -138,3 +142,7 @@ Where the mockup and this file disagree, this file wins.
 - 2026-09-25 (Phase 10, A6, doc-sync): top bar and user menu updated for email/password sign-in — "Sign in" (not
   "Sign in with Google") leads to a sign-in page offering both methods, the user menu gains "Account", and the
   narrow-width short label no longer applies (see `docs/plan.md`, Phase 10 note 20).
+- 2026-09-25 (Phase 11, doc-sync): the Date and Time fields gain an in-field icon button (`calendar-days` / `clock`)
+  that opens the browser's native picker, restoring pointer/keyboard access removed by the earlier
+  `::-webkit-calendar-picker-indicator` fix (incident 26); the AI panel's failure alert now has one wording per
+  cause instead of a single generic message (see `docs/plan.md`, Phase 11).

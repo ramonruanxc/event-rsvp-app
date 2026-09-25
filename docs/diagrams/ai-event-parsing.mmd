@@ -19,21 +19,28 @@ sequenceDiagram
   else allowed
     C->>S: parse(text, timezone, now)
     Note over S: Timezone priority:<br/>1. explicit in text ("7pm EST")<br/>2. form field (browser prefill)<br/>3. none → missing["timezone"]
-    S->>M: prompt + context "Today is Thu 2026-09-24 23:00, America/Fortaleza"<br/>one 10 s budget for all providers
-    Note over S,M: Providers in AI_PROVIDERS order (default openrouter only)<br/>Outage (network, 5xx, 429, 401/403, timeout, credit) → next listed provider if ≥ 1 s is left<br/>Invalid output, other 4xx → no retry
-    alt every provider failed, or invalid output
-      M-->>S: error
-      S-->>O: "Couldn't fill automatically — please fill the form"
-    else structured response
-      M-->>S: { isEvent, name, description, date, time, timezone, location }
-      S->>Z: validate per field
-      Z-->>S: valid fields + missing[]
-      alt isEvent is false
-        S-->>C: notAnEvent: true, all fields null
-        C-->>O: "Couldn't find event details in that text."
-      else isEvent is true
-        S-->>C: ParseResult (fields + missing[])
-        C-->>O: fill form · highlight missing fields
+    alt no provider configured (no key on the server)
+      S-->>O: "AI fill isn't set up on this server — fill the form below."
+    else at least one provider configured
+      S->>M: prompt + context "Today is Thu 2026-09-24 23:00, America/Fortaleza"<br/>one 20 s budget for all providers
+      Note over S,M: Providers in AI_PROVIDERS order (default openrouter only)<br/>Outage (network, 5xx, 429, 401/403, timeout, credit) → next listed provider if ≥ 1 s is left<br/>Invalid output, other 4xx → no retry, no failover
+      alt last attempt timed out, or the 20 s budget ran out before a next provider could be tried
+        M-->>S: timeout
+        S-->>O: "The AI took too long to answer — try again, or fill the form below."
+      else every provider failed some other way, or invalid output
+        M-->>S: error
+        S-->>O: "The AI service is unavailable right now — try again later, or fill the form below."
+      else structured response
+        M-->>S: { isEvent, name, description, date, time, timezone, location }
+        S->>Z: validate per field
+        Z-->>S: valid fields + missing[]
+        alt isEvent is false
+          S-->>C: notAnEvent: true, all fields null
+          C-->>O: "Couldn't find event details in that text."
+        else isEvent is true
+          S-->>C: ParseResult (fields + missing[])
+          C-->>O: fill form · highlight missing fields
+        end
       end
     end
   end

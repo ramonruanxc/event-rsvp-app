@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- The event date and time fields can be picked again from the browser's native picker, not only typed: clicking the
+  field, or a labelled icon button inside it, opens the picker; the REQ-66 fix that hid Chromium's built-in
+  calendar/clock icon is unchanged (REQ-131, incident #26).
+
+### Changed
+
+- The "Fill with AI" request budget is 20 seconds (was 10), giving the model more room to answer before the
+  organizer sees a timeout (REQ-133).
+- A failed "Fill with AI" now says why: no AI provider configured on the server, the AI took too long to answer, or
+  the AI service is unavailable — each with its own message, instead of one generic fallback (REQ-132).
+
 ### Added
 
 - Email and password sign-in alongside Google (A6): register with a name, email and password (REQ-115, REQ-116,

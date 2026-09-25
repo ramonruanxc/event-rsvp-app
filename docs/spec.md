@@ -2111,7 +2111,7 @@ behavior was checked in the installed sources (`next-auth` 5.0.0-beta.32, `@auth
 
 ### REQ-131 — The event date and time can be picked, not only typed
 **Rules:** BR-171, BR-15, BR-104, BR-103
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - REQ-66's CSS stays: Chromium's `::-webkit-calendar-picker-indicator` and `::-webkit-clear-button` of the date and
   time inputs remain hidden (no ring-less tab stop)
@@ -2136,7 +2136,7 @@ regression check. Opening the native picker itself is not asserted (Playwright c
 
 ### REQ-132 — A failed AI fill says why: not set up, too slow, or unavailable
 **Rules:** BR-172, BR-65, BR-137, BR-121
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - Three codes replace the single `AI_UNAVAILABLE` outcome (error table in "Conventions"): `AI_NOT_CONFIGURED`
   (`AiNotConfiguredError`), `AI_TIMEOUT` (`AiTimeoutError`), `AI_UNAVAILABLE` (`AiUnavailableError`, narrowed). Each
@@ -2172,7 +2172,7 @@ regression check. Opening the native picker itself is not asserted (Playwright c
 
 ### REQ-133 — The AI request budget is 20 seconds
 **Rules:** BR-64, BR-121
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - `AI_TIMEOUT_MS` = `20_000` (`src/lib/ai/types.ts`); `MIN_ATTEMPT_MS` stays `1_000`
 - A single provider that never answers: with fake timers, `parse` has not settled after 19 999 ms and rejects at
