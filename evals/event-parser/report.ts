@@ -1,11 +1,7 @@
+import { pct } from './format';
 import { gate } from './score';
 import { CATEGORIES } from './types';
 import type { CaseResult, Summary } from './types';
-
-/** Formats a 0..1 rate as a rounded percentage string, e.g. `0.753 -> '75%'`. */
-function pct(value: number): string {
-  return `${Math.round(value * 100)}%`;
-}
 
 /** Renders the eval summary and results as a Markdown report (REQ-91). */
 export function renderReport(
