@@ -15,8 +15,15 @@ const linkedAt = new Date('2026-09-25T12:00:00.000Z');
 
 function arrange() {
   const users = new PrismaUserRepository(prisma);
-  const rateLimiter = new RateLimiter({ repo: new PrismaRateLimitRepository(prisma), now: () => new Date() });
-  const signInService = new SignInWithPasswordService({ users, rateLimiter, hasher: scryptPasswordHasher });
+  const rateLimiter = new RateLimiter({
+    repo: new PrismaRateLimitRepository(prisma),
+    now: () => new Date(),
+  });
+  const signInService = new SignInWithPasswordService({
+    users,
+    rateLimiter,
+    hasher: scryptPasswordHasher,
+  });
   const linkService = new LinkGoogleAccountService({ users, now: () => linkedAt });
   const callbacks = createAuthCallbacks({
     signInWithPassword: (input) => signInService.execute(input),
@@ -31,7 +38,12 @@ function arrange() {
 
 /** What Auth.js does when Google signs in with the email of an existing user: write the account, fire the event. */
 async function linkGoogle(callbacks: ReturnType<typeof createAuthCallbacks>, userId: string) {
-  const account = { userId, type: 'oidc' as const, provider: 'google', providerAccountId: 'google-123' };
+  const account = {
+    userId,
+    type: 'oidc' as const,
+    provider: 'google',
+    providerAccountId: 'google-123',
+  };
   await PrismaAdapter(prisma).linkAccount!(account);
   await callbacks.linkAccount({ user: { id: userId }, account });
 }
@@ -42,18 +54,28 @@ describe('Google linking (integration)', () => {
   it('REQ-122: linking Google to a password account clears the password and raises the notice', async () => {
     const { callbacks, signInService } = arrange();
     const user = await prisma.user.create({
-      data: { email: 'ana@example.com', name: 'Ana', passwordHash: await hashPassword('correct horse') },
+      data: {
+        email: 'ana@example.com',
+        name: 'Ana',
+        passwordHash: await hashPassword('correct horse'),
+      },
     });
 
     await linkGoogle(callbacks, user.id);
 
-    const row = await prisma.user.findUniqueOrThrow({ where: { id: user.id }, include: { accounts: true } });
+    const row = await prisma.user.findUniqueOrThrow({
+      where: { id: user.id },
+      include: { accounts: true },
+    });
     expect(row.passwordHash).toBeNull();
     expect(row.passwordNotice).toBe(true);
     expect(row.passwordClearedAt).toEqual(linkedAt);
     expect(row.accounts.map((a) => a.provider)).toEqual(['google']);
     await expect(
-      signInService.execute({ values: { email: 'ana@example.com', password: 'correct horse' }, ipHash: 'h1' }),
+      signInService.execute({
+        values: { email: 'ana@example.com', password: 'correct horse' },
+        ipHash: 'h1',
+      }),
     ).rejects.toBeInstanceOf(InvalidCredentialsError);
   });
 
@@ -62,6 +84,10 @@ describe('Google linking (integration)', () => {
     const user = await prisma.user.create({ data: { email: 'gil@example.com', name: 'Gil' } });
     await linkGoogle(callbacks, user.id);
     const row = await prisma.user.findUniqueOrThrow({ where: { id: user.id } });
-    expect(row).toMatchObject({ passwordHash: null, passwordClearedAt: null, passwordNotice: false });
+    expect(row).toMatchObject({
+      passwordHash: null,
+      passwordClearedAt: null,
+      passwordNotice: false,
+    });
   });
 });

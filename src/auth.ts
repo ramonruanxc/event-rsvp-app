@@ -26,7 +26,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     ...authConfig.providers,
     Credentials({ credentials: { email: {}, password: {} }, authorize: callbacks.authorize }),
   ],
-  callbacks: { ...authConfig.callbacks, jwt: callbacks.jwt },
+  callbacks: { ...authConfig.callbacks, jwt: callbacks.jwt, signIn: callbacks.signIn },
+  events: { linkAccount: callbacks.linkAccount },
 });
 
 currentSession = () => auth();

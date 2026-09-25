@@ -106,14 +106,18 @@ describe('jwt', () => {
 describe('Google sign-in', () => {
   it('REQ-121: other providers pass without reading the session', async () => {
     const d = deps();
-    expect(await createAuthCallbacks(d).signIn({ account: { provider: 'credentials' } })).toBe(true);
+    expect(await createAuthCallbacks(d).signIn({ account: { provider: 'credentials' } })).toBe(
+      true,
+    );
     expect(d.currentSessionEmail).not.toHaveBeenCalled();
   });
 
   it('REQ-121: Google passes only with a verified email matching the current session', async () => {
     const google = { provider: 'google' };
     const verified = { email: 'ana@example.com', email_verified: true };
-    expect(await createAuthCallbacks(deps()).signIn({ account: google, profile: verified })).toBe(true);
+    expect(await createAuthCallbacks(deps()).signIn({ account: google, profile: verified })).toBe(
+      true,
+    );
     expect(
       await createAuthCallbacks(deps()).signIn({
         account: google,
@@ -121,14 +125,21 @@ describe('Google sign-in', () => {
       }),
     ).toBe(false);
     const same = deps({ currentSessionEmail: vi.fn(async () => 'Ana@Example.com') });
-    expect(await createAuthCallbacks(same).signIn({ account: google, profile: verified })).toBe(true);
+    expect(await createAuthCallbacks(same).signIn({ account: google, profile: verified })).toBe(
+      true,
+    );
     const other = deps({ currentSessionEmail: vi.fn(async () => 'bob@example.com') });
-    expect(await createAuthCallbacks(other).signIn({ account: google, profile: verified })).toBe(false);
+    expect(await createAuthCallbacks(other).signIn({ account: google, profile: verified })).toBe(
+      false,
+    );
   });
 
   it('REQ-122: linkAccount hands the user and the provider to the linking service', async () => {
     const d = deps();
-    await createAuthCallbacks(d).linkAccount({ user: { id: 'u1' }, account: { provider: 'google' } });
+    await createAuthCallbacks(d).linkAccount({
+      user: { id: 'u1' },
+      account: { provider: 'google' },
+    });
     expect(d.linkGoogleAccount).toHaveBeenCalledWith({ userId: 'u1', provider: 'google' });
     await createAuthCallbacks(d).linkAccount({ user: {}, account: { provider: 'google' } });
     expect(d.linkGoogleAccount).toHaveBeenCalledTimes(1);

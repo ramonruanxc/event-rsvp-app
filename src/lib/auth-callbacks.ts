@@ -1,5 +1,6 @@
 import { CredentialsSignin } from 'next-auth';
 import type { JWT } from 'next-auth/jwt';
+import { allowGoogleSignIn } from '@/domain/account-policy';
 import { InvalidCredentialsError, RateLimitedError } from '@/domain/errors';
 import type { AuthUser } from '@/domain/types';
 import { clientIp, hashIp } from './client-ip';
@@ -66,11 +67,17 @@ export function createAuthCallbacks(deps: AuthCallbackDeps): AuthCallbacks {
         ? token
         : null;
     },
-    async signIn() {
-      throw new Error('not implemented');
+    async signIn({ account, profile }) {
+      if (account?.provider !== 'google') return true;
+      return allowGoogleSignIn({
+        emailVerified: profile?.email_verified,
+        googleEmail: profile?.email,
+        sessionEmail: await deps.currentSessionEmail(),
+      });
     },
-    async linkAccount() {
-      throw new Error('not implemented');
+    async linkAccount({ user, account }) {
+      if (!user.id) return;
+      await deps.linkGoogleAccount({ userId: user.id, provider: account.provider });
     },
   };
 }
