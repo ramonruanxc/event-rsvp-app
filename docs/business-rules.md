@@ -452,11 +452,15 @@ the AI fill action proceeds to the next provider in the configured order.
 
 #### BR-121 — Failover to the next provider on an outage-type failure
 **Rule:** When an attempted provider fails with a network error, an HTTP 5xx response, an HTTP 429 (rate limit)
-response, a timeout, or an insufficient-credit error, the AI fill action tries the next configured provider,
-provided the retry still fits within the same 10-second request budget (BR-64).
+response, an HTTP 401 (invalid or revoked key) response, an HTTP 403 (unauthorized key) response, a timeout, or an
+insufficient-credit error, the AI fill action tries the next configured provider, provided the retry still fits
+within the same 10-second request budget (BR-64). Other 4xx responses — HTTP 400 (except the insufficient-credit
+case), 404, and 422 — do not trigger failover.
 **Rationale:** These failure types indicate the provider itself is unavailable rather than a problem with the
-request, so another provider can reasonably serve the same request.
+request, so another provider can reasonably serve the same request. A misconfigured or revoked key makes that
+provider unusable for every request, which is exactly the situation failover exists for.
 **Source:** design brief §6 amendment A3
+**Amended:** 2026-09-24 — human decision (Phase 7 approval)
 
 #### BR-122 — Invalid model output is not retried on another provider
 **Rule:** When a provider's output fails schema validation (BR-70), the AI fill action does not retry the request
@@ -733,6 +737,15 @@ BR above.
 
 1. Default provider order `anthropic,openrouter` → BR-119 confirmed as written (no change).
 2. No cross-provider retry after invalid model output → BR-122 confirmed as written (no change).
+
+**Resolved — Phase 7 approval** — decided by the human (Ramon) on 2026-09-24, while approving the Phase 7 spec:
+
+1. Failover on authentication errors → BR-121 (amended): HTTP 401 and 403 are added to the outage-type failures
+   that trigger failover to the next provider, since a misconfigured or revoked key makes that provider unusable
+   for the request.
+2. Evaluation scope (process decision, not a product rule — no BR): the Phase 7 evaluation also covers Claude
+   Sonnet via OpenRouter, in addition to `anthropic/claude-haiku-4.5` and `openai/gpt-4o-mini`, restoring the
+   original Haiku-vs-Sonnet comparison from the design brief.
 
 **Resolved** — decided by the human (Ramon) on 2026-09-24:
 
