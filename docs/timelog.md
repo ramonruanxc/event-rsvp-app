@@ -24,7 +24,7 @@ Event times are taken from session timestamps. All times in America/Fortaleza (U
 | 2 | 2 — Pipeline bootstrap + spec | 2026-09-24 14:04:38 | 2026-09-24 14:39:47 | 35m 09s | Human away; spec-writer agent ran meanwhile (see Agent runs) |
 | 3 | 4 — Execution | 2026-09-24 15:27:44 | 2026-09-24 15:44:10 | 16m 26s | Work break; pipeline kept running |
 | 4 | 4 — Execution | 2026-09-24 18:59:23 | 2026-09-24 19:20:18 | 20m 55s | Work and calls; pipeline kept running |
-| 5 | 4 — Execution | 2026-09-24 19:24:11 | — | — | Break; pipeline kept running |
+| 5 | 4 — Execution | 2026-09-24 19:24:11 | 2026-09-24 21:28:38 | — | Break; pipeline kept running (duration computed in the final report) |
 
 ## Agent runs
 
@@ -70,6 +70,12 @@ Pipeline agents working autonomously. Reported separately from human active time
 | reviewer PR #6 | sonnet | 2026-09-24 19:19:48 | 2026-09-24 19:24:52 | 5m 04s | APPROVE — CODE=0 SPEC=0 DOC=0 (2 nits) |
 | analyst (Mode 3, doc-sync PR #6) | sonnet | 2026-09-24 19:25:20 | 2026-09-24 19:29:15 | 3m 55s | REQs done, README live demo + known limitations, CHANGELOG |
 | implementer batch TASK-90–100 | sonnet | 2026-09-24 19:25:07 | 2026-09-24 19:58:27 | 33m 20s | DONE, 1 attempt each — sample event, invite link, .ics, demo seed, home (isolated worktree, DB rsvp_p3_test, port 3200) |
+| spec-writer (preventive review phases 4–5) | opus | 2026-09-24 20:02:10 | 2026-09-24 20:16:47 | 14m 37s | 23 tasks revised (green-first, ordering, SDK pin, mock server, HUMAN-05) |
+| implementer batch TASK-110–118, 132 | sonnet | 2026-09-24 20:17:05 | 2026-09-24 20:40:25 | 23m 20s | DONE, 1 attempt each — rate limiter, AI output/timezone/missing/non-event, prompt, timeout, parser |
+| implementer batch TASK-119–123, 133 | sonnet | 2026-09-24 20:40:40 | 2026-09-24 21:05:27 | 24m 47s | DONE, 1 attempt each — SDK client, service, action, AI panel (lockfile rule 8 prevented a repeat of #4) |
+| reviewer PR #7 | sonnet | 2026-09-24 20:00:10 | 2026-09-24 21:05:53 | 65m 43s | APPROVE — CODE=0 SPEC=0 DOC=0 (slow: avoided local integration runs) |
+| implementer batch TASK-124–130 | sonnet | 2026-09-24 21:05:45 | 2026-09-24 21:21:49 | 16m 04s | DONE, 1 attempt each — mock server, AI E2E, eval scoring/report/cases/runner |
+| analyst (Mode 3, doc-sync PR #7) | sonnet | 2026-09-24 21:06:30 | 2026-09-24 21:10:03 | 3m 33s | REQ-37–42 done, README demo + 60-second walkthrough |
 
 ## Events
 
@@ -123,3 +129,6 @@ Pipeline agents working autonomously. Reported separately from human active time
 | 2026-09-24 19:24:11 | Phase 3 started in a separate worktree (isolated test DB and port) while PR #6 was reviewed |
 | 2026-09-24 19:31:33 | PR #6 merged (pre-authorized by human) — phase 2 in production |
 | 2026-09-24 19:58:27 | Phase 3 complete: 11/11 tasks, first attempt each |
+| 2026-09-24 20:02:10 | Phase 4 (AI fill) started on the main working tree after a preventive plan review |
+| 2026-09-24 21:22:55 | PR #7 merged (human approved) — phase 3 in production; demo event, .ics and invite link verified live |
+| 2026-09-24 21:28:38 | Human back: provisioning the Anthropic key (HUMAN-05); phase 5 starts in a worktree; phase 6 (UI/UX) requested |
