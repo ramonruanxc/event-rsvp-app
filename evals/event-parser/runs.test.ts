@@ -1,7 +1,8 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+import { AiUnavailableError } from '@/domain/errors';
 import { InvalidModelOutputError, ProviderUnavailableError } from '@/lib/ai/errors';
 import type { ParseEventResult } from '@/lib/ai/types';
-import { aggregateRuns, classifyRun } from './runs';
+import { aggregateRuns, classifyRun, recordingClient, runCase } from './runs';
 import type { EvalCase, RunResult, RunStatus } from './types';
 
 const resultOn = (date: string): ParseEventResult => ({
@@ -113,5 +114,119 @@ describe('aggregateRuns (REQ-100, REQ-101)', () => {
       ]).passed,
     ).toBe(false);
     expect(aggregateRuns({ ...CASE, holdout: true }, [runOf('ok', true)]).holdout).toBe(true);
+  });
+});
+
+const clockOf =
+  (...ticks: number[]) =>
+  () => {
+    const tick = ticks.shift();
+    if (tick === undefined) throw new Error('clock exhausted');
+    return tick;
+  };
+
+describe('recordingClient (REQ-101)', () => {
+  it('REQ-101: the recording client passes calls through and hands over its last error once', async () => {
+    const outage = new ProviderUnavailableError('server');
+    const complete = vi.fn().mockResolvedValueOnce({ a: 1 }).mockRejectedValueOnce(outage);
+    const recorder = recordingClient({ complete });
+    const request = { system: 's', user: 'u', model: 'm', timeoutMs: 5_000 };
+    await expect(recorder.client.complete(request)).resolves.toEqual({ a: 1 });
+    expect(complete).toHaveBeenCalledWith(request);
+    expect(recorder.takeError()).toBeUndefined();
+    await expect(recorder.client.complete(request)).rejects.toBe(outage);
+    expect(recorder.takeError()).toBe(outage);
+    expect(recorder.takeError()).toBeUndefined();
+  });
+});
+
+describe('runCase (REQ-100, REQ-101)', () => {
+  it('REQ-100: runCase sends the case input once per run and scores every run', async () => {
+    const parse = vi
+      .fn()
+      .mockResolvedValueOnce(resultOn('2026-10-02'))
+      .mockResolvedValueOnce(resultOn('2026-10-02'))
+      .mockResolvedValueOnce(resultOn('2026-10-03'));
+    const takeClientError = vi.fn(() => undefined);
+    const out = await runCase(CASE, 3, {
+      parse,
+      takeClientError,
+      clock: clockOf(0, 1_000, 1_000, 3_000, 3_000, 6_000),
+    });
+
+    expect(parse).toHaveBeenCalledTimes(3);
+    for (let i = 1; i <= 3; i += 1) {
+      expect(parse).toHaveBeenNthCalledWith(i, {
+        text: 'Team dinner on October 2, 2026 at 7pm',
+        formTimezone: 'America/New_York',
+        now: new Date('2026-09-24T15:00:00Z'),
+      });
+    }
+    expect(takeClientError).toHaveBeenCalledTimes(3);
+    expect(out.runs.map((r) => [r.status, r.latencyMs, r.result.passed])).toEqual([
+      ['ok', 1_000, true],
+      ['ok', 2_000, true],
+      ['ok', 3_000, false],
+    ]);
+    expect(out).toMatchObject({ id: 'c1', category: 'explicit', holdout: false, passed: false });
+  });
+
+  it('REQ-101: runCase classifies a slow failure as timeout and a fast outage as outage, and does not score them', async () => {
+    const parse = vi
+      .fn()
+      .mockRejectedValueOnce(new AiUnavailableError())
+      .mockResolvedValueOnce(resultOn('2026-10-02'))
+      .mockRejectedValueOnce(new AiUnavailableError());
+    const takeClientError = vi
+      .fn()
+      .mockReturnValueOnce(undefined)
+      .mockReturnValueOnce(undefined)
+      .mockReturnValueOnce(new ProviderUnavailableError('rate-limit'));
+    const out = await runCase(CASE, 3, {
+      parse,
+      takeClientError,
+      clock: clockOf(0, 10_000, 10_000, 12_000, 12_000, 12_300),
+    });
+
+    expect(out.runs.map((r) => [r.status, r.latencyMs])).toEqual([
+      ['timeout', 10_000],
+      ['ok', 2_000],
+      ['outage', 300],
+    ]);
+    expect(out.runs[0].result.error).toBe('AI_UNAVAILABLE');
+    expect(out.passed).toBe(true);
+  });
+
+  it('REQ-101: runCase counts a fast failure without an outage as invalid output', async () => {
+    const parse = vi
+      .fn()
+      .mockRejectedValueOnce(new AiUnavailableError())
+      .mockRejectedValueOnce(new Error('boom'));
+    const takeClientError = vi
+      .fn()
+      .mockReturnValueOnce(new InvalidModelOutputError('model content is not JSON'))
+      .mockReturnValueOnce(undefined);
+    const out = await runCase(CASE, 2, {
+      parse,
+      takeClientError,
+      clock: clockOf(0, 700, 700, 800),
+    });
+
+    expect(out.runs.map((r) => r.status)).toEqual(['invalid', 'invalid']);
+    expect(out.runs[1].result.error).toBe('Error: boom');
+    expect(out.passed).toBe(false);
+  });
+
+  it('REQ-100: runCase fails a case whose runs all time out', async () => {
+    const parse = vi.fn().mockRejectedValue(new AiUnavailableError());
+    const takeClientError = vi.fn(() => undefined);
+    const out = await runCase(CASE, 2, {
+      parse,
+      takeClientError,
+      clock: clockOf(0, 10_000, 10_000, 20_000),
+    });
+
+    expect(out.runs.map((r) => r.status)).toEqual(['timeout', 'timeout']);
+    expect(out.passed).toBe(false);
   });
 });

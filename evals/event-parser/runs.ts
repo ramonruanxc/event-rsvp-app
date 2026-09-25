@@ -1,5 +1,12 @@
+import { DomainError } from '@/domain/errors';
 import { ProviderUnavailableError } from '@/lib/ai/errors';
-import { AI_TIMEOUT_MS, type ParseEventResult } from '@/lib/ai/types';
+import {
+  AI_TIMEOUT_MS,
+  type AiModelClient,
+  type EventTextParser,
+  type ParseEventResult,
+} from '@/lib/ai/types';
+import { scoreCase } from './score';
 import type { CaseRuns, EvalCase, RunResult, RunStatus } from './types';
 
 /** Status of one run (REQ-101): a result → ok; ≥ AI_TIMEOUT_MS or a client timeout → timeout; other outage → outage; else invalid. */
@@ -28,4 +35,28 @@ export function aggregateRuns(evalCase: EvalCase, runs: RunResult[]): CaseRuns {
     runs,
     passed,
   };
+}
+
+/** Wraps a model client and remembers the last error it threw, handed over once by `takeError` (REQ-101). */
+export function recordingClient(_client: AiModelClient): {
+  client: AiModelClient;
+  takeError: () => unknown;
+} {
+  throw new Error('not implemented');
+}
+
+/** What runCase needs: the parser call, the recorded client error and a millisecond clock. */
+export interface RunCaseDeps {
+  parse: EventTextParser['parse'];
+  takeClientError: () => unknown;
+  clock: () => number;
+}
+
+/** Runs one case `runs` times, timing, classifying and scoring each run (REQ-100, REQ-101). */
+export async function runCase(
+  _evalCase: EvalCase,
+  _runs: number,
+  _deps: RunCaseDeps,
+): Promise<CaseRuns> {
+  throw new Error('not implemented');
 }
