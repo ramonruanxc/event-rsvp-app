@@ -14,6 +14,6 @@ export interface RegisterFormProps {
 }
 
 /** Registration form: name, email, password and confirm password (REQ-127, REQ-116, REQ-117). */
-export function RegisterForm(_props: RegisterFormProps): React.JSX.Element {
+export function RegisterForm({}: RegisterFormProps): React.JSX.Element {
   throw new Error('not implemented');
 }
