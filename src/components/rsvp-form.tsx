@@ -32,6 +32,7 @@ export function RsvpForm({ initial, submit, onDone }: RsvpFormProps) {
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState<ErrorCode | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [honeypot, setHoneypot] = useState('');
 
   function errorFor(field: 'name' | 'status' | 'partySize'): string | null {
     const key = fieldErrors[field];
@@ -51,8 +52,7 @@ export function RsvpForm({ initial, submit, onDone }: RsvpFormProps) {
     setFieldErrors({});
     setFormError(null);
     setSubmitting(true);
-    // TASK-143 adds the honeypot field; for now it is always empty.
-    const result = await submit(parsed.data, '');
+    const result = await submit(parsed.data, honeypot);
     setSubmitting(false);
 
     if (result.ok) {
@@ -123,6 +123,19 @@ export function RsvpForm({ initial, submit, onDone }: RsvpFormProps) {
           {errorFor('partySize') && <p id="rsvp-party-size-error">{errorFor('partySize')}</p>}
         </div>
       )}
+
+      <div aria-hidden="true" className="absolute -left-[9999px]">
+        <label htmlFor="website">Website</label>
+        <input
+          id="website"
+          name="website"
+          type="text"
+          tabIndex={-1}
+          autoComplete="off"
+          value={honeypot}
+          onChange={(e) => setHoneypot(e.target.value)}
+        />
+      </div>
 
       <button type="submit" disabled={submitting}>
         {t('rsvp.submit')}
