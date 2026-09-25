@@ -95,6 +95,17 @@
     outline: 2px solid var(--link);
     outline-offset: 2px;
   }
+  /* BEND: Chromium's native date/time widget adds an extra internal "clear" tab stop that
+     reports document.activeElement as the host input but matches neither :focus nor
+     :focus-visible, so no ring is drawn while it briefly holds keyboard focus (REQ-66).
+     Hiding the pseudo-elements removes that untabbable stop; the segments keep the outer
+     :focus-visible ring above. */
+  input[type='date']::-webkit-clear-button,
+  input[type='time']::-webkit-clear-button,
+  input[type='date']::-webkit-calendar-picker-indicator,
+  input[type='time']::-webkit-calendar-picker-indicator {
+    display: none;
+  }
   button,
   input,
   select,
