@@ -54,3 +54,63 @@ describe('OpenRouter keys API — list (REQ-98)', () => {
     await expect(api.list()).rejects.toThrow('OpenRouter keys API GET /keys failed: HTTP 401');
   });
 });
+
+describe('OpenRouter keys API — create, update, remove (REQ-98)', () => {
+  it('REQ-98: create sends the name and spend limit and returns the new key', async () => {
+    const http = fakeHttp([
+      {
+        method: 'POST',
+        url: `${BASE}/keys`,
+        status: 201,
+        body: { data: apiKey('event-rsvp-app', { usage: 0 }), key: 'sk-or-v1-secret' },
+      },
+    ]);
+    const api = createKeysApi({ fetch: http.fetch, managementKey: 'mgmt-secret' });
+    await expect(api.create({ name: 'event-rsvp-app', limit: 3 })).resolves.toEqual({
+      info: info('event-rsvp-app', { usage: 0 }),
+      key: 'sk-or-v1-secret',
+    });
+    expect(JSON.parse(http.calls[0].init.body as string)).toEqual({
+      name: 'event-rsvp-app',
+      limit: 3,
+    });
+  });
+
+  it('REQ-98: update changes the spend limit', async () => {
+    const http = fakeHttp([
+      {
+        method: 'PATCH',
+        url: `${BASE}/keys/h-event-rsvp-app`,
+        status: 200,
+        body: { data: apiKey('event-rsvp-app', { limit: 5 }) },
+      },
+    ]);
+    const api = createKeysApi({ fetch: http.fetch, managementKey: 'mgmt-secret' });
+    await expect(api.update('h-event-rsvp-app', { limit: 5 })).resolves.toEqual(
+      info('event-rsvp-app', { limit: 5 }),
+    );
+    expect(JSON.parse(http.calls[0].init.body as string)).toEqual({ limit: 5 });
+  });
+
+  it('REQ-98: remove deletes the key by hash', async () => {
+    const http = fakeHttp([
+      {
+        method: 'DELETE',
+        url: `${BASE}/keys/h-event-rsvp-app`,
+        status: 200,
+        body: { deleted: true },
+      },
+    ]);
+    const api = createKeysApi({ fetch: http.fetch, managementKey: 'mgmt-secret' });
+    await expect(api.remove('h-event-rsvp-app')).resolves.toBeUndefined();
+    expect(http.calls[0].init.body).toBeUndefined();
+  });
+
+  it('REQ-98: a refused creation raises KeysApiError', async () => {
+    const http = fakeHttp([{ method: 'POST', url: `${BASE}/keys`, status: 402, body: {} }]);
+    const api = createKeysApi({ fetch: http.fetch, managementKey: 'mgmt-secret' });
+    await expect(api.create({ name: 'event-rsvp-app', limit: 3 })).rejects.toThrow(
+      'OpenRouter keys API POST /keys failed: HTTP 402',
+    );
+  });
+});
