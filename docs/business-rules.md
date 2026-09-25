@@ -712,6 +712,103 @@ assistive technology and are not announced by screen readers.
 
 ---
 
+### Local containerized run (amendment A5 — Phase 9)
+
+#### BR-127 — One command starts a complete local run
+**Rule:** Running `docker compose up --build` starts both the PostgreSQL database and the application containers,
+producing a working local instance of the app with no other setup step required.
+**Rationale:** Lets an evaluator run the whole app without installing Node or a database.
+**Source:** design brief §6 amendment A5
+
+#### BR-128 — Migrations applied automatically on app start
+**Rule:** The app container applies pending database migrations (`prisma migrate deploy`) every time it starts,
+before it begins serving requests.
+**Source:** design brief §6 amendment A5
+
+#### BR-129 — Seed runs automatically on app start
+**Rule:** The app container runs the demo-data seed every time it starts, after migrations and before it begins
+serving requests.
+**Source:** design brief §6 amendment A5
+
+#### BR-130 — Seed is idempotent
+**Rule:** Running the seed more than once (e.g. across repeated container starts) does not create duplicate
+records or fail; the database converges to the same seeded state.
+**Source:** design brief §6 amendment A5
+
+#### BR-131 — Default app port
+**Rule:** When the `APP_PORT` environment variable is not set, the app is reachable at `http://localhost:3000`.
+**Source:** design brief §6 amendment A5
+
+#### BR-132 — App port is configurable
+**Rule:** Setting `APP_PORT` before `docker compose up` changes the host port the app is published on, with no
+other configuration change required.
+**Source:** design brief §6 amendment A5
+
+#### BR-133 — The app starts without a `.env.local` file
+**Rule:** `docker compose up --build` succeeds and produces a running app when no `.env.local` file is present.
+**Source:** design brief §6 amendment A5
+
+#### BR-134 — AUTH_SECRET is generated when absent
+**Rule:** When no `AUTH_SECRET` value is supplied (no `.env.local`, or one that omits it), the app container
+generates one at container start so authentication machinery has a secret to use.
+**Rationale:** A secret generated at each container start is not persisted, so sessions issued under it do not
+survive a container restart; this is accepted because, without `.env.local`, sessions are local to that run only.
+**Source:** design brief §6 amendment A5
+
+#### BR-135 — Public side fully works without `.env.local`
+**Rule:** Without a `.env.local` file, every guest-facing capability of the app — viewing an event, submitting an
+RSVP, and downloading its `.ics` file — works fully.
+**Source:** design brief §6 amendment A5
+
+#### BR-136 — Sign-in requires the reader's own Google credentials
+**Rule:** Without a `.env.local` file supplying Google OAuth credentials, "Sign in with Google" cannot complete;
+signing in requires the reader to supply their own Google OAuth client credentials.
+**Source:** design brief §6 amendment A5
+
+#### BR-137 — AI fill falls back when no AI provider key is configured
+**Rule:** Without a `.env.local` file supplying any AI provider key, every configured provider is skipped for lack
+of a key (BR-120) and "Fill with AI" ends in the same fallback as an AI error (BR-65): the UI shows "Couldn't fill
+automatically — please fill the form."
+**Source:** design brief §6 amendment A5
+
+#### BR-138 — `.env.local` values are used when present
+**Rule:** When a `.env.local` file is present, the app uses the environment variables it defines (e.g.
+`AUTH_SECRET`, Google OAuth credentials, AI provider keys) instead of the generated or fallback behavior described
+in BR-134, BR-136, and BR-137.
+**Source:** design brief §6 amendment A5
+
+#### BR-139 — App image uses Node 22 and npm 10
+**Rule:** The application's Docker image is built on Node 22 with npm 10, matching the versions used in CI.
+**Source:** design brief §6 amendment A5
+
+#### BR-140 — App image build does not change the Vercel build
+**Rule:** The application's Docker image is built with a full Next.js build, not the `standalone` output mode, so
+the Vercel production build configuration is unaffected by the container image.
+**Source:** design brief §6 amendment A5
+
+#### BR-141 — Database-only compose target for development and tests
+**Rule:** Running `docker compose up -d db` starts only the PostgreSQL database container, without the app, for
+use during local development and test runs.
+**Source:** design brief §6 amendment A5
+
+#### BR-142 — CI smoke-test job for the containerized stack
+**Rule:** A CI job builds the Docker Compose stack, starts it, and verifies that the home page, the public demo
+event page, and the `.ics` download each respond successfully.
+**Source:** design brief §6 amendment A5
+
+#### BR-143 — Containerized-stack CI job is not required to merge
+**Rule:** The CI job described in BR-142 is not a required status check; its failure alone does not block a pull
+request from merging.
+**Source:** design brief §6 amendment A5
+
+#### BR-144 — No secrets baked into the app image
+**Rule:** Building the application's Docker image never embeds secret values (e.g. API keys, `AUTH_SECRET`) into
+the image itself; secrets are supplied only at container run time.
+**Rationale:** Keeps the built image safe to share or publish without leaking credentials.
+**Source:** design brief §6 amendment A5
+
+---
+
 ## Out of scope
 
 Per the brief's principle "Maximum with minimum": everything left out is recorded here with the reason the brief
