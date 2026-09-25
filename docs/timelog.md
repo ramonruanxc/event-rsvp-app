@@ -25,6 +25,7 @@ Event times are taken from session timestamps. All times in America/Fortaleza (U
 | 3 | 4 — Execution | 2026-09-24 15:27:44 | 2026-09-24 15:44:10 | 16m 26s | Work break; pipeline kept running |
 | 4 | 4 — Execution | 2026-09-24 18:59:23 | 2026-09-24 19:20:18 | 20m 55s | Work and calls; pipeline kept running |
 | 5 | 4 — Execution | 2026-09-24 19:24:11 | 2026-09-24 21:28:38 | — | Break; pipeline kept running (duration computed in the final report) |
+| 6 | 4 — Execution | 2026-09-25 01:02:49 | — | — | Sleep; pipeline kept running |
 
 ## Agent runs
 
@@ -76,6 +77,36 @@ Pipeline agents working autonomously. Reported separately from human active time
 | reviewer PR #7 | sonnet | 2026-09-24 20:00:10 | 2026-09-24 21:05:53 | 65m 43s | APPROVE — CODE=0 SPEC=0 DOC=0 (slow: avoided local integration runs) |
 | implementer batch TASK-124–130 | sonnet | 2026-09-24 21:05:45 | 2026-09-24 21:21:49 | 16m 04s | DONE, 1 attempt each — mock server, AI E2E, eval scoring/report/cases/runner |
 | analyst (Mode 3, doc-sync PR #7) | sonnet | 2026-09-24 21:06:30 | 2026-09-24 21:10:03 | 3m 33s | REQ-37–42 done, README demo + 60-second walkthrough |
+| Build phase 6 screen mockups | opus (general) | 2026-09-24 21:34:04 | 2026-09-24 21:45:52 | 11m 48s | see failures.md / PRs |
+| Analyst derives BRs for A2 | sonnet | 2026-09-24 21:51:07 | 2026-09-24 21:54:57 | 3m 49s | see failures.md / PRs |
+| Reviewer reviews PR #8 | sonnet | 2026-09-24 21:55:48 | 2026-09-24 22:06:16 | 10m 28s | see failures.md / PRs |
+| Implementer fixes CODE finding PR #8 | sonnet | 2026-09-24 22:06:31 | 2026-09-24 22:11:37 | 5m 05s | see failures.md / PRs |
+| Reviewer round 2 PR #8 | sonnet | 2026-09-24 22:11:47 | 2026-09-24 22:15:29 | 3m 41s | see failures.md / PRs |
+| Spec-writer resolves SPEC finding PR #8 | opus | 2026-09-24 22:15:43 | 2026-09-24 22:17:49 | 2m 06s | see failures.md / PRs |
+| Reviewer round 3 PR #8 | sonnet | 2026-09-24 22:23:27 | 2026-09-24 22:26:32 | 3m 05s | see failures.md / PRs |
+| Analyst doc-sync PR #8 | sonnet | 2026-09-24 22:26:41 | 2026-09-24 22:30:07 | 3m 26s | see failures.md / PRs |
+| Analyst records DOC-Q3 decisions | sonnet | 2026-09-24 22:33:20 | 2026-09-24 22:34:23 | 1m 03s | see failures.md / PRs |
+| Spec-writer applies DOC-Q3 resolution | opus | 2026-09-24 22:34:45 | 2026-09-24 22:40:49 | 6m 04s | see failures.md / PRs |
+| Implementer phase 6 batch 1 | sonnet | 2026-09-24 22:41:30 | 2026-09-24 23:15:01 | 33m 31s | see failures.md / PRs |
+| Analyst derives BRs for A3 | sonnet | 2026-09-24 22:43:11 | 2026-09-24 22:46:10 | 2m 58s | see failures.md / PRs |
+| Analyst + spec for phase 7 | opus | 2026-09-24 22:54:30 | 2026-09-24 23:22:00 | 27m 29s | see failures.md / PRs |
+| Reviewer reviews PR #9 | sonnet | 2026-09-24 22:56:58 | 2026-09-24 23:04:21 | 7m 22s | see failures.md / PRs |
+| Analyst doc-sync PR #9 | sonnet | 2026-09-24 23:04:32 | 2026-09-24 23:09:17 | 4m 45s | see failures.md / PRs |
+| Implementer phase 6 batch 2 | sonnet | 2026-09-24 23:15:15 | 2026-09-24 23:34:28 | 19m 13s | see failures.md / PRs |
+| Analyst amends BR-121 for 401/403 | sonnet | 2026-09-24 23:54:03 | 2026-09-24 23:54:46 | 0m 43s | see failures.md / PRs |
+| Spec-writer applies phase 7 decisions | opus | 2026-09-24 23:54:56 | 2026-09-25 00:00:35 | 5m 38s | see failures.md / PRs |
+| Implementer phase 6 batch 4 | sonnet | 2026-09-25 00:00:52 | 2026-09-25 00:33:36 | 32m 44s | see failures.md / PRs |
+| Implementer phase 7 batch 1 | sonnet | 2026-09-25 00:00:59 | 2026-09-25 00:21:30 | 20m 31s | see failures.md / PRs |
+| Analyst amends BR-119 default | sonnet | 2026-09-25 00:21:40 | 2026-09-25 00:23:08 | 1m 28s | see failures.md / PRs |
+| Spec-writer applies OpenRouter default | opus | 2026-09-25 00:23:19 | 2026-09-25 00:28:27 | 5m 08s | see failures.md / PRs |
+| Spec-writer flips eval default provider | opus | 2026-09-25 00:28:36 | 2026-09-25 00:30:49 | 2m 12s | see failures.md / PRs |
+| Implementer phase 7 batch 2 | sonnet | 2026-09-25 00:30:59 | 2026-09-25 00:43:44 | 12m 45s | see failures.md / PRs |
+| Implementer phase 6 batch 5 | sonnet | 2026-09-25 00:33:47 | 2026-09-25 01:07:55 | 34m 07s | see failures.md / PRs |
+| Implementer phase 7 batch 3 | sonnet | 2026-09-25 00:43:58 | 2026-09-25 01:14:06 | 30m 07s | see failures.md / PRs |
+| Implementer phase 6 final batch | sonnet | 2026-09-25 01:08:07 | 2026-09-25 01:35:43 | 27m 35s | see failures.md / PRs |
+| Implementer TASK-217 real eval | sonnet | 2026-09-25 01:14:45 | 2026-09-25 01:22:17 | 7m 32s | see failures.md / PRs |
+| Spec-writer: default model from eval | opus | 2026-09-25 01:22:45 | 2026-09-25 01:26:36 | 3m 50s | see failures.md / PRs |
+| Implementer TASK-218 | sonnet | 2026-09-25 01:26:45 | 2026-09-25 01:33:48 | 7m 02s | see failures.md / PRs |
 
 ## Events
 
@@ -132,3 +163,14 @@ Pipeline agents working autonomously. Reported separately from human active time
 | 2026-09-24 20:02:10 | Phase 4 (AI fill) started on the main working tree after a preventive plan review |
 | 2026-09-24 21:22:55 | PR #7 merged (human approved) — phase 3 in production; demo event, .ics and invite link verified live |
 | 2026-09-24 21:28:38 | Human back: provisioning the Anthropic key (HUMAN-05); phase 5 starts in a worktree; phase 6 (UI/UX) requested |
+| 2026-09-24 21:28:00 | Phase 6 (UI/UX) requested; PRODUCT.md + DESIGN.md written; mockup built; contrast issues fixed in DESIGN.md |
+| 2026-09-24 21:50:00 | Human approved the visual direction; amendment A2; analyst BR-97–BR-118 |
+| 2026-09-24 22:06:16 | PR #8 review: CODE #14 (form-level error not shown) → SPEC #15 (copy) → approved round 3 |
+| 2026-09-24 22:40:49 | Phase 6 spec approved (DOC-Q3 decided); Phase 7 (OpenRouter) requested; OpenRouter key provisioned from the management key (limit USD 3, value never printed) |
+| 2026-09-24 23:49:21 | PR #9 merged (phase 4); TASK-131 moved to phase 7 (human decision) |
+| 2026-09-25 00:03:21 | PR #8 merged (phase 5) |
+| 2026-09-25 00:21:40 | Human decisions: OpenRouter default provider, Anthropic optional; HUMAN-06 done (key in Vercel) |
+| 2026-09-25 01:02:49 | Human paused (sleep) and pre-authorized merging all PRs that pass review, doc-sync and CI |
+| 2026-09-25 01:22:17 | Real eval via OpenRouter: only claude-sonnet-5 passes the gate (Haiku 4.5 and gpt-4o-mini invent data); measured spend USD 0.1283 |
+| 2026-09-25 01:33:48 | TASK-218: code default model follows the eval (claude-sonnet-5); phase 7 complete |
+| 2026-09-25 01:35:43 | Phase 6 complete: 36/36 tasks (TASK-182 characterization found a real focus-ring defect, fixed) |
