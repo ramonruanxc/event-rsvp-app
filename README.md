@@ -8,13 +8,14 @@ Create an event, share one link, see who's coming.
 
 **Demo event (no sign-in needed):** https://event-rsvp-app-flax.vercel.app/e/demoPicnic
 
-> Google sign-in runs in Testing mode: an evaluator's Google account must be added as a test user. Guests never
-> need to sign in.
+> Sign in with email and password: **Sign in → Create an account** — no Google test-user access needed. Google
+> sign-in also works but runs in Testing mode (a Google account must be added as a test user). Guests never need to
+> sign in.
 
 ## 60-second walkthrough
 
 1. Open the demo event and RSVP as a guest — no sign-in required.
-2. Sign in with Google.
+2. Create an account (name, email, password) — or sign in with Google.
 3. Go to your dashboard and click "Create sample event" to see a seeded guest list.
 4. Create your own event and try "Fill with AI" to prefill it from pasted text.
 5. Copy the event's invite link, open it in a private/incognito window, RSVP there, and watch the
@@ -34,8 +35,9 @@ Create an event, share one link, see who's coming.
 
 ### Bonus
 
-- **Google SSO with per-event roles** — sign in with Google; there is no admin role, only Organizer (for the
-  events you own) and Guest (everywhere else).
+- **Sign in with Google or email and password, with per-event roles** — register with a name, email and password,
+  or use Google; one person can use both on the same account (set a password from **Account**). There is no admin
+  role, only Organizer (for the events you own) and Guest (everywhere else).
 - **AI fill** — "Fill with AI" turns pasted text into a prefilled event form, flagging any field it could not
   find for the organizer to complete.
 - **i18n EN/FR/PT-BR** — three interface languages with a language switcher, browser-locale detection on first
@@ -57,6 +59,16 @@ Create an event, share one link, see who's coming.
 - A hidden honeypot field rejects automated spam submissions without revealing why.
 - Every response carries `X-Frame-Options`, `Referrer-Policy` and `X-Content-Type-Options` headers.
 - User content always renders as text (no raw HTML); authorization is enforced in the services, not only in the UI.
+- Passwords are hashed with `scrypt` from `node:crypto` (a random salt per user, N = 32768, r = 8, p = 1) and
+  checked in constant time; a hash is never logged or sent to the browser. Sessions are encrypted JWT cookies.
+- Failed sign-ins are limited to 5 per email and 20 per client IP per 15 minutes, stored as hashes only. A wrong
+  password, an unknown email and a Google-only account get the same message after the same hashing work.
+- Google signs in to an existing account only when Google has verified the email. A password set before that was
+  never verified, so it is removed and the user is told (a notice under the header), and sessions opened with it
+  end: this defeats account pre-hijacking.
+- Known trade-off (account enumeration): registering with the email of a Google account says so, so the person
+  knows to sign in with Google and add a password in Account. It reveals that the email has an account;
+  registration refusals count against the per-IP sign-in limit.
 
 ## Architecture
 
@@ -98,8 +110,9 @@ taken, pick another host port: `APP_PORT=3100 docker compose up --build` (PowerS
 
 - On every start the app container applies the database migrations and the demo seed (which never duplicates
   data), then serves the app.
-- `.env.local` is optional. Without it the public side works fully (event page, RSVP, `.ics` download); an
-  `AUTH_SECRET` is generated at each container start, so sign-in sessions last only until the container restarts;
+- `.env.local` is optional. Without it the public side works fully (event page, RSVP, `.ics` download);
+  you can register and sign in with email and password (an `AUTH_SECRET` is generated at each container start, so
+  sessions last only until the container restarts; accounts stay in the database);
   "Sign in with Google" needs your own Google OAuth client; "Fill with AI" shows its fallback message and the
   manual form still works.
 - With a `.env.local` (copy `.env.example`, see below), its values are used: `AUTH_SECRET`, `AUTH_GOOGLE_ID` /
@@ -126,10 +139,10 @@ npm run dev
 
 - `AUTH_SECRET`: generate it with
   `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"` and paste the output.
-- Without Google credentials the public side works fully: the seeded demo event at `/en/e/demoPicnic`, RSVP,
-  "Add to calendar" (`.ics`) and language/theme switches. Signing in as an organizer needs your own Google OAuth client
-  (`AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET`, redirect URI `http://localhost:3000/api/auth/callback/google`; steps in
-  docs/plan.md, HUMAN-02) — or use the [live demo](#live-demo), where the evaluator account is already a test user.
+- Without Google credentials everything works except "Continue with Google": register at `/en/register` with an
+  email and password. Google sign-in needs your own OAuth client (`AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET`, redirect
+  URI `http://localhost:3000/api/auth/callback/google`; steps in docs/plan.md, HUMAN-02) — or use the
+  [live demo](#live-demo).
 
 - AI: set `OPENROUTER_API_KEY` in `.env.local` (`npm run openrouter:key` creates the OpenRouter key with a USD 3 spend
   limit from the system variable `OPENROUTER_MANAGMENT_KEY` and writes it there). OpenRouter is the default and only
@@ -223,7 +236,10 @@ of [docs/timelog.md](docs/timelog.md).
 | Strict CSP | Listed in the brief's out-of-scope list; other XSS mitigations are used instead (React escaping only, no `dangerouslySetInnerHTML`). |
 | Observability beyond logs | Listed in the brief's out-of-scope list; no reason given in the brief. |
 | Per-PR preview deployments | Explicitly decided: "no per-PR previews (would migrate the production database)". |
-| Publishing the Google OAuth app (stays in Testing mode) | Google requires full branding (home page, privacy policy, verified authorized domain) to publish an External OAuth app, and `vercel.app` ownership cannot be proven; the evaluator's Google account is added as a test user instead. |
+| Password reset | Needs email sending, which is out of scope. A user who forgets a password can sign in with Google (same email) and set a new one in Account. |
+| Email verification | Needs email sending; registration signs in at once. Because the email is not verified, a later Google sign-in with that email removes the password (see Security). |
+| Ending other sessions after a password change | Sessions are JWTs with no server-side store; only the Google-link password removal ends password sessions. |
+| Publishing the Google OAuth app (stays in Testing mode) | Google requires full branding (home page, privacy policy, verified authorized domain) to publish an External OAuth app, and `vercel.app` ownership cannot be proven; the evaluator's Google account is added as a test user instead. Evaluators can also register with email and password. |
 | Upgrading Next 15 → 16 and Vitest 3 → 4+ | Six Dependabot alerts (postcss pinned inside next@15; vitest dev-only) are not exploitable here: postcss only runs at build time on first-party CSS and vitest never ships. Both need major upgrades, out of scope for this exercise; alerts were dismissed as tolerable risk with this reasoning. |
 
 Full detail, including the brief citations, is in the
