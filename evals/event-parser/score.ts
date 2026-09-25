@@ -39,7 +39,7 @@ export function matches(matcher: Matcher, actual: string | null): boolean {
   return true;
 }
 
-/** Scores one eval case against a parser outcome (REQ-91). */
+/** Scores one eval case against a parser outcome (REQ-91, REQ-102). */
 export function scoreCase(
   evalCase: EvalCase,
   outcome: ParseEventResult | { error: string },
@@ -69,6 +69,19 @@ export function scoreCase(
     const expected = evalCase.expected.notAnEvent;
     const actual = isError ? false : outcome.notAnEvent;
     fields.push({ field: 'notAnEvent', passed: !isError && actual === expected, expected, actual });
+  }
+
+  if (evalCase.expected.forbiddenInDescription !== undefined) {
+    const patterns = evalCase.expected.forbiddenInDescription;
+    const actual = isError ? null : outcome.fields.description;
+    const found =
+      actual !== null && patterns.some((pattern) => new RegExp(pattern, 'i').test(actual));
+    fields.push({
+      field: 'descriptionFacts',
+      passed: !isError && !found,
+      expected: { noneOf: patterns },
+      actual,
+    });
   }
 
   const passed = fields.every((f) => f.passed);
