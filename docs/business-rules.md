@@ -884,9 +884,11 @@ which sign-in method it uses.
 
 #### BR-156 — Failed sign-in attempts are rate-limited per IP and email
 **Rule:** Failed email/password sign-in attempts are rate-limited both by the client's IP address and by the
-submitted email address.
+submitted email address: at most 5 failed attempts per email per 15 minutes, and at most 20 failed attempts per IP
+per 15 minutes.
 **Source:** design brief §6 amendment A6 (c)
-**Note:** the brief does not state the specific thresholds; see open question DOC-Q5.
+**Amended:** 2026-09-25 — human pre-authorized the analyst's recommendation (DOC-Q5), resolving the brief's silence
+on the specific thresholds.
 
 #### BR-157 — Registration is refused for an email already on a Google-only account
 **Rule:** If the submitted registration email belongs to an existing Google-only account, registration is refused;
@@ -899,7 +901,7 @@ to set a password from the Account page.
 **Rationale:** Gives the person a path to using both methods without creating a duplicate account.
 **Source:** design brief §6 amendment A6 (d)
 **Note:** telling the person their email is already a Google account reveals that the email has an account
-(account enumeration); see open question DOC-Q6, which documents this trade-off rather than silently accepting it.
+(account enumeration); this trade-off is recorded, not silently accepted, in the Open questions section below.
 
 #### BR-159 — Account page: set a password when none exists
 **Rule:** A signed-in user with no password set (a Google-only account) can set one from the Account page.
@@ -929,11 +931,12 @@ password account with a victim's email before the victim ever signs in.
 **Source:** design brief §6 amendment A6 (e)
 
 #### BR-164 — User is notified when their password is cleared
-**Rule:** When the account's password is cleared (BR-163), the user is notified, and can set a new password from
-the Account page (BR-159) at any time afterward.
+**Rule:** When the account's password is cleared (BR-163), the user is shown an in-app banner right after the
+linking sign-in completes, and a persistent notice on the Account page that remains until the user sets a new
+password (BR-159) or dismisses it. No email notification is sent (email sending is out of scope for this phase).
 **Source:** design brief §6 amendment A6 (e)
-**Note:** the brief does not specify the notification's form (in-app message, banner, etc.); see open question
-DOC-Q6.
+**Amended:** 2026-09-25 — human pre-authorized the analyst's recommendation (DOC-Q6), resolving the brief's silence
+on the notification's form.
 
 #### BR-165 — Sessions are JWT-based
 **Rule:** Signed-in sessions are represented as JWTs, not as rows in the database.
@@ -998,19 +1001,20 @@ BR above.
 
 ## Open questions
 
-**Open** — from amendment A6 (email and password sign-in), reported to the human by the `analyst`:
+**Open** — none.
 
-- **DOC-Q5** — What are the failed-sign-in rate-limit thresholds per IP and per email (BR-156)? The brief says
-  rate limiting applies "per client IP and email" but gives no numbers.
-  **Recommendation:** 5 failed attempts per email per 15 minutes, and 20 failed attempts per IP per 15 minutes —
-  tighter than the RSVP limit (BR-79: 10/10 min per IP) because credential-stuffing risk is higher than RSVP spam,
-  while still allowing a genuine user a few honest mistakes before being blocked.
+**Resolved — DOC-Q5 and DOC-Q6** — human pre-authorized the analyst's recommendation (2026-09-25):
+
+- **DOC-Q5** — What are the failed-sign-in rate-limit thresholds per IP and per email (BR-156)? The brief said
+  rate limiting applies "per client IP and email" but gave no numbers. Resolved: 5 failed attempts per email per
+  15 minutes, and 20 failed attempts per IP per 15 minutes — tighter than the RSVP limit (BR-79: 10/10 min per IP)
+  because credential-stuffing risk is higher than RSVP spam, while still allowing a genuine user a few honest
+  mistakes before being blocked. See BR-156 (amended).
 - **DOC-Q6** — What form does the "notify" in BR-164 take, when a Google sign-in clears an existing password?
-  Options: (1) an in-app banner/toast shown immediately after the linking sign-in completes; (2) a persistent
-  notice on the Account page until the user sets a new password or dismisses it; (3) an email notification.
-  **Recommendation:** (1) combined with (2) — email (option 3) is unavailable since email sending is out of scope
-  for this phase (declared alongside password reset and email verification, design brief §6 amendment A6), and a
-  one-time toast alone risks being missed if the user is mid-redirect.
+  Resolved: an in-app banner shown immediately after the linking sign-in completes, plus a persistent notice on the
+  Account page until the user sets a new password or dismisses it; no email (email sending is out of scope for
+  this phase, alongside password reset and email verification, design brief §6 amendment A6). See BR-164 (amended).
+
 **Resolved — A6 (documented trade-off, not silently decided)**: the design brief's amendment A6 (d) explicitly
 requires the registration-refusal message (BR-157, BR-158) to tell the person their email belongs to a Google
 account. This necessarily reveals, to whoever submits that email on the Register page, that an account with that
