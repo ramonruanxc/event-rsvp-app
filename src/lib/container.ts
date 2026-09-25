@@ -48,7 +48,7 @@ export function getServices(): Services {
       deleteEvent: new DeleteEventService({ events }),
       listDashboard: new ListDashboardService({ events, now }),
       getEventPage: new GetEventPageService({ events, rsvps, now }),
-      submitRsvp: new SubmitRsvpService({ events, rsvps, now }),
+      submitRsvp: new SubmitRsvpService({ events, rsvps, now, rateLimiter }),
       cancelRsvp: new CancelRsvpService({ events, rsvps, now }),
       removeRsvp: new RemoveRsvpService({ events, rsvps }),
       createSampleEvent: new CreateSampleEventService({ events, rsvps, now }),
