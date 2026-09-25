@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { InvalidModelOutputError, ProviderUnavailableError } from '@/lib/ai/errors';
 import type { ParseEventResult } from '@/lib/ai/types';
-import { classifyRun } from './runs';
-import type { RunStatus } from './types';
+import { aggregateRuns, classifyRun } from './runs';
+import type { EvalCase, RunResult, RunStatus } from './types';
 
 const resultOn = (date: string): ParseEventResult => ({
   fields: {
@@ -63,5 +63,55 @@ describe('classifyRun (REQ-101)', () => {
       ],
     ];
     for (const [run, status] of table) expect(classifyRun(run), `${run.latencyMs} ms`).toBe(status);
+  });
+});
+
+const CASE: EvalCase = {
+  id: 'c1',
+  category: 'explicit',
+  input: {
+    text: 'Team dinner on October 2, 2026 at 7pm',
+    timezone: 'America/New_York',
+    now: '2026-09-24T15:00:00Z',
+  },
+  expected: { date: '2026-10-02' },
+};
+const runOf = (status: RunStatus, passed: boolean): RunResult => ({
+  status,
+  latencyMs: 1_000,
+  result: { id: 'c1', category: 'explicit', passed, fields: [] },
+});
+
+describe('aggregateRuns (REQ-100, REQ-101)', () => {
+  it('REQ-100: a case passes only if every answered run is ok and passes', () => {
+    const three = [runOf('ok', true), runOf('ok', true), runOf('ok', true)];
+    expect(aggregateRuns(CASE, three)).toEqual({
+      id: 'c1',
+      category: 'explicit',
+      holdout: false,
+      runs: three,
+      passed: true,
+    });
+    expect(
+      aggregateRuns(CASE, [runOf('ok', true), runOf('ok', true), runOf('ok', false)]).passed,
+    ).toBe(false);
+    expect(
+      aggregateRuns(CASE, [runOf('invalid', false), runOf('ok', true), runOf('ok', true)]).passed,
+    ).toBe(false);
+  });
+
+  it('REQ-101: unavailable runs are not scored, but a case needs one answered run', () => {
+    expect(
+      aggregateRuns(CASE, [runOf('timeout', false), runOf('ok', true), runOf('outage', false)])
+        .passed,
+    ).toBe(true);
+    expect(
+      aggregateRuns(CASE, [
+        runOf('timeout', false),
+        runOf('timeout', false),
+        runOf('outage', false),
+      ]).passed,
+    ).toBe(false);
+    expect(aggregateRuns({ ...CASE, holdout: true }, [runOf('ok', true)]).holdout).toBe(true);
   });
 });
