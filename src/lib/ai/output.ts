@@ -48,6 +48,9 @@ export const aiRawOutputSchema = z.object({
 /** Validated shape of the model's raw structured output. */
 export type AiRawOutput = z.infer<typeof aiRawOutputSchema>;
 
+/** JSON Schema of aiRawOutputSchema for OpenAI-compatible `response_format` (BR-70); `$schema` removed. */
+export const AI_OUTPUT_JSON_SCHEMA: Record<string, unknown> = {};
+
 /** Resolves the timezone priority (REQ-46, BR-60, BR-61): valid text timezone, else valid form timezone, else null. */
 function resolveTimezone(
   modelTimezone: string | null,
