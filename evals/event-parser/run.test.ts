@@ -91,62 +91,58 @@ const SMOKE_CASE = {
 };
 
 describe('eval runner runs (REQ-100)', () => {
-  it(
-    'REQ-100: the runner sends each case --runs times through the mock and writes the Phase 8 report',
-    async () => {
-      const port = await freePort();
-      const mock = spawn(process.execPath, ['e2e/mock-openrouter.mjs'], {
-        env: { ...process.env, MOCK_OPENROUTER_PORT: String(port) },
-        stdio: ['ignore', 'pipe', 'inherit'],
-      });
-      try {
-        await new Promise<void>((resolve, reject) => {
-          mock.stdout.on('data', (chunk: Buffer) => {
-            if (chunk.toString().includes('listening')) resolve();
-          });
-          mock.once('exit', (code) => reject(new Error(`mock exited with ${code}`)));
+  it('REQ-100: the runner sends each case --runs times through the mock and writes the Phase 8 report', async () => {
+    const port = await freePort();
+    const mock = spawn(process.execPath, ['e2e/mock-openrouter.mjs'], {
+      env: { ...process.env, MOCK_OPENROUTER_PORT: String(port) },
+      stdio: ['ignore', 'pipe', 'inherit'],
+    });
+    try {
+      await new Promise<void>((resolve, reject) => {
+        mock.stdout.on('data', (chunk: Buffer) => {
+          if (chunk.toString().includes('listening')) resolve();
         });
-        const dir = mkdtempSync(path.join(os.tmpdir(), 'eval-runner-'));
-        const casesPath = path.join(dir, 'cases.json');
-        writeFileSync(casesPath, JSON.stringify([SMOKE_CASE]), 'utf8');
-        const outDir = path.join(dir, 'out');
-        const env = {
-          ...process.env,
-          OPENROUTER_API_KEY: 'test-key',
-          OPENROUTER_BASE_URL: `http://127.0.0.1:${port}/api/v1`,
-        };
-        const r = spawnSync(
-          process.execPath,
-          [
-            '--import',
-            'tsx',
-            'evals/event-parser/run.ts',
-            '--model',
-            'openai/gpt-4o-mini',
-            '--runs',
-            '2',
-            '--reasoning-effort',
-            'omit',
-            '--cases',
-            casesPath,
-            '--out',
-            outDir,
-          ],
-          { env, encoding: 'utf8', cwd: process.cwd() },
-        );
-        expect(r.status, r.stderr).toBe(0);
-        const files = readdirSync(outDir);
-        expect(files).toHaveLength(1);
-        expect(files[0]).toMatch(/^\d{4}-\d{2}-\d{2}-openrouter-openai-gpt-4o-mini\.md$/);
-        const md = readFileSync(path.join(outDir, files[0]), 'utf8');
-        expect(md).toContain('**Gate:** PASS');
-        expect(md).toContain('**Runs per case:** 2 · **Reasoning effort:** omit');
-        expect(md).toContain('**Availability:** 100% (2/2 runs answered; timeouts: 0, outages: 0)');
-        expect(md).toContain('| explicit | 1 | 1 | 100% |');
-      } finally {
-        mock.kill();
-      }
-    },
-    60_000,
-  );
+        mock.once('exit', (code) => reject(new Error(`mock exited with ${code}`)));
+      });
+      const dir = mkdtempSync(path.join(os.tmpdir(), 'eval-runner-'));
+      const casesPath = path.join(dir, 'cases.json');
+      writeFileSync(casesPath, JSON.stringify([SMOKE_CASE]), 'utf8');
+      const outDir = path.join(dir, 'out');
+      const env = {
+        ...process.env,
+        OPENROUTER_API_KEY: 'test-key',
+        OPENROUTER_BASE_URL: `http://127.0.0.1:${port}/api/v1`,
+      };
+      const r = spawnSync(
+        process.execPath,
+        [
+          '--import',
+          'tsx',
+          'evals/event-parser/run.ts',
+          '--model',
+          'openai/gpt-4o-mini',
+          '--runs',
+          '2',
+          '--reasoning-effort',
+          'omit',
+          '--cases',
+          casesPath,
+          '--out',
+          outDir,
+        ],
+        { env, encoding: 'utf8', cwd: process.cwd() },
+      );
+      expect(r.status, r.stderr).toBe(0);
+      const files = readdirSync(outDir);
+      expect(files).toHaveLength(1);
+      expect(files[0]).toMatch(/^\d{4}-\d{2}-\d{2}-openrouter-openai-gpt-4o-mini\.md$/);
+      const md = readFileSync(path.join(outDir, files[0]), 'utf8');
+      expect(md).toContain('**Gate:** PASS');
+      expect(md).toContain('**Runs per case:** 2 · **Reasoning effort:** omit');
+      expect(md).toContain('**Availability:** 100% (2/2 runs answered; timeouts: 0, outages: 0)');
+      expect(md).toContain('| explicit | 1 | 1 | 100% |');
+    } finally {
+      mock.kill();
+    }
+  }, 60_000);
 });

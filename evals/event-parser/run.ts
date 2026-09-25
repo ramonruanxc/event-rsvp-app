@@ -35,7 +35,9 @@ async function main(): Promise<void> {
         })
       : createAnthropicModelClient(),
   );
-  const parser = new AiEventParser({ providers: [{ name: provider, client: recorder.client, model }] });
+  const parser = new AiEventParser({
+    providers: [{ name: provider, client: recorder.client, model }],
+  });
 
   const results: CaseRuns[] = [];
   for (const evalCase of cases) {
@@ -62,7 +64,9 @@ async function main(): Promise<void> {
   writeFileSync(outPath, report, 'utf8');
 
   console.log(`overall: ${summary.all.overall}`);
-  for (const category of Object.keys(summary.all.byCategory) as (keyof typeof summary.all.byCategory)[]) {
+  for (const category of Object.keys(
+    summary.all.byCategory,
+  ) as (keyof typeof summary.all.byCategory)[]) {
     console.log(`${category}: ${summary.all.byCategory[category].rate}`);
   }
   console.log(`availability: ${summary.stats.availability}`);
