@@ -117,6 +117,11 @@ Pipeline agents working autonomously. Reported separately from human active time
 | Analyst: doc-sync PR #15 | sonnet | 2026-09-25 14:51:00 | 2026-09-25 14:55:35 | 4m 35s | statuses, README, CHANGELOG |
 | Analyst: BR-145–170 (A6) | sonnet | 2026-09-25 14:57:55 | 2026-09-25 15:01:18 | 3m 23s | 26 new BRs, 4 amended; DOC-Q5, DOC-Q6 raised |
 | Analyst: resolve DOC-Q5/Q6 | sonnet | 2026-09-25 15:01:25 | 2026-09-25 15:02:35 | 1m 10s | recommendations applied (human pre-authorized) |
+| Spec-writer: REQ-114–130, TASK-247–269 | opus | 2026-09-25 15:03:10 | 2026-09-25 15:40:47 | 37m 37s | spec + plan, contracts C15/C16 |
+| Implementer TASK-247–258 (batch A) | sonnet | 2026-09-25 15:41:20 | 2026-09-25 16:11:39 | 30m 19s | 12/12 first attempt; E2E 68/68 |
+| Implementer TASK-259–263 (batch B, part 1) | sonnet | 2026-09-25 16:12:00 | 2026-09-25 16:29:29 | 17m 29s | SPEC failure on TASK-263 (incident #24) |
+| Spec-writer: TASK-263 revision 1/2 | opus | 2026-09-25 16:29:35 | 2026-09-25 16:31:30 | 1m 55s | keep `type="email"`, assert trimmed value |
+| Implementer TASK-263–269 (batch B, part 2) | sonnet | 2026-09-25 16:31:40 | 2026-09-25 16:52:17 | — | 11/11 done; unit 469, E2E 83/83 |
 
 ## Events
 
