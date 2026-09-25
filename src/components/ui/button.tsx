@@ -1,4 +1,5 @@
 import type { ComponentProps } from 'react';
+import { cx } from '@/lib/cx';
 
 /** Visual variants for {@link Button} and {@link buttonClass}. */
 export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'ghost-danger' | 'danger';
@@ -15,14 +16,34 @@ export interface ButtonProps extends ComponentProps<'button'> {
 
 /** Maps a variant and size to the design system's button class names (REQ-71). */
 export function buttonClass(
-  _variant: ButtonVariant = 'secondary',
-  _size: ButtonSize = 'md',
-  _extra?: string,
+  variant: ButtonVariant = 'secondary',
+  size: ButtonSize = 'md',
+  extra?: string,
 ): string {
-  throw new Error('not implemented');
+  return cx('btn', `btn-${variant}`, size === 'sm' && 'btn-sm', size === 'lg' && 'btn-lg', extra);
 }
 
 /** Button with variant/size styling and a busy spinner while loading (REQ-71). */
-export function Button(_props: ButtonProps): React.JSX.Element {
-  return null as unknown as React.JSX.Element;
+export function Button({
+  variant = 'secondary',
+  size = 'md',
+  loading = false,
+  disabled,
+  className,
+  type = 'button',
+  children,
+  ...rest
+}: ButtonProps): React.JSX.Element {
+  return (
+    <button
+      {...rest}
+      type={type}
+      className={buttonClass(variant, size, className)}
+      disabled={disabled || loading}
+      aria-busy={loading || undefined}
+    >
+      {loading && <span className="spinner" aria-hidden="true" />}
+      {children}
+    </button>
+  );
 }
