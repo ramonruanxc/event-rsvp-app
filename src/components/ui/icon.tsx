@@ -12,6 +12,14 @@ export interface IconProps {
 }
 
 /** Decorative lucide icon: 1.75 stroke, hidden from assistive technology (REQ-78, BR-117). */
-export function Icon(_props: IconProps): React.JSX.Element {
-  return null as unknown as React.JSX.Element;
+export function Icon({ icon: Glyph, size = 16, className }: IconProps): React.JSX.Element {
+  return (
+    <Glyph
+      size={size}
+      strokeWidth={1.75}
+      aria-hidden="true"
+      focusable="false"
+      className={cx('i', size === 20 && 'i-20', size === 12 && 'i-12', className)}
+    />
+  );
 }
