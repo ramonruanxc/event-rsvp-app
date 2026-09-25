@@ -1,4 +1,5 @@
 import type { LucideIcon } from 'lucide-react';
+import { Icon } from './icon';
 
 /** One option of a {@link SegmentedControl}. */
 export interface SegmentOption<V extends string> {
@@ -19,6 +20,36 @@ export interface SegmentedControlProps<V extends string> {
 }
 
 /** Radio group styled as a segmented control, with an icon per option (REQ-84, REQ-70). */
-export function SegmentedControl<V extends string>(_props: SegmentedControlProps<V>): React.JSX.Element {
-  return null as unknown as React.JSX.Element;
+export function SegmentedControl<V extends string>({
+  name,
+  label,
+  labelId,
+  value,
+  options,
+  onChange,
+}: SegmentedControlProps<V>): React.JSX.Element {
+  return (
+    <div className="field">
+      <p className="label" id={labelId}>
+        {label}
+      </p>
+      <div className="seg" role="radiogroup" aria-labelledby={labelId}>
+        {options.map((option) => (
+          <label key={option.value} className={option.tone === 'success' ? 'going' : 'not'}>
+            <input
+              type="radio"
+              name={name}
+              value={option.value}
+              checked={value === option.value}
+              onChange={() => onChange(option.value)}
+            />
+            <span>
+              <Icon icon={option.icon} />
+              {option.label}
+            </span>
+          </label>
+        ))}
+      </div>
+    </div>
+  );
 }
