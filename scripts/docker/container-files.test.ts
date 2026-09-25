@@ -96,3 +96,31 @@ describe('compose stack (REQ-112)', () => {
     expect(db).toBe(DB_SERVICE);
   });
 });
+
+describe('CI smoke job (REQ-113)', () => {
+  it('REQ-113: container-smoke builds the stack, runs the smoke check and always tears it down', () => {
+    const ci = read('.github/workflows/ci.yml');
+    const jobs = ci.slice(ci.indexOf('\njobs:\n'));
+    expect([...jobs.matchAll(/^ {2}([a-z0-9-]+):$/gm)].map((m) => m[1])).toEqual([
+      'lint',
+      'typecheck',
+      'unit',
+      'integration',
+      'e2e',
+      'traceability',
+      'container-smoke',
+    ]);
+    const job = ci
+      .slice(ci.indexOf('  container-smoke:'))
+      .split('\n')
+      .map((l) => l.trim());
+    expect(job.filter((l) => l.startsWith('- run:') || l.startsWith('run:'))).toEqual([
+      '- run: npm ci',
+      '- run: docker compose up --build -d --wait --wait-timeout 300',
+      '- run: npx tsx scripts/docker/smoke-cli.ts',
+      'run: docker compose logs app',
+      'run: docker compose down -v',
+    ]);
+    expect(job).toContain('- if: always()');
+  });
+});
