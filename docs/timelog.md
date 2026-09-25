@@ -179,7 +179,7 @@ Pipeline agents working autonomously. Reported separately from human active time
 | 2026-09-25 02:28:29 | Production smoke test by the orchestrator (human asleep) after the phase 7 deploy: /en /fr /pt-BR, demo event, `.ics`, dashboard redirects to sign-in, auth providers, dark theme, all three security headers |
 | 2026-09-25 10:10:04 | Human back; AI fill tested by hand in production (7/7 cases passed); Nageeb added as Google test user; Dependabot triaged (6 alerts dismissed as tolerable risk, PR #1 rebased) |
 | 2026-09-25 10:17:22 | Final time report |
-| 2026-09-25 10:52:00 | Orchestrator ran the eval on `google/gemini-3.8-flash`: gate PASS at exactly 90% (27/30), 100% must-not-invent and prompt-injection, 3 failures all timeouts (AI_UNAVAILABLE); spend USD 0.03 |
+| 2026-09-25 10:48:39 | Orchestrator ran the eval (10:46:10–10:48:39) on `google/gemini-3.8-flash`: gate PASS at exactly 90% (27/30), 100% must-not-invent and prompt-injection, 3 failures all timeouts (AI_UNAVAILABLE); spend USD 0.03 |
 | 2026-09-25 10:51:53 | Human approved Phase 8 (amendment A4): reasoning control + harder eval with stricter gate |
 
 ## Time report
