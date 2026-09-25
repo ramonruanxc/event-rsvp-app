@@ -5,6 +5,13 @@ export type AiField = (typeof AI_FIELDS)[number];
 /** Hard limit for one "Fill with AI" model call (BR-64). */
 export const AI_TIMEOUT_MS = 10_000;
 
+/** AI providers the app can call (BR-119). */
+export const AI_PROVIDER_NAMES = ['anthropic', 'openrouter'] as const;
+/** One of AI_PROVIDER_NAMES. */
+export type AiProviderName = (typeof AI_PROVIDER_NAMES)[number];
+/** Another provider is tried only if at least this much of the AI_TIMEOUT_MS budget is left (BR-121). */
+export const MIN_ATTEMPT_MS = 1_000;
+
 /** Outcome of parsing organizer text into event fields. */
 export interface ParseEventResult {
   fields: Record<AiField, string | null>;
@@ -26,6 +33,18 @@ export interface EventTextParser {
 
 /** Low-level model call: returns the model's structured output (unvalidated). */
 export interface AiModelClient {
-  /** Sends the system and user messages to the given model and returns its raw structured output. */
-  complete(request: { system: string; user: string; model: string }): Promise<unknown>;
+  /** Sends the messages to `model` within `timeoutMs` (default AI_TIMEOUT_MS); returns the raw structured output. */
+  complete(request: {
+    system: string;
+    user: string;
+    model: string;
+    timeoutMs?: number;
+  }): Promise<unknown>;
+}
+
+/** A configured provider: its client and the model it calls (REQ-86). */
+export interface AiProvider {
+  name: AiProviderName;
+  client: AiModelClient;
+  model: string;
 }

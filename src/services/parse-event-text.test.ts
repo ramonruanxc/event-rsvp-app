@@ -1,8 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
 import { AiLimitReachedError, AiUnavailableError, ValidationError } from '@/domain/errors';
-import type { EventTextParser, ParseEventResult } from '@/lib/ai/types';
+import { ProviderUnavailableError } from '@/lib/ai/errors';
+import type { AiModelClient, EventTextParser, ParseEventResult } from '@/lib/ai/types';
 import { createMemoryStore } from '@/repositories/memory/memory-store';
 import { MemoryRateLimitRepository } from '@/repositories/memory/memory-rate-limit-repository';
+import { AiEventParser } from './ai-event-parser';
 import { RateLimiter } from './rate-limiter';
 import { ParseEventTextService } from './parse-event-text';
 
@@ -126,5 +128,61 @@ describe('ParseEventTextService', () => {
       service.execute({ userId: 'u1', text: 'a'.repeat(2001), timezone: 'UTC' }),
     ).rejects.toMatchObject(new ValidationError({ text: 'tooLong' }));
     expect(parser.parse).not.toHaveBeenCalled();
+  });
+});
+
+describe('ParseEventTextService — failover (REQ-96)', () => {
+  const RAW = {
+    isEvent: true,
+    name: 'Team dinner',
+    description: 'Dinner with the team.',
+    date: '2026-10-02',
+    time: '19:00',
+    timezone: null,
+    location: "Mario's",
+  };
+  const setup = (anthropic: AiModelClient['complete'], openrouter: AiModelClient['complete']) => {
+    const now = () => new Date('2026-09-24T12:00:00.000Z');
+    const parser = new AiEventParser({
+      providers: [
+        { name: 'anthropic', client: { complete: anthropic }, model: 'claude-haiku-4-5' },
+        {
+          name: 'openrouter',
+          client: { complete: openrouter },
+          model: 'anthropic/claude-haiku-4.5',
+        },
+      ],
+    });
+    const rateLimiter = new RateLimiter({
+      repo: new MemoryRateLimitRepository(createMemoryStore()),
+      now,
+    });
+    return new ParseEventTextService({ parser, rateLimiter, now });
+  };
+  const call = (service: ParseEventTextService) =>
+    service.execute({ userId: 'u1', text: 'Dinner', timezone: 'UTC' });
+
+  it('REQ-96: a request answered after failover counts once', async () => {
+    const anthropic = vi.fn().mockRejectedValue(new ProviderUnavailableError('server'));
+    const openrouter = vi.fn().mockResolvedValue(RAW);
+    const service = setup(anthropic, openrouter);
+
+    for (let i = 1; i <= 20; i++) {
+      await call(service);
+    }
+    await expect(call(service)).rejects.toBeInstanceOf(AiLimitReachedError);
+    expect(anthropic).toHaveBeenCalledTimes(20);
+    expect(openrouter).toHaveBeenCalledTimes(20);
+  });
+
+  it('REQ-96: a request where every provider fails counts once', async () => {
+    const anthropic = vi.fn().mockRejectedValue(new ProviderUnavailableError('server'));
+    const openrouter = vi.fn().mockRejectedValue(new ProviderUnavailableError('server'));
+    const service = setup(anthropic, openrouter);
+
+    for (let i = 1; i <= 20; i++) {
+      await expect(call(service)).rejects.toBeInstanceOf(AiUnavailableError);
+    }
+    await expect(call(service)).rejects.toBeInstanceOf(AiLimitReachedError);
   });
 });

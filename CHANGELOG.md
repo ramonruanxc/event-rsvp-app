@@ -8,6 +8,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- Provider failover for "Fill with AI": providers are tried in the order set by `AI_PROVIDERS` (default `openrouter`
+  only), skipping any provider without a configured key, and moving to the next provider on an outage within one
+  shared 10-second budget (REQ-86, REQ-87, REQ-88).
+- OpenRouter structured-output client, the default AI provider; invalid model output is never retried on another
+  provider (REQ-89, REQ-94).
+- `--provider` option on the eval runner (`npm run eval -- --provider <name>`), defaulting to `openrouter` (REQ-93).
+- `npm run openrouter:key` provisioning script that creates or updates an OpenRouter key with a spend limit without
+  ever printing the secret (REQ-98); provider keys never reach the browser or CI (REQ-97).
+- OpenRouter evaluation results for three models, published at `docs/evals/README.md`; "Fill with AI" behaves
+  identically whichever provider answered, and failover still counts once against the daily AI limit
+  (REQ-95, REQ-96).
+
+### Changed
+
+- Default AI provider is OpenRouter, with `anthropic/claude-sonnet-5` as the production model chosen by the
+  OpenRouter evaluation (REQ-86, REQ-93; BR-119 amended). Anthropic is now optional, enabled only by listing it in
+  `AI_PROVIDERS`, instead of being a default fallback.
+
+### Added
+
 - Dark theme by default, stored in a `theme` cookie and rendered by the server with no flash of the wrong theme;
   a toggle in the header switches between dark and light on every page (REQ-62, REQ-63, REQ-64).
 - Full visual redesign of every screen (home, dashboard, event form, guest RSVP panel, owner event page) from a

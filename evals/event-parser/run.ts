@@ -3,46 +3,36 @@
  *
  * Runs every case in the dataset through `AiEventParser` with a given model, scores the
  * results, writes a Markdown report and exits 0 when the release gate passes, 1 when it
- * fails, and 2 when `ANTHROPIC_API_KEY` is not set.
+ * fails, and 2 when an option check fails, including the chosen provider's API key not
+ * being set. Runs through `--provider openrouter|anthropic` (default `openrouter`).
  */
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-import { parseArgs } from 'node:util';
 import { DomainError } from '@/domain/errors';
 import { createAnthropicModelClient } from '@/lib/ai/anthropic-model-client';
+import { createOpenRouterModelClient } from '@/lib/ai/openrouter-model-client';
 import type { ParseEventResult } from '@/lib/ai/types';
 import { AiEventParser } from '@/services/ai-event-parser';
 import { evalCasesSchema } from './cases.schema';
+import { parseEvalOptions, reportFileName, reportLabel } from './options';
 import { gate, scoreCase, summarize } from './score';
 import { renderReport } from './report';
 import type { CaseResult } from './types';
 
 async function main(): Promise<void> {
-  if (!process.env.ANTHROPIC_API_KEY) {
-    console.error('ANTHROPIC_API_KEY is not set — ask the human to provide it.');
+  const parsed = parseEvalOptions(process.argv.slice(2), process.env);
+  if ('error' in parsed) {
+    console.error(parsed.error);
     process.exit(2);
   }
-
-  const { values } = parseArgs({
-    options: {
-      model: { type: 'string' },
-      cases: { type: 'string', default: 'evals/event-parser/cases.json' },
-      out: { type: 'string', default: 'docs/evals' },
-    },
-  });
-
-  if (!values.model) {
-    console.error('--model is required');
-    process.exit(2);
-  }
-  const model = values.model;
-  const casesPath = values.cases as string;
-  const outDir = values.out as string;
+  const { provider, model, cases: casesPath, out: outDir } = parsed;
 
   const raw = JSON.parse(readFileSync(casesPath, 'utf8'));
   const cases = evalCasesSchema.parse(raw);
 
-  const parser = new AiEventParser({ client: createAnthropicModelClient(), model });
+  const client =
+    provider === 'openrouter' ? createOpenRouterModelClient() : createAnthropicModelClient();
+  const parser = new AiEventParser({ providers: [{ name: provider, client, model }] });
 
   const results: CaseResult[] = [];
   for (const evalCase of cases) {
@@ -61,10 +51,10 @@ async function main(): Promise<void> {
 
   const summary = summarize(results);
   const date = new Date().toISOString().slice(0, 10);
-  const report = renderReport(summary, results, { model, date });
+  const report = renderReport(summary, results, { model: reportLabel(provider, model), date });
 
   mkdirSync(outDir, { recursive: true });
-  const outPath = path.join(outDir, `${date}-${model}.md`);
+  const outPath = path.join(outDir, reportFileName(date, provider, model));
   writeFileSync(outPath, report, 'utf8');
 
   console.log(`overall: ${summary.overall}`);

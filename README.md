@@ -92,6 +92,14 @@ npx dotenv -e .env.local -- prisma db seed
 npm run dev
 ```
 
+- AI: set `OPENROUTER_API_KEY` in `.env.local` (`npm run openrouter:key` creates the OpenRouter key with a USD 3 spend
+  limit from the system variable `OPENROUTER_MANAGMENT_KEY` and writes it there). OpenRouter is the default and only
+  provider (`AI_PROVIDERS` defaults to `openrouter`; `OPENROUTER_MODEL` defaults to `anthropic/claude-sonnet-5`, the
+  model chosen by the [evaluation](docs/evals/README.md)). Anthropic is optional: to use it, set `ANTHROPIC_API_KEY` and
+  list it in `AI_PROVIDERS`, e.g. `AI_PROVIDERS=openrouter,anthropic` — providers are tried in the listed order and
+  failover needs more than one. A listed provider without a key is skipped; with no key "Fill with AI" shows its
+  fallback message and the manual form still works.
+
 The app serves on `http://localhost:3000`. If port 3000 is already in use, set `E2E_PORT` and run
 `npm run dev -- -p 3100` instead.
 
@@ -106,16 +114,24 @@ npm run trace         # traceability check: every done requirement is cited by a
 
 ## AI evaluation
 
-The "Fill with AI" prompt is scored against a fixed case set (accuracy, hallucination and
-prompt-injection resistance) by the runner in [evals/event-parser](evals/event-parser). Run it with:
+"Fill with AI" is scored against a fixed 30-case quiz (accuracy, must-not-invent and prompt-injection resistance) by
+the runner in [evals/event-parser](evals/event-parser). The gate is at least 90% overall and 100% on
+must-not-invent and prompt-injection.
+
+| Model (via OpenRouter) | Overall | Must not invent | Prompt injection | Gate |
+|---|---|---|---|---|
+| `openai/gpt-4o-mini` | 90% | 50% | 67% | Fail |
+| `anthropic/claude-haiku-4.5` | 97% | 75% | 100% | Fail |
+| `anthropic/claude-sonnet-5` | 100% | 100% | 100% | **Pass** |
+
+Production uses the cheapest model that passes the gate: `anthropic/claude-sonnet-5` (the code default). The
+cheaper models invented dates or times the text did not contain. Measured cost of the three runs: USD 0.13. Full
+reports: [docs/evals/README.md](docs/evals/README.md).
 
 ```bash
-npm run eval -- --model <id>
+npm run eval -- --model anthropic/claude-sonnet-5                # OpenRouter (default), needs OPENROUTER_API_KEY
+npm run eval -- --provider anthropic --model claude-sonnet-5     # Anthropic (optional), needs ANTHROPIC_API_KEY
 ```
-
-Each run needs `ANTHROPIC_API_KEY` in `.env.local` (see `docs/plan.md`, HUMAN-05) and writes a dated report to
-`docs/evals/`, along with `docs/evals/README.md` summarizing the models compared and the one chosen for
-production — not yet generated in this branch.
 
 ## How I used AI
 

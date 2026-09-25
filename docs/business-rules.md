@@ -26,6 +26,7 @@
 | **Public demo event** | A seeded event linked from the signed-out home page so evaluators can see the app without signing in. |
 | **Missing field (AI)** | A form field the AI event-parsing feature could not determine from the organizer's free text; returned as missing rather than guessed. |
 | **Fill with AI** | The action that sends organizer free text to the AI parser and populates the event form; it never saves the event itself. |
+| **AI provider** | A configured backend (OpenRouter, or optionally also Anthropic) able to serve a "Fill with AI" request. `AI_PROVIDERS` orders the providers tried for one request; by default it lists OpenRouter only. |
 | **Theme** | The application's dark or light visual mode; user-selectable from the header and persisted across visits. |
 | **Reduced motion** | An operating-system-level user preference (`prefers-reduced-motion`) indicating that animated transitions should be minimized. |
 | **Target size** | The clickable or tappable area of an interactive control, measured in pixels. |
@@ -438,6 +439,69 @@ form continues to work as normal.
 **Rule:** The AI's output is constrained to a structured schema and validated (with zod) before it is used to populate the form.
 **Source:** design brief §4 "Errors and security"
 
+### AI providers (amendment A3 — OpenRouter as a second provider)
+
+#### BR-119 — AI providers are tried in a configured order
+**Rule:** The AI fill action attempts providers in the order given by the `AI_PROVIDERS` configuration (default:
+`openrouter` only) for one "Fill with AI" request. Anthropic is optional: an operator enables it by listing it
+explicitly in `AI_PROVIDERS`, in either order (e.g. `openrouter,anthropic` or `anthropic,openrouter`), with its
+API key configured.
+**Source:** design brief §6 amendment A3
+**Amended:** 2026-09-25 — human decision (OpenRouter default, Anthropic optional)
+
+#### BR-120 — A provider without a configured key is skipped
+**Rule:** A provider listed in `AI_PROVIDERS` with no API key configured is skipped without being attempted, and
+the AI fill action proceeds to the next provider in the configured order.
+**Source:** design brief §6 amendment A3
+
+#### BR-121 — Failover to the next provider on an outage-type failure
+**Rule:** When an attempted provider fails with a network error, an HTTP 5xx response, an HTTP 429 (rate limit)
+response, an HTTP 401 (invalid or revoked key) response, an HTTP 403 (unauthorized key) response, a timeout, or an
+insufficient-credit error, the AI fill action tries the next configured provider, provided the retry still fits
+within the same 10-second request budget (BR-64). Other 4xx responses — HTTP 400 (except the insufficient-credit
+case), 404, and 422 — do not trigger failover.
+**Rationale:** These failure types indicate the provider itself is unavailable rather than a problem with the
+request, so another provider can reasonably serve the same request. A misconfigured or revoked key makes that
+provider unusable for every request, which is exactly the situation failover exists for. This rule has an effect
+only when `AI_PROVIDERS` (BR-119) lists more than one provider; with the default single-provider configuration
+there is no second provider to fail over to.
+**Source:** design brief §6 amendment A3
+**Amended:** 2026-09-24 — human decision (Phase 7 approval)
+**Amended:** 2026-09-25 — human decision (OpenRouter default, Anthropic optional): noted that failover requires
+more than one configured provider, since the default configuration now has only one.
+
+#### BR-122 — Invalid model output is not retried on another provider
+**Rule:** When a provider's output fails schema validation (BR-70), the AI fill action does not retry the request
+on another configured provider.
+**Rationale:** Schema-invalid output signals a model or prompt problem, not a provider outage; retrying on a
+different provider would not fix the underlying issue and could mask a prompt regression.
+**Source:** design brief §6 amendment A3
+
+#### BR-123 — User-facing AI behavior is identical regardless of which provider answered
+**Rule:** The messages shown to the organizer, the rule that AI never saves the event (BR-58), the handling of
+missing fields (BR-56, BR-57), and the non-event message (BR-96) are the same whichever configured provider
+produced the result.
+**Rationale:** The AI provider is an internal, cost-driven implementation detail; the organizer's experience must
+not depend on which backend answered.
+**Source:** design brief §6 amendment A3
+
+#### BR-124 — The daily AI limit is counted once per fill request
+**Rule:** One "Fill with AI" request counts once against the organizer's daily AI call limit (BR-68), regardless of
+how many configured providers were attempted while producing that request's outcome.
+**Rationale:** Prevents internal failover attempts (BR-121) from consuming more than one unit of the organizer's
+daily quota for a single organizer action.
+**Source:** design brief §6 amendment A3
+
+#### BR-125 — AI provider keys are never exposed to the browser or to CI
+**Rule:** The Anthropic and OpenRouter API keys are never sent to the browser and are never present in CI
+(continuous integration) environments or configuration; CI's end-to-end tests use a local OpenAI-compatible mock
+server instead.
+**Source:** design brief §4 "Errors and security" ("AI key in a server-only module"); §6 amendment A3
+
+#### BR-126 — AI provider keys are provisioned with a spend limit
+**Rule:** Each AI provider API key used by the application is provisioned with a spend limit at creation time.
+**Source:** design brief §6 amendment A3
+
 ---
 
 ### Calendar export
@@ -675,7 +739,30 @@ BR above.
 
 ## Open questions
 
-None open.
+**Open** — none.
+
+**Resolved — A3** — decided by the human (Ramon) on 2026-09-24, at Phase 7 spec kickoff:
+
+1. Default provider order `anthropic,openrouter` → BR-119 confirmed as written (no change).
+2. No cross-provider retry after invalid model output → BR-122 confirmed as written (no change).
+
+   **Revised 2026-09-25** — human decision (Ramon): the default provider order above is superseded. `AI_PROVIDERS`
+   defaults to `openrouter` only; Anthropic is optional and used only when an operator lists it explicitly. See
+   BR-119 (amended) and BR-121 (amended).
+
+**Resolved — Phase 7 approval** — decided by the human (Ramon) on 2026-09-24, while approving the Phase 7 spec:
+
+1. Failover on authentication errors → BR-121 (amended): HTTP 401 and 403 are added to the outage-type failures
+   that trigger failover to the next provider, since a misconfigured or revoked key makes that provider unusable
+   for the request.
+2. Evaluation scope (process decision, not a product rule — no BR): the Phase 7 evaluation also covers Claude
+   Sonnet via OpenRouter, in addition to `anthropic/claude-haiku-4.5` and `openai/gpt-4o-mini`, restoring the
+   original Haiku-vs-Sonnet comparison from the design brief.
+
+**Revised 2026-09-25** — human decision (Ramon): OpenRouter is now the default provider and Anthropic is optional.
+The default `AI_PROVIDERS` is `openrouter` only; Anthropic is used only when an operator lists it explicitly (with
+its key configured). This supersedes the `anthropic,openrouter` default order confirmed above. See BR-119
+(amended) and BR-121 (amended).
 
 **Resolved** — decided by the human (Ramon) on 2026-09-24:
 

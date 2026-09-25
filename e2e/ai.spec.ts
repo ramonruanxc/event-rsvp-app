@@ -56,3 +56,26 @@ test.describe('REQ-51: Fill with AI', () => {
     await expect(page).toHaveURL(/\/en\/e\/[\w-]+$/);
   });
 });
+
+test.describe('REQ-88: AI provider failover', () => {
+  test('REQ-88: when Anthropic is down, OpenRouter fills the form', async ({ page, context }) => {
+    await signInAs(context, { email: 'organizer3@example.com', name: 'Organizer' });
+    await page.goto('/en/events/new');
+
+    await page
+      .getByLabel('Describe your event')
+      .fill("[[anthropic-down]] Team dinner next Friday 7pm at Mario's");
+    await page.getByRole('button', { name: 'Fill with AI' }).click();
+
+    await expect(page.getByLabel('Name', { exact: true })).toHaveValue('Team dinner');
+    await expect(page.getByLabel('Location (optional)', { exact: true })).toHaveValue("Mario's");
+    await expect(page.getByLabel('Date', { exact: true })).toHaveValue('2030-10-04');
+    await expect(page.getByLabel('Time', { exact: true })).toHaveValue('19:00');
+    await expect(page.getByLabel('Timezone', { exact: true })).toHaveValue('America/New_York');
+
+    await expect(page.getByText("Couldn't fill automatically — please fill the form.")).toHaveCount(
+      0,
+    );
+    expect(await db.event.count()).toBe(0);
+  });
+});

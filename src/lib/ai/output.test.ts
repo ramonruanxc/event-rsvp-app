@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { AiUnavailableError } from '@/domain/errors';
-import { normalizeAiOutput } from './output';
+import { AI_OUTPUT_JSON_SCHEMA, normalizeAiOutput } from './output';
 
 const VALID_RAW = {
   isEvent: true,
@@ -100,6 +100,25 @@ describe('normalizeAiOutput', () => {
       missing: ['name', 'description', 'date', 'time', 'timezone', 'location'],
       timezoneFromText: false,
       notAnEvent: true,
+    });
+  });
+});
+
+describe('AI_OUTPUT_JSON_SCHEMA', () => {
+  it('REQ-94: the JSON schema sent to OpenRouter matches the output schema', () => {
+    expect(AI_OUTPUT_JSON_SCHEMA).toEqual({
+      type: 'object',
+      properties: {
+        isEvent: { type: 'boolean' },
+        name: { type: ['string', 'null'] },
+        description: { type: ['string', 'null'] },
+        date: { type: ['string', 'null'] },
+        time: { type: ['string', 'null'] },
+        timezone: { type: ['string', 'null'] },
+        location: { type: ['string', 'null'] },
+      },
+      required: ['isEvent', 'name', 'description', 'date', 'time', 'timezone', 'location'],
+      additionalProperties: false,
     });
   });
 });
