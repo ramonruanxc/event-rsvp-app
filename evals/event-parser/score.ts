@@ -111,6 +111,11 @@ export function summarize(results: CaseResult[]): Summary {
   return { total, passed, overall: total === 0 ? 0 : passed / total, byCategory };
 }
 
+/** Minimum overall pass rate required by the gate (REQ-91, REQ-103). */
+export const GATE_OVERALL = 0.9;
+/** Minimum per-category pass rate required by the gate (REQ-103). */
+export const GATE_CATEGORY = 0.8;
+
 /** True when the summary clears the release bar: 90% overall and 100% on the critical categories (REQ-91). */
 export function gate(summary: Summary): boolean {
   return (

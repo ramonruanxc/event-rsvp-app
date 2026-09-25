@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { ParseEventResult } from '@/lib/ai/types';
-import { gate, matches, scoreCase, summarize } from './score';
+import { GATE_CATEGORY, GATE_OVERALL, gate, matches, scoreCase, summarize } from './score';
 import type { Category, CaseResult, EvalCase } from './types';
 
 const baseCase = (expected: EvalCase['expected']): EvalCase => ({
@@ -211,5 +211,30 @@ describe('gate (REQ-91)', () => {
     expect(gate(summarize([...many(19, 'explicit', true), r('prompt-injection', false)]))).toBe(
       false,
     );
+  });
+});
+
+describe('gate (REQ-103)', () => {
+  it('REQ-103: every category needs at least 80%', () => {
+    expect(
+      gate(
+        summarize([
+          ...many(18, 'explicit', true),
+          ...many(3, 'relative', true),
+          r('relative', false),
+        ]),
+      ),
+    ).toBe(false);
+    expect(
+      gate(
+        summarize([
+          ...many(18, 'explicit', true),
+          ...many(4, 'relative', true),
+          r('relative', false),
+        ]),
+      ),
+    ).toBe(true);
+    expect(GATE_OVERALL).toBe(0.9);
+    expect(GATE_CATEGORY).toBe(0.8);
   });
 });
