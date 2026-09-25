@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { AiUnavailableError } from '@/domain/errors';
-import { ProviderUnavailableError } from '@/lib/ai/errors'; // TASK-194 adds InvalidModelOutputError here
+import { InvalidModelOutputError, ProviderUnavailableError } from '@/lib/ai/errors';
 import { SYSTEM_PROMPT } from '@/lib/ai/prompt';
 import type { AiModelClient, AiProvider, AiProviderName, ParseEventResult } from '@/lib/ai/types';
 import { AiEventParser } from './ai-event-parser';
@@ -202,5 +202,38 @@ describe('AiEventParser — providers', () => {
     await expect(parser.parse(REQUEST)).rejects.toBeInstanceOf(AiUnavailableError);
     expect(anthropic).toHaveBeenCalledTimes(1);
     expect(openrouter).toHaveBeenCalledTimes(1);
+  });
+
+  it('REQ-89: output that fails the schema is not retried on another provider', async () => {
+    const anthropic = vi.fn().mockResolvedValue({ foo: 1 });
+    const openrouter = vi.fn().mockResolvedValue(RAW);
+    const parser = new AiEventParser({
+      providers: [
+        provider('anthropic', anthropic, 'claude-haiku-4-5'),
+        provider('openrouter', openrouter, 'anthropic/claude-haiku-4.5'),
+      ],
+    });
+
+    await expect(parser.parse(REQUEST)).rejects.toBeInstanceOf(AiUnavailableError);
+    expect(openrouter).not.toHaveBeenCalled();
+  });
+
+  it('REQ-89: a client error that is not an outage is not retried', async () => {
+    for (const error of [
+      new InvalidModelOutputError('model returned no structured output'),
+      new Error('OpenRouter HTTP 404'),
+    ]) {
+      const anthropic = vi.fn().mockRejectedValue(error);
+      const openrouter = vi.fn().mockResolvedValue(RAW);
+      const parser = new AiEventParser({
+        providers: [
+          provider('anthropic', anthropic, 'claude-haiku-4-5'),
+          provider('openrouter', openrouter, 'anthropic/claude-haiku-4.5'),
+        ],
+      });
+
+      await expect(parser.parse(REQUEST)).rejects.toBeInstanceOf(AiUnavailableError);
+      expect(openrouter).not.toHaveBeenCalled();
+    }
   });
 });
