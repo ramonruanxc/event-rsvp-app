@@ -16,7 +16,8 @@ Event times are taken from session timestamps. All times in America/Fortaleza (U
 | 5 | Review (interleaved with execution: one reviewer + doc-sync per PR) | — | — |
 | 6 | Ship (final verification, Dependabot triage, time report) | 2026-09-25 10:10:04 | 2026-09-25 10:17:22 |
 | 8 | Post-delivery: harder AI evaluation + reasoning control (amendment A4) | 2026-09-25 10:51:53 | 2026-09-25 13:38:28 |
-| 9 | Post-delivery: containerized one-command local run (amendment A5) | 2026-09-25 14:02:26 | — |
+| 9 | Post-delivery: containerized one-command local run (amendment A5) | 2026-09-25 14:02:26 | 2026-09-25 14:56:51 |
+| 10 | Post-delivery: email and password sign-in alongside Google (amendment A6) | 2026-09-25 14:56:51 | — |
 
 ## Pauses
 
@@ -112,6 +113,8 @@ Pipeline agents working autonomously. Reported separately from human active time
 | Analyst: BR-127–144 (A5) | sonnet | 2026-09-25 14:03:11 | 2026-09-25 14:04:59 | 1m 48s | 18 BRs, no DOC questions |
 | Spec-writer: REQ-108–113, TASK-239–246 | opus | 2026-09-25 14:05:27 | 2026-09-25 14:26:58 | 21m 33s | spec + plan; a trial build caught `spawn tsx ENOENT` before implementation |
 | Implementer TASK-239–246 | sonnet | 2026-09-25 14:27:38 | 2026-09-25 14:44:00 | 16m 22s | 8/8 first attempt; local compose run + smoke OK |
+| Reviewer PR #15 | sonnet | 2026-09-25 14:44:50 | 2026-09-25 14:50:39 | 5m 49s | APPROVE, 0 findings, 1 nit |
+| Analyst: doc-sync PR #15 | sonnet | 2026-09-25 14:51:00 | 2026-09-25 14:55:35 | 4m 35s | statuses, README, CHANGELOG |
 
 ## Events
 
@@ -193,6 +196,8 @@ Pipeline agents working autonomously. Reported separately from human active time
 | 2026-09-25 14:02:26 | Human approved Phase 9 (amendment A5, decisions 1–5) and pre-approved its spec; human asked to containerize the app after the fresh-clone run |
 | 2026-09-25 14:03:10 | PR #14 merged by the orchestrator (human authorized) |
 | 2026-09-25 14:45:30 | Orchestrator added the missing `Co-Authored-By` trailer to one unpushed commit (local rebase, no force push) and opened the Phase 9 PR |
+| 2026-09-25 14:47:00 | Human authorized the Phase 9 merge once review, doc-sync and CI pass |
+| 2026-09-25 14:56:51 | Human requested email and password sign-in and approved amendment A6 decisions (link only after proof of email ownership; clear the unverified password on Google link; JWT sessions; lean password rules, no recovery) |
 
 ## Time report
 
