@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { fireEvent } from '@testing-library/react';
 import { useState } from 'react';
 import { describe, expect, it } from 'vitest';
 import { renderWithIntl } from '@/test/render';
@@ -25,10 +26,10 @@ function Harness({ initial }: { initial: number }) {
 describe('Stepper', () => {
   it('REQ-84: the buttons change the value by one', () => {
     const { getByLabelText, getByRole } = renderWithIntl(<Harness initial={3} />);
-    getByRole('button', { name: 'One more person' }).click();
+    fireEvent.click(getByRole('button', { name: 'One more person' }));
     expect((getByLabelText('People') as HTMLInputElement).value).toBe('4');
-    getByRole('button', { name: 'One less person' }).click();
-    getByRole('button', { name: 'One less person' }).click();
+    fireEvent.click(getByRole('button', { name: 'One less person' }));
+    fireEvent.click(getByRole('button', { name: 'One less person' }));
     expect((getByLabelText('People') as HTMLInputElement).value).toBe('2');
   });
 
