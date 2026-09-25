@@ -18,6 +18,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- "Fill with AI" on the new-event form: describe an event in your own words and the AI fills name, description,
+  date, time, timezone and location, flagging any field it could not find (REQ-43, REQ-45, REQ-51).
+- Timezone resolution prefers a timezone stated in the text over the form's prefilled value (REQ-46).
+- A 10-second timeout and graceful fallback message when the AI is slow or unavailable (REQ-47).
+- A daily limit of 20 "Fill with AI" calls per signed-in user, backed by a fixed-window rate limiter shared with
+  RSVP submissions (REQ-48, REQ-55).
+- "Fill with AI" requires sign-in and never saves the event on its own — only "Save event" does (REQ-49, REQ-50).
+- Text that does not describe an event shows "Couldn't find event details in that text." instead of guessing
+  (REQ-45, REQ-51).
+- An eval runner (`npm run eval`) and a 30-case dataset that score the AI parser against expected fields, with a
+  pass/fail gate and a Markdown report (REQ-91, REQ-92).
 - "Create sample event" fills a new organizer's empty dashboard with a ready-made event and 5 sample RSVPs
   (REQ-37).
 - "Copy invite link" on the owner's event page, with a locale-free invite URL that redirects to the guest's

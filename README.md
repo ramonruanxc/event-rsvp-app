@@ -4,7 +4,7 @@ Create an event, share one link, see who's coming.
 
 ## Status
 
-Phase 5 of 6 merged: abuse protection and hardening.
+Phase 5 of 7 merged: abuse protection and hardening.
 
 **Live demo:** https://event-rsvp-app-flax.vercel.app
 
@@ -32,9 +32,17 @@ Phase 5 of 6 merged: abuse protection and hardening.
 - A public demo event, seeded and kept open automatically, lets evaluators RSVP without creating anything.
 - A home page that explains the app to signed-out visitors (with a link to the demo event and to Google
   sign-in) and greets signed-in organizers with a link to their dashboard.
+- "Fill with AI" on the new-event form: describe the event in your own words (English, French or Brazilian
+  Portuguese) and the form fields are filled in automatically. Production AI is enabled once a provider key is
+  configured on the deployment; the manual form always works on its own.
 - RSVP submissions are rate-limited to 10 per 10 minutes per hashed IP address.
 - A hidden honeypot field on the RSVP form rejects automated spam submissions.
 - Every response carries `X-Frame-Options`, `Referrer-Policy` and `X-Content-Type-Options` security headers.
+
+### Evaluation
+
+The AI is measured by a 30-case quiz (`npm run eval`); results will be published in `docs/evals/` after the
+real run (Phase 7).
 
 ### Known limitations
 

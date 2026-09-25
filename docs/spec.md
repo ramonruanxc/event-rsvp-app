@@ -648,7 +648,7 @@ server started by Playwright). Production code is unchanged; only the base URL d
 
 ### REQ-43 — AI output is schema-constrained and validated field by field
 **Rules:** BR-59, BR-70
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - `aiRawOutputSchema` (zod) is `{ isEvent: boolean, name, description, date, time, timezone, location: string | null }`
   and is passed to the Anthropic API as the structured output format
@@ -662,7 +662,7 @@ server started by Playwright). Production code is unchanged; only the base URL d
 
 ### REQ-44 — Prompt: delimited input, organizer-local reference time, languages
 **Rules:** BR-55, BR-62, BR-63, BR-69
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - `buildReferenceLine(new Date("2026-09-25T02:00:00.000Z"), "America/Fortaleza")` →
   `"Today is Thursday 2026-09-24 23:00, America/Fortaleza."` (organizer's local day, not the UTC day)
@@ -678,7 +678,7 @@ server started by Playwright). Production code is unchanged; only the base URL d
 
 ### REQ-45 — AI fill result: fields, missing list and not-an-event flag
 **Rules:** BR-54, BR-55, BR-56, BR-59, BR-96
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - Given a fake model client returning `{ isEvent: true, name: "Team dinner", description: "Dinner with the team.",
   date: "2026-10-02", time: "19:00", timezone: null, location: "Mario's" }` and form timezone `"America/New_York"`
@@ -696,7 +696,7 @@ server started by Playwright). Production code is unchanged; only the base URL d
 
 ### REQ-46 — Timezone resolution priority
 **Rules:** BR-60, BR-61
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - Model timezone `"America/New_York"` (explicit in text), form `"America/Sao_Paulo"` → `timezone:
   "America/New_York"`, `timezoneFromText: true` (the UI then sets the form field to it)
@@ -706,7 +706,7 @@ server started by Playwright). Production code is unchanged; only the base URL d
 
 ### REQ-47 — AI timeout and errors
 **Rules:** BR-64, BR-65
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - Given a fake model client that never resolves and Vitest fake timers
 - `AiEventParser.parse(...)` rejects with `AiUnavailableError` once 10 000 ms have elapsed (not before 9 999 ms)
@@ -716,7 +716,7 @@ server started by Playwright). Production code is unchanged; only the base URL d
 
 ### REQ-48 — AI daily limit: 20 calls per user per UTC day
 **Rules:** BR-68, BR-89
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - Given user `"u1"`, now = `2026-09-24T23:59:00.000Z`, and a fake parser
 - Calls 1–20 of `ParseEventTextService.execute({ userId: "u1", text, timezone })` reach the parser
@@ -728,7 +728,7 @@ server started by Playwright). Production code is unchanged; only the base URL d
 
 ### REQ-49 — AI fill requires sign-in
 **Rules:** BR-67
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - `parseEventTextAction` without a session → `{ ok: false, code: "UNAUTHENTICATED" }` and the service is not called
 - The "Fill with AI" control exists only on `/[locale]/events/new`, which requires sign-in (REQ-02)
@@ -736,7 +736,7 @@ server started by Playwright). Production code is unchanged; only the base URL d
 
 ### REQ-50 — The AI never saves the event
 **Rules:** BR-58
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - `ParseEventTextService` and `AiEventParser` constructors take no `EventRepository` (checked by their types)
 - Integration: after `parseEventTextAction`-equivalent service call with a fake parser, `prisma.event.count()` is
@@ -746,7 +746,7 @@ server started by Playwright). Production code is unchanged; only the base URL d
 
 ### REQ-51 — "Fill with AI" UI
 **Rules:** BR-53, BR-57, BR-61, BR-65, BR-66, BR-89, BR-96
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - The new-event page shows a textarea "Describe your event" and a button "Fill with AI" above the manual form
 - Component: given the action resolves `{ ok: true, data: { fields: {…, timezone: "America/New_York"},
@@ -800,7 +800,7 @@ server started by Playwright). Production code is unchanged; only the base URL d
 
 ### REQ-55 — Fixed-window rate limiter
 **Rules:** BR-68, BR-79
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - `windowStart(new Date("2026-09-24T15:07:30.000Z"), 600_000)` → `2026-09-24T15:00:00.000Z`;
   `windowStart(new Date("2026-09-24T23:59:59.000Z"), 86_400_000)` → `2026-09-24T00:00:00.000Z` (UTC midnight)
@@ -915,7 +915,7 @@ These requirements are code in the repository and are TDD'd like product code. T
 
 ### REQ-91 — AI eval runner
 **Rules:** none (tooling)
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - `npm run eval -- --model claude-haiku-4-5` loads `evals/event-parser/cases.json`, runs every case through
   `AiEventParser` (real Anthropic client, given model), scores, prints a summary, writes
@@ -938,7 +938,7 @@ These requirements are code in the repository and are TDD'd like product code. T
 
 ### REQ-92 — Eval cases dataset
 **Rules:** none (tooling)
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - `evals/event-parser/cases.json` parses with `evalCaseSchema` (zod) — each case: `{ id, category, input: { text,
   timezone: string | null, now: ISO string }, expected: {...matchers} }`
