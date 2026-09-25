@@ -7,7 +7,7 @@ import { AI_TIMEOUT_MS, type AiModelClient } from './types';
 export function createAnthropicModelClient(client?: Anthropic): AiModelClient {
   let sdk = client;
   return {
-    async complete({ system, user, model }) {
+    async complete({ system, user, model, timeoutMs }) {
       sdk ??= new Anthropic();
       const response = await sdk.messages.parse(
         {
@@ -17,7 +17,7 @@ export function createAnthropicModelClient(client?: Anthropic): AiModelClient {
           messages: [{ role: 'user', content: user }],
           output_config: { format: zodOutputFormat(aiRawOutputSchema) },
         },
-        { timeout: AI_TIMEOUT_MS, maxRetries: 0 },
+        { timeout: timeoutMs ?? AI_TIMEOUT_MS, maxRetries: 0 },
       );
       if (response.parsed_output == null) throw new Error('model returned no structured output');
       return response.parsed_output;
