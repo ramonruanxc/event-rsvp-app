@@ -312,3 +312,81 @@ describe('AiEventParser — providers', () => {
     vi.useRealTimers();
   });
 });
+
+describe('AiEventParser — same result whichever provider answered', () => {
+  it('REQ-95: the same model output gives the same result whichever provider answered', async () => {
+    const direct = new AiEventParser({
+      providers: [provider('anthropic', vi.fn().mockResolvedValue(RAW), 'claude-haiku-4-5')],
+    });
+    const viaFailover = new AiEventParser({
+      providers: [
+        provider('anthropic', vi.fn().mockRejectedValue(new ProviderUnavailableError('credit')), 'claude-haiku-4-5'),
+        provider('openrouter', vi.fn().mockResolvedValue(RAW), 'openai/gpt-4o-mini'),
+      ],
+    });
+
+    const a = await direct.parse(REQUEST);
+    const b = await viaFailover.parse(REQUEST);
+
+    expect(b).toEqual(a);
+    expect(b).toEqual(EXPECTED);
+  });
+
+  it('REQ-95: a non-event answer from OpenRouter gives the non-event result', async () => {
+    const parser = new AiEventParser({
+      providers: [
+        provider(
+          'openrouter',
+          vi.fn().mockResolvedValue({
+            isEvent: false,
+            name: null,
+            description: null,
+            date: null,
+            time: null,
+            timezone: null,
+            location: null,
+          }),
+          'openai/gpt-4o-mini',
+        ),
+      ],
+    });
+
+    await expect(parser.parse(REQUEST)).resolves.toEqual({
+      fields: {
+        name: null,
+        description: null,
+        date: null,
+        time: null,
+        timezone: null,
+        location: null,
+      },
+      missing: ['name', 'description', 'date', 'time', 'timezone', 'location'],
+      timezoneFromText: false,
+      notAnEvent: true,
+    });
+  });
+
+  it('REQ-95: an OpenRouter failure gives the same error as an Anthropic failure', async () => {
+    const openrouterOnly = new AiEventParser({
+      providers: [
+        provider(
+          'openrouter',
+          vi.fn().mockRejectedValue(new ProviderUnavailableError('server')),
+          'openai/gpt-4o-mini',
+        ),
+      ],
+    });
+    const anthropicOnly = new AiEventParser({
+      providers: [
+        provider(
+          'anthropic',
+          vi.fn().mockRejectedValue(new ProviderUnavailableError('server')),
+          'claude-haiku-4-5',
+        ),
+      ],
+    });
+
+    await expect(openrouterOnly.parse(REQUEST)).rejects.toBeInstanceOf(AiUnavailableError);
+    await expect(anthropicOnly.parse(REQUEST)).rejects.toBeInstanceOf(AiUnavailableError);
+  });
+});
