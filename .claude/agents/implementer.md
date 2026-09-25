@@ -29,6 +29,10 @@ Before starting, read:
    bundled with the `.nvmrc` Node version, currently npm 10): `npx -y npm@10 ci` in a scratch clone. Local and CI npm
    can resolve optional peers differently. (Added after incident #4.)
 9. Never bypass hooks (`HUSKY=0`, `--no-verify`).
+10. Never run `npm ci` (any version) in the working directory; validation happens only in a scratch clone. After
+    **any** `npm install` in the working directory (e.g. to repair `node_modules`), run
+    `git diff --quiet package-lock.json`; if it fails, restore the validated lockfile before committing — a local
+    npm 11 install silently drops entries that CI's npm 10 requires. (Added after incident #19, a repeat of #4.)
 
 ## Batches
 The orchestrator may give you an ordered list of tasks. Execute them **in order, one at a time**, each with its own
