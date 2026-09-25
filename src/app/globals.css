@@ -672,7 +672,9 @@
   .stepper {
     display: inline-grid;
     grid-template-columns: 44px 64px 44px;
-    height: 44px;
+    /* BEND: 46px, not 44px — box-sizing: border-box means the 1px border on each
+       side would otherwise shrink the buttons' own boxes to 42px (REQ-71). */
+    height: 46px;
     border: 1px solid var(--border-input);
     border-radius: 8px;
     background: var(--surface);
