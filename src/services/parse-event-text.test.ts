@@ -146,10 +146,17 @@ describe('ParseEventTextService — failover (REQ-96)', () => {
     const parser = new AiEventParser({
       providers: [
         { name: 'anthropic', client: { complete: anthropic }, model: 'claude-haiku-4-5' },
-        { name: 'openrouter', client: { complete: openrouter }, model: 'anthropic/claude-haiku-4.5' },
+        {
+          name: 'openrouter',
+          client: { complete: openrouter },
+          model: 'anthropic/claude-haiku-4.5',
+        },
       ],
     });
-    const rateLimiter = new RateLimiter({ repo: new MemoryRateLimitRepository(createMemoryStore()), now });
+    const rateLimiter = new RateLimiter({
+      repo: new MemoryRateLimitRepository(createMemoryStore()),
+      now,
+    });
     return new ParseEventTextService({ parser, rateLimiter, now });
   };
   const call = (service: ParseEventTextService) =>

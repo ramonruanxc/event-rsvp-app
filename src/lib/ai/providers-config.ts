@@ -1,4 +1,9 @@
-import { AI_PROVIDER_NAMES, type AiModelClient, type AiProvider, type AiProviderName } from './types';
+import {
+  AI_PROVIDER_NAMES,
+  type AiModelClient,
+  type AiProvider,
+  type AiProviderName,
+} from './types';
 
 /** Environment variables as read by the provider configuration. */
 export type ProviderEnv = Readonly<Record<string, string | undefined>>;
@@ -26,7 +31,8 @@ export function parseAiProviders(value: string | undefined): AiProviderName[] {
   const names: AiProviderName[] = [];
   for (const item of value.split(',')) {
     const name = item.trim().toLowerCase() as AiProviderName;
-    if ((AI_PROVIDER_NAMES as readonly string[]).includes(name) && !names.includes(name)) names.push(name);
+    if ((AI_PROVIDER_NAMES as readonly string[]).includes(name) && !names.includes(name))
+      names.push(name);
   }
   return names;
 }

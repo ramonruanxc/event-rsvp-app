@@ -67,10 +67,14 @@ describe('buildAiProviders', () => {
         { AI_PROVIDERS: 'anthropic,openrouter', OPENROUTER_API_KEY: 'o', ANTHROPIC_API_KEY: '   ' },
         f,
       ),
-    ).toEqual([{ name: 'openrouter', client: openrouterClient, model: 'anthropic/claude-haiku-4.5' }]);
+    ).toEqual([
+      { name: 'openrouter', client: openrouterClient, model: 'anthropic/claude-haiku-4.5' },
+    ]);
     expect(
       buildAiProviders({ AI_PROVIDERS: 'anthropic,openrouter', OPENROUTER_API_KEY: 'o' }, f),
-    ).toEqual([{ name: 'openrouter', client: openrouterClient, model: 'anthropic/claude-haiku-4.5' }]);
+    ).toEqual([
+      { name: 'openrouter', client: openrouterClient, model: 'anthropic/claude-haiku-4.5' },
+    ]);
     expect(f.anthropic).not.toHaveBeenCalled();
 
     const f2 = makeFactories();

@@ -14,7 +14,9 @@ export interface OpenRouterDeps {
 
 const completionSchema = z.object({
   choices: z
-    .array(z.object({ message: z.object({ content: z.string().nullable().optional() }).optional() }))
+    .array(
+      z.object({ message: z.object({ content: z.string().nullable().optional() }).optional() }),
+    )
     .optional(),
   error: z.object({ code: z.number(), message: z.string().optional() }).optional(),
 });

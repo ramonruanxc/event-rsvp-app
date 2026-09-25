@@ -55,7 +55,10 @@ describe('createOpenRouterModelClient', () => {
     const [url, init] = callOf(fetchMock);
     expect(url).toBe('https://openrouter.ai/api/v1/chat/completions');
     expect(init.method).toBe('POST');
-    expect(init.headers).toEqual({ Authorization: 'Bearer test-key', 'Content-Type': 'application/json' });
+    expect(init.headers).toEqual({
+      Authorization: 'Bearer test-key',
+      'Content-Type': 'application/json',
+    });
     expect(init.signal).toBeInstanceOf(AbortSignal);
     expect(JSON.parse(init.body as string)).toEqual({
       model: 'openai/gpt-4o-mini',
@@ -111,12 +114,12 @@ describe('createOpenRouterModelClient', () => {
   it('REQ-94: a Markdown code fence around the JSON is removed', async () => {
     const fenced = '```json\n' + JSON.stringify(RAW) + '\n```';
     const bare = '```\n' + JSON.stringify(RAW) + '\n```';
-    await expect(client(fakeFetch(() => reply(200, completion(fenced)))).complete(REQ)).resolves.toEqual(
-      RAW,
-    );
-    await expect(client(fakeFetch(() => reply(200, completion(bare)))).complete(REQ)).resolves.toEqual(
-      RAW,
-    );
+    await expect(
+      client(fakeFetch(() => reply(200, completion(fenced)))).complete(REQ),
+    ).resolves.toEqual(RAW);
+    await expect(
+      client(fakeFetch(() => reply(200, completion(bare)))).complete(REQ),
+    ).resolves.toEqual(RAW);
   });
 
   it('REQ-88: OpenRouter outages become ProviderUnavailableError with a reason', async () => {
@@ -129,9 +132,18 @@ describe('createOpenRouterModelClient', () => {
       [() => fakeFetch(() => reply(500, { error: { code: 500, message: 'x' } })), 'server'],
       [() => fakeFetch(() => reply(502, { error: { code: 502, message: 'x' } })), 'server'],
       [() => fakeFetch(() => reply(503, { error: { code: 503, message: 'x' } })), 'server'],
-      [() => fakeFetch(() => reply(200, { error: { code: 502, message: 'upstream failed' } })), 'server'],
-      [() => fakeFetch(() => reply(200, { error: { code: 429, message: 'Rate limit exceeded' } })), 'rate-limit'],
-      [() => fakeFetch(() => reply(200, { error: { code: 403, message: 'Key is disabled' } })), 'auth'],
+      [
+        () => fakeFetch(() => reply(200, { error: { code: 502, message: 'upstream failed' } })),
+        'server',
+      ],
+      [
+        () => fakeFetch(() => reply(200, { error: { code: 429, message: 'Rate limit exceeded' } })),
+        'rate-limit',
+      ],
+      [
+        () => fakeFetch(() => reply(200, { error: { code: 403, message: 'Key is disabled' } })),
+        'auth',
+      ],
       [() => fakeFetch(() => reply(200, 'oops')), 'server'],
       [() => vi.fn().mockRejectedValue(new TypeError('fetch failed')), 'network'],
     ];

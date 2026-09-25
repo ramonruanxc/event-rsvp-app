@@ -320,7 +320,11 @@ describe('AiEventParser — same result whichever provider answered', () => {
     });
     const viaFailover = new AiEventParser({
       providers: [
-        provider('anthropic', vi.fn().mockRejectedValue(new ProviderUnavailableError('credit')), 'claude-haiku-4-5'),
+        provider(
+          'anthropic',
+          vi.fn().mockRejectedValue(new ProviderUnavailableError('credit')),
+          'claude-haiku-4-5',
+        ),
         provider('openrouter', vi.fn().mockResolvedValue(RAW), 'openai/gpt-4o-mini'),
       ],
     });
