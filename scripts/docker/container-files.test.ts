@@ -10,6 +10,24 @@ const lines = (path: string) =>
     .map((line) => line.trim())
     .filter(Boolean);
 
+/** The `db` service exactly as before Phase 9 (REQ-112: `docker compose up -d db` is unchanged). */
+const DB_SERVICE = `  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: rsvp
+      POSTGRES_PASSWORD: rsvp
+      POSTGRES_DB: rsvp
+    ports: ['5432:5432']
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./docker/init-test-db.sql:/docker-entrypoint-initdb.d/init-test-db.sql:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U rsvp']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+`;
+
 describe('app image (REQ-108, REQ-111)', () => {
   it('REQ-108: the app container starts through the start script', () => {
     expect(lines('Dockerfile').at(-1)).toBe(
@@ -40,5 +58,41 @@ describe('app image (REQ-108, REQ-111)', () => {
       [],
     );
     expect(dockerfile.filter((l) => l.includes('.env'))).toEqual([]);
+  });
+});
+
+describe('compose stack (REQ-112)', () => {
+  it('REQ-112: the app service builds the image, waits for a healthy db and publishes APP_PORT', () => {
+    const compose = lines('docker-compose.yml');
+    for (const line of [
+      'app:',
+      'build: .',
+      'init: true',
+      'condition: service_healthy',
+      "ports: ['${APP_PORT:-3000}:3000']",
+      'start_period: 60s',
+    ]) {
+      expect(compose, line).toContain(line);
+    }
+  });
+
+  it('REQ-112: .env.local is optional and the database URLs point to the db service', () => {
+    const compose = lines('docker-compose.yml');
+    for (const line of [
+      '- path: .env.local',
+      'required: false',
+      'DATABASE_URL: postgresql://rsvp:rsvp@db:5432/rsvp',
+      'DATABASE_URL_UNPOOLED: postgresql://rsvp:rsvp@db:5432/rsvp',
+      "AUTH_TRUST_HOST: 'true'",
+    ]) {
+      expect(compose, line).toContain(line);
+    }
+    expect(read('docker-compose.yml')).not.toContain('AUTH_SECRET');
+  });
+
+  it('REQ-112: docker compose up -d db still starts only the unchanged database service', () => {
+    const text = read('docker-compose.yml');
+    const db = text.slice(text.indexOf('  db:\n'), text.indexOf('  app:\n'));
+    expect(db).toBe(DB_SERVICE);
   });
 });
