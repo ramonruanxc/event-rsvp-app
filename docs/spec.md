@@ -21,6 +21,13 @@ Decided by the human on 2026-09-24 and recorded in `docs/business-rules.md`.
   fields in `missing`, no description drafted, the result says so explicitly (`notAnEvent: true`), and the UI shows
   "Couldn't find event details in that text." (`ai.notAnEvent`) instead of flagging every field. → BR-55 (amended),
   BR-96 (new). Applied in REQ-45, REQ-51, REQ-91, REQ-92.
+- **DOC-Q3** (Phase 6 wording and the header label, decided 2026-09-24) →
+  1. Returning-guest wording follows DESIGN.md: "You're going · N people" / "You're not going", actions "Change" and
+     "Cancel RSVP" → BR-35 (amended). Applied in REQ-29, REQ-31, REQ-67, REQ-70, REQ-84; C11 changed values
+     `rsvp.youreGoing`, `rsvp.cancel` (TASK-176).
+  2. The owner action keeps the BR-51 label "Copy invite link" (not DESIGN.md's "Copy link") → BR-51 unchanged.
+  3. The header language select is exempt from the visible-label rule (globe + current language name, globe only
+     below 480 px, accessible name via `aria-label`) → BR-105 (amended). Applied in REQ-68, REQ-80 (TASK-165).
 
 ---
 
@@ -465,7 +472,9 @@ server started by Playwright). Production code is unchanged; only the base URL d
 - `SubmitRsvpService.execute(...)` (new or edit) → `EventEndedError`; `CancelRsvpService.execute(...)` →
   `EventEndedError`
 - At now = `2026-10-02T23:00:00.000Z` exactly, submission is still accepted
-- E2E: the guest page of an ended event shows "This event has ended" and has no RSVP form, "Change" or "Cancel"
+- E2E: the guest page of an ended event shows "This event has ended" and has no RSVP form, "Change" or
+  "Cancel RSVP"
+**Amended (DOC-Q3.1):** the cancel action is named "Cancel RSVP" (BR-35); E2E updated in TASK-176.
 **Test level:** unit + e2e
 
 ### REQ-30 — Organizer removes any RSVP, also after the event ended
@@ -490,14 +499,18 @@ server started by Playwright). Production code is unchanged; only the base URL d
   (REQ-12), the location, "N people going" and an RSVP form with: "Your name", radio "Going" / "Not going", a number
   input labelled "How many people, including you?" (min 1, max 10, default 1; hidden when "Not going"), and
   "Send RSVP"
-- After a successful submit as "Maria" (Going, 3) → the page shows "You're going (3) · Change · Cancel"
+- After a successful submit as "Maria" (Going, 3) → the page shows "You're going · 3 people" with the buttons
+  "Change" and "Cancel RSVP" (party size 1 reads "You're going · 1 person")
 - Returning later in the same browser → the same line (no blank form)
 - "Change" shows the form prefilled with the guest's values; saving updates the line
-- "Cancel" → the line becomes "You're not going · Change"
+- "Cancel RSVP" → the line becomes "You're not going" with only the "Change" button (see DOC-Q4 under "Interface &
+  accessibility")
 - Ended event → "This event has ended", the aggregate total, and (if the browser has one) the guest's own RSVP line
-  without "Change"/"Cancel"; no form
+  without "Change"/"Cancel RSVP"; no form
 - Viewing `/fr/e/<slug>` shows UI labels in French while the event name and description are unchanged
 - Component: `RsvpForm` renders the party-size label text exactly "How many people, including you?"
+**Amended (DOC-Q3.1):** BR-35 wording "You're going · N people" / "Cancel RSVP" replaces "You're going (N)" /
+"Cancel"; unit and E2E tests updated in TASK-176.
 **Test level:** unit (component) + e2e
 
 ### Guest list visibility
@@ -899,20 +912,20 @@ TASK-172, TASK-180 and TASK-181.
 
 Phase 6 redesigns every screen following `docs/DESIGN.md` (tokens, typography, components, motion) with
 `docs/design/phase-6-mockup.html` as the visual reference. Where the mockup and DESIGN.md disagree, DESIGN.md wins;
-where DESIGN.md copy contradicts a business rule, the business rule wins until DOC-Q3 is answered (see "Pending DOC
-question" below). No new product feature beyond the theme switch and the logo/favicon.
+where DESIGN.md copy contradicts a business rule, the business rule wins. No new product feature beyond the theme
+switch and the logo/favicon.
 
-**Pending DOC question (DOC-Q3), defaults applied in this spec:**
-1. BR-35 quotes the returning-guest line as "You're going (N) · Change · Cancel"; DESIGN.md (A2) specifies
-   "You're going · 3 people" and "Cancel RSVP". **Default: BR-35 wording** (`rsvp.youreGoing` = "You're going
-   ({count})", `rsvp.cancel` = "Cancel").
-2. BR-51 names the owner action "Copy invite link"; DESIGN.md names the button "Copy link". **Default: BR-51 wording.**
-3. BR-105 requires a *visible* label on every input; DESIGN.md gives the header language select a visually hidden
-   label "Language" (globe icon + current language name; globe only below 480 px). **Default: DESIGN.md** — REQ-68
-   covers every input inside `main`; the header select keeps an accessible, visually hidden label.
+**Resolved DOC-Q3** (see "Resolved DOC questions" at the top): returning-guest copy "You're going · N people" /
+"You're not going" with "Change" and "Cancel RSVP" (BR-35 amended; C11 changed values applied by TASK-176); "Copy
+invite link" kept (BR-51); the header language select is exempt from the visible label and is named by `aria-label`
+"Language" (BR-105 amended). "You're going · N people" pluralizes N like `totals.peopleGoing` ("1 person").
 
-If the human picks the other option, only message values (C11 in `plan.md`) and the test strings listed in the
-Phase 6 "Existing tests that change" table move; no structure changes.
+**Pending DOC question (DOC-Q4), default applied in this spec:** amended BR-35 says both views come "each with
+'Change' and 'Cancel RSVP' actions", while DESIGN.md (which DOC-Q3.1 says to follow) gives the Not going panel only
+"Change", and "Cancel RSVP" on a Not going RSVP would not change anything (BR-36). **Default: DESIGN.md** — the Not
+going panel shows only "Change" (today's behavior; REQ-31, REQ-84). If the human picks the other option, TASK-176
+renders the "Cancel RSVP" button in the Not going notice too and the `REQ-31: a guest who is not going…` test flips
+its last assertion; no other change.
 
 ### REQ-62 — Dark theme by default; the choice is stored in a `theme` cookie
 **Rules:** BR-97, BR-99
@@ -987,7 +1000,7 @@ Phase 6 "Existing tests that change" table move; no structure changes.
 **Acceptance criteria:**
 - A guest answers with Tab, arrow keys and Enter only: types "Kim" in "Your name", ArrowRight / ArrowLeft move the
   answer between "Not going" and "Going", Enter on "One more person" makes the party size 2, Enter on "Send RSVP" →
-  "You're going (2)"
+  "You're going · 2 people"
 - The owner deletes with the keyboard: Enter on "Delete event" moves focus to "Keep"; Shift+Tab reaches "Delete";
   Enter → `/en/dashboard`
 - Escape inside an open inline confirmation closes it and returns focus to its trigger (REQ-72)
@@ -1002,7 +1015,10 @@ Phase 6 "Existing tests that change" table move; no structure changes.
   `aria-hidden="true"` subtree has a `<label>` (by `for` or by wrapping) with a non-zero rendered size and without the
   `sr-only` class — event form, AI panel ("Describe your event"; the example sentence stays a placeholder), RSVP form
   (the two radios are labelled by their visible segment text "Going" / "Not going"), invite link field
-- Header language select: visually hidden label "Language" (DOC-Q3 default)
+- Exception (BR-105 amended, DOC-Q3.3): the header language select (inside `banner`, outside `main`) has no
+  `<label>`; its visible content is the globe icon plus the current language name (the globe alone below 480 px)
+  and its accessible name is `aria-label="Language"` (`nav.language`; REQ-80). No input inside `main` uses this
+  exception.
 **Test level:** e2e
 
 ### REQ-69 — Form errors are announced
@@ -1012,7 +1028,10 @@ Phase 6 "Existing tests that change" table move; no structure changes.
 - A field error renders `<p id="<field id>-error" role="alert">` with an alert icon and the translated message; the
   input has `aria-invalid="true"` and its `aria-describedby` includes the error id
 - Form-level server errors, AI errors (REQ-51) and the cancel error of the guest panel render in an element with
-  `role="alert"`
+  `role="alert"` (the `Alert` primitive: alert icon + text). In the RSVP form that alert keeps the Phase 5 texts:
+  `errors.<code>` for `DUPLICATE_NAME` / `RATE_LIMITED` (REQ-26, REQ-57) and `rsvp.formRejected` ("We couldn't send
+  your RSVP. Please try again.") for a `VALIDATION_ERROR` whose `fieldErrors` has `form` (REQ-58) — never
+  "Please fix the highlighted fields."
 - Component: `RsvpForm` submitted with an empty name → an element with `role="alert"` has the text "This field is
   required."; `EventForm` submitted with an empty name (other fields valid) → same
 **Test level:** unit (component)
@@ -1023,7 +1042,7 @@ Phase 6 "Existing tests that change" table move; no structure changes.
 **Acceptance criteria:**
 - `StatusPill`: `going` = check icon + label, `declined` = x icon + label, `ended` = clock icon + label; the owner's
   guest list shows "Going" / "Declined", event pages show "Ended" (`event.endedPill`)
-- Guest confirmation: check badge + heading "You're going (3)"; not going: x icon + heading; ended notice: clock
+- Guest confirmation: check badge + heading "You're going · 3 people"; not going: x icon + heading; ended notice: clock
   icon + heading "This event has ended"
 - Copied: the button text becomes "Copied" with a check icon (REQ-79)
 - AI missing field: the word "Needed" with an alert icon next to the label, plus the hint text (REQ-51)
@@ -1133,8 +1152,8 @@ Phase 6 "Existing tests that change" table move; no structure changes.
 **Status:** todo
 **Acceptance criteria:**
 - The `banner` holds, left, the link "Event RSVP" (logo + wordmark, REQ-75); right, in this order: the language select
-  (globe icon, visually hidden label "Language", options "English", "Français", "Português (Brasil)"), the theme
-  toggle (REQ-64), then the auth area
+  (globe icon, current language name, `aria-label="Language"` and no `<label>` element — BR-105 exception, REQ-68;
+  options "English", "Français", "Português (Brasil)"), the theme toggle (REQ-64), then the auth area
 - Below 480 px wide the language select is 40 px wide (globe only; the native list still shows full names) and the
   sign-in link reads "Sign in" (`nav.signInShort`); from 480 px it reads "Sign in with Google"; it links to
   `/api/login?callbackUrl=%2F<locale>%2Fdashboard`
@@ -1196,14 +1215,19 @@ Phase 6 "Existing tests that change" table move; no structure changes.
   (linked by `aria-describedby`); a radio group named "Your answer" with "Going" (check icon) and "Not going"
   (x icon); when Going, a stepper labelled "How many people, including you?" with buttons "One less person" and
   "One more person" (disabled at 1 and at 10) and the hint "Up to 10."; "Send RSVP" primary, large, busy while sending
+- The form's alert (under the heading) is the `Alert` primitive and keeps the Phase 5 texts (REQ-69): a
+  `{ ok: false, code: "VALIDATION_ERROR", fieldErrors: { form: "invalidFormat" } }` result shows exactly "We couldn't
+  send your RSVP. Please try again." (`rsvp.formRejected`, REQ-58) with an alert icon
 - Stepper: from 3, "One more person" → 4; "One less person" twice → 2; at 1 "One less person" is disabled; at 10
   "One more person" is disabled
-- Returning guest, Going: a confirmation panel with a check badge, heading "You're going (3)", the line "Saved as
-  Maria. You can change your answer from this browser until the event starts.", "Change" (pencil) and "Cancel"
-- Not going: a neutral notice with an x icon, heading "You're not going", the saved-as line and "Change"
+- Returning guest, Going: a confirmation panel with a check badge, heading "You're going · 3 people" ("You're going ·
+  1 person" for a party of one), the line "Saved as Maria. You can change your answer from this browser until the
+  event starts.", "Change" (pencil, secondary) and "Cancel RSVP" (ghost danger)
+- Not going: a neutral notice with an x icon, heading "You're not going", the saved-as line and "Change" only
+  (DOC-Q4 default)
 - Ended: a notice with a clock icon, heading "This event has ended", "Replies are closed, so answers can no longer be
-  sent or changed." and, when the browser has an RSVP, its line ("You're going (3)") with a check (or x) icon; no
-  form, no buttons
+  sent or changed." and, when the browser has an RSVP, its line ("You're going · 3 people") with a check (or x) icon;
+  no form, no buttons
 - An ended event shows the "Ended" pill (clock icon) above its title, for guests and owner
 **Test level:** unit (component) + e2e
 

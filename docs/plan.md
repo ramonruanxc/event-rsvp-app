@@ -635,10 +635,18 @@ and plural syntax exactly):
 |---|---|---|---|---|
 | `home.demoLink` | See the demo event | Voir l'événement de démonstration | Ver o evento de demonstração | TASK-169 |
 | `totals.summary` | {going} going · {declined} declined · {people, plural, one {# person} other {# people}} | {going, plural, one {# vient} other {# viennent}} · {declined, plural, one {# décliné} other {# déclinés}} · {people, plural, one {# personne} other {# personnes}} | {going, plural, one {# confirmado} other {# confirmados}} · {declined, plural, one {# recusado} other {# recusados}} · {people, plural, one {# pessoa} other {# pessoas}} | TASK-172 |
+| `rsvp.youreGoing` | You're going · {count, plural, one {# person} other {# people}} | Vous venez · {count, plural, one {# personne} other {# personnes}} | Você vai · {count, plural, one {# pessoa} other {# pessoas}} | TASK-176 |
+| `rsvp.cancel` | Cancel RSVP | Annuler ma réponse | Cancelar confirmação | TASK-176 |
 
-Unchanged on purpose (DOC-Q3 defaults, `spec.md`): `rsvp.youreGoing` ("You're going ({count})"), `rsvp.cancel`
-("Cancel"), `event.copyLink` ("Copy invite link"). `ai.filling` and `eventForm.saving` stay; `ai.filling` becomes the
-status text while the AI works, `eventForm.saving` is no longer rendered.
+The `·` in these values is U+00B7 (MIDDLE DOT) with one plain space on each side, as in `totals.summary`; the
+apostrophe in "You're" is the straight ASCII `'`. `rsvp.youreGoing` keeps its placeholder name `count` (the panel
+already calls `t('rsvp.youreGoing', { count: rsvp.partySize })`).
+
+Unchanged on purpose: `rsvp.youreNotGoing` ("You're not going"), `rsvp.change` ("Change"), `event.copyLink` ("Copy
+invite link", BR-51, DOC-Q3.2), `errors.VALIDATION_ERROR` ("Please fix the highlighted fields."). Already in the
+catalogs since Phase 5 (TASK-143 r3) and **not** to be added again, moved or edited by any Phase 6 task:
+`rsvp.formRejected` (en "We couldn't send your RSVP. Please try again."). `ai.filling` and `eventForm.saving` stay;
+`ai.filling` becomes the status text while the AI works, `eventForm.saving` is no longer rendered.
 
 ---
 
@@ -3664,6 +3672,22 @@ Order: TASK-150 → TASK-184, then TASK-148 (README, moved here from Phase 5).
 | `e2e/events.spec.ts` | `REQ-18: the owner deletes an event` | dialog handler → click "Delete" (exact) | TASK-179 |
 | `e2e/owner.spec.ts` | `REQ-30: the owner removes an RSVP`, `REQ-34: after the event ended…` | extra click on "Remove" (exact) | TASK-180 |
 | `e2e/owner.spec.ts` | `REQ-34: the owner sees every RSVP with totals` | João's row `'Not going'` → `'Declined'` | TASK-181 |
+| `src/components/guest-rsvp-panel.test.tsx` | `REQ-31: a returning guest who is going sees "You're going (3)" with Change and Cancel` | renamed `REQ-31: a returning guest who is going sees "You're going · 3 people" with Change and Cancel RSVP`; `"You're going (3)"` → `"You're going · 3 people"`; button `'Cancel'` → `'Cancel RSVP'` | TASK-176 |
+| `src/components/guest-rsvp-panel.test.tsx` | `REQ-31: a guest who is not going sees "You're not going" and only Change` | button `'Cancel'` → `'Cancel RSVP'` (still `toBeNull()`) | TASK-176 |
+| `src/components/guest-rsvp-panel.test.tsx` | `REQ-31: Cancel calls the cancel action` | button `'Cancel'` → `'Cancel RSVP'` | TASK-176 |
+| `src/components/guest-rsvp-panel.test.tsx` | `REQ-31: an ended event shows the notice, the own status without buttons, and no form` | `"You're going (3)"` → `"You're going · 3 people"`; button `'Cancel'` → `'Cancel RSVP'` (still `toBeNull()`) | TASK-176 |
+| `e2e/rsvp.spec.ts` | `REQ-23: a guest without an account RSVPs…`, `REQ-24: the edit cookie is httpOnly…`, `REQ-31: a returning guest sees their RSVP…` (2×), `REQ-26: a second browser cannot take a name…` | `"You're going (3)"` → `"You're going · 3 people"` | TASK-176 |
+| `e2e/rsvp.spec.ts` | `REQ-31: change and cancel` | `"You're going (3)"` → `"You're going · 3 people"`; `"You're going (5)"` → `"You're going · 5 people"`; button `'Cancel'` → `'Cancel RSVP'` | TASK-176 |
+| `e2e/rsvp.spec.ts` | `REQ-29: the guest page of an ended event is read-only` | button `'Cancel'` → `'Cancel RSVP'` (still count 0) | TASK-176 |
+| `e2e/journeys.spec.ts` | `REQ-40: a visitor opens the demo…` | `"You're going (2)"` → `"You're going · 2 people"` | TASK-176 |
+| `e2e/journeys.spec.ts` | `REQ-34: organizer fills with AI, shares…` | `"You're going (3)"` → `"You're going · 3 people"` | TASK-176 |
+
+**Existing tests that must keep passing unchanged** (Phase 5 behavior; restyling must not alter it): every test in
+`src/components/rsvp-form.test.tsx`, in particular `REQ-58: a rejected honeypot shows a generic form error and keeps
+the values` (alert text exactly "We couldn't send your RSVP. Please try again."; no "Please fix the highlighted
+fields."), `REQ-26: a duplicate name shows the message and keeps the values` and `REQ-57: a rate-limited submission
+shows the message and keeps the values`. Each of them finds exactly one `role="alert"` and compares its
+`textContent`: the alert icon is an `svg` without text, so the `Alert` primitive keeps those texts exact.
 
 Expected values in this phase are derived from fixtures: e.g. RSVPs Maria GOING 3 + João NOT_GOING →
 `computeTotals` = going 1, declined 1, people 3 → "1 going · 1 declined · 3 people" (lesson #11).
@@ -3959,13 +3983,17 @@ Red reason: no `.btn` / `.confirm` rules exist yet (`transition` is `all`, no an
 **TDD exception:** none
 
 ### TASK-156 — Phase 6 message keys
-**Phase:** 6 · **Requirements:** REQ-52 · **Status:** todo · **Revision:** 1
+**Phase:** 6 · **Requirements:** REQ-52 · **Status:** todo · **Revision:** 2
 **Files:** messages/en.json, messages/fr.json, messages/pt-BR.json
 **Steps:** add every key of C11 "New keys" with its three translations. Do **not** apply the C11 "Changed values"
-(their tasks do, together with the tests that read them).
+(their tasks do, together with the tests that read them). Do not add, move or edit `rsvp.formRejected` (already
+present since Phase 5) nor any other existing key.
 **Test first:** — (the existing REQ-52 parity and non-empty tests must still pass)
-**Done when:** `npm run test:unit` passes.
+**Done when:** `npm run test:unit` passes (including `src/components/rsvp-form.test.tsx`, which reads
+`rsvp.formRejected`); `git diff` of the three catalogs shows only added lines.
 **TDD exception:** chore (catalog entries used by later tasks, lesson #9)
+- r2 — human decision DOC-Q3.1 and Phase 5 reconciliation, not a failure revision: `rsvp.formRejected` exists and
+  must stay untouched; the returning-guest values moved to C11 "Changed values" (TASK-176).
 
 ### TASK-157 — Button primitive
 **Phase:** 6 · **Requirements:** REQ-71 · **Status:** todo · **Revision:** 1
@@ -4267,14 +4295,16 @@ Stub returns `null`.
 **TDD exception:** none
 
 ### TASK-165 — Language select with a globe and a compact phone variant
-**Phase:** 6 · **Requirements:** REQ-80, REQ-78 · **Status:** todo · **Revision:** 1
+**Phase:** 6 · **Requirements:** REQ-80, REQ-78, REQ-68 · **Status:** todo · **Revision:** 2
 **Files:** src/components/locale-switcher.tsx, src/components/locale-switcher.test.tsx
-**Interface** (behavior unchanged; accessible name stays "Language" — `e2e/i18n.spec.ts` keeps passing):
+**Interface** (behavior unchanged; the accessible name stays `aria-label` "Language" exactly as today — BR-105
+exception, REQ-68; `e2e/i18n.spec.ts` keeps passing). Wrap the existing `select` and add the two icons; the `select`
+keeps its `aria-label`, gets `id="locale-select"`, and **no `<label>` element** is added:
 ```tsx
 <div className="lang">
-  <label className="sr-only" htmlFor="locale-select">{t('nav.language')}</label>
   <Icon icon={Globe} className="i-globe" />
-  <select id="locale-select" value={locale} onChange={(event) => router.replace(pathname, { locale: event.target.value })}>
+  <select id="locale-select" aria-label={t('nav.language')} value={locale}
+    onChange={(event) => router.replace(pathname, { locale: event.target.value })}>
     {/* options unchanged */}
   </select>
   <Icon icon={ChevronDown} className="i-chev" />
@@ -4282,15 +4312,17 @@ Stub returns `null`.
 ```
 The 40 px phone width comes from the TASK-155 CSS (`.lang select` below 480 px).
 **Test first** (jsdom; mock `@/i18n/navigation` as in convention 9 with `usePathname: () => '/e/abc'`):
-- `REQ-80: the language select has a visually hidden label and a decorative globe` —
-  `getByLabelText('Language')` is the `select` with value `'en'`;
-  `container.querySelector('label[for="locale-select"]')?.classList.contains('sr-only')` is `true`; the container has 2
-  `svg[aria-hidden="true"]`, one of them `svg.lucide-globe`.
+- `REQ-80: the language select is named by aria-label and has a decorative globe` —
+  `getByLabelText('Language')` is the `select` with value `'en'` and `getAttribute('aria-label')` `'Language'`;
+  `container.querySelector('label')` is `null`; the container has 2 `svg[aria-hidden="true"]`, one of them
+  `svg.lucide-globe`.
 - `REQ-80: choosing French keeps the page` — `fireEvent.change(getByLabelText('Language'), { target: { value: 'fr' } })`
   → `nav.replace` called with `('/e/abc', { locale: 'fr' })`.
-Red reason: today the select is labelled by `aria-label` (no `label` element) and has no icons.
+Red reason: today the select has no icons (the svg assertions fail).
 **Done when:** tests pass; `e2e/i18n.spec.ts` passes.
 **TDD exception:** none
+- r2 — human decision DOC-Q3.3, not a failure revision: amended BR-105 names the header select by `aria-label`, so
+  the visually hidden `<label>` was dropped.
 
 ### TASK-166 — Avatar initial and the current user
 **Phase:** 6 · **Requirements:** REQ-80 · **Status:** todo · **Revision:** 1
@@ -4687,14 +4719,18 @@ Red reason: no status line, no badge; the label switches to "Filling…".
 **TDD exception:** none
 
 ### TASK-175 — RSVP form: answer segments, stepper, hints and 44 px targets
-**Phase:** 6 · **Requirements:** REQ-84, REQ-69, REQ-71, REQ-78 · **Status:** todo · **Revision:** 1
+**Phase:** 6 · **Requirements:** REQ-84, REQ-69, REQ-71, REQ-78, REQ-58 · **Status:** todo · **Revision:** 2
 **Files:** src/components/rsvp-form.tsx, src/components/rsvp-form.test.tsx, e2e/event-page.spec.ts
-**Interface:** state, validation and submit logic unchanged; the honeypot block unchanged. Markup (mockup lines
-752–776):
+**Interface:** state, validation and submit logic unchanged; the honeypot block unchanged; the `formAlert()` helper
+(Phase 5, TASK-143 r3) and its TSDoc unchanged — it returns the `errors.<formError>` message when `formError` is set,
+else `t('rsvp.formRejected')` when `fieldErrors.form` is set, else `null`. Only the element that shows it changes: today's
+`{formAlert() && <div role="alert">{formAlert()}</div>}` becomes `{formAlert() && <Alert>{formAlert()}</Alert>}`.
+Do **not** replace it with `formError && …` (that would drop the honeypot message) and do not use
+`errors.VALIDATION_ERROR`. Markup (mockup lines 752–776):
 ```tsx
 <form className="rsvp-form" onSubmit={handleSubmit} noValidate aria-labelledby="rsvp-title">
   <h2 className="h2" id="rsvp-title">{t('rsvp.title')}</h2>
-  {formError && <Alert>{t(`errors.${formError}`)}</Alert>}
+  {formAlert() && <Alert>{formAlert()}</Alert>}
   <Field>
     <FieldLabel htmlFor="rsvp-name">{t('rsvp.name')}</FieldLabel>
     <input className="input" id="rsvp-name" autoComplete="name" value={name} onChange={(e) => setName(e.target.value)}
@@ -4723,9 +4759,17 @@ Red reason: no status line, no badge; the label switches to "Filling…".
   <Button type="submit" variant="primary" size="lg" loading={submitting}>{t('rsvp.submit')}</Button>
 </form>
 ```
-The radios keep their visible labels "Going" / "Not going" and the number input its label — existing tests unchanged.
+The radios keep their visible labels "Going" / "Not going" and the number input its label — existing tests unchanged
+(all of `rsvp-form.test.tsx`, including the Phase 5 `REQ-58: a rejected honeypot shows a generic form error and
+keeps the values`; see "Existing tests that must keep passing unchanged").
 **Test first:**
 - `rsvp-form.test.tsx` (append):
+  - `REQ-69: a form-level rejection is announced with an alert icon` — `submit` resolves
+    `{ ok: false, code: 'VALIDATION_ERROR', fieldErrors: { form: 'invalidFormat' } }`; `fillGoing('Maria', 3)`, click
+    "Send RSVP" → `const alert = await findByRole('alert')`; `alert.textContent` is exactly
+    `"We couldn't send your RSVP. Please try again."`; `alert.classList.contains('alert')` is `true`;
+    `alert.querySelector('svg[aria-hidden="true"]')` is not `null`; `queryByText('Please fix the highlighted
+    fields.')` is `null`. Red reason: today's alert is a plain `div` without the `alert` class or an icon.
   - `REQ-84: Going / Not going is a radio group named "Your answer"` — `within(getByRole('radiogroup', { name: 'Your
     answer' })).getAllByRole('radio')` has length 2; `getByLabelText('Going')` is checked.
   - `REQ-84: the stepper changes the party size and disappears when Not going` — click "One more person" →
@@ -4744,14 +4788,20 @@ The radios keep their visible labels "Going" / "Not going" and the number input 
   `page.getByLabel('Not going', { exact: true })`, `page.getByRole('button', { name: 'One less person' })`,
   `page.getByRole('button', { name: 'One more person' })`, `page.getByRole('button', { name: 'Send RSVP' })`:
   `boundingBox()` width ≥ 44 and height ≥ 44.
-**Done when:** all `rsvp-form.test.tsx` tests pass; `e2e/rsvp.spec.ts`, `e2e/journeys.spec.ts` and the new spec pass.
+**Done when:** all `rsvp-form.test.tsx` tests pass (none of the existing ones edited); `e2e/rsvp.spec.ts`,
+`e2e/journeys.spec.ts` and the new spec pass.
 **TDD exception:** none
+- r2 — Phase 5 reconciliation (TASK-143 r3 merged), not a failure revision: the alert renders `formAlert()` (keeps
+  `rsvp.formRejected`) instead of `formError`; added the form-level alert test.
 
 ### TASK-176 — Guest RSVP panel: confirmation, not going and ended notices
-**Phase:** 6 · **Requirements:** REQ-84, REQ-70, REQ-78 · **Status:** todo · **Revision:** 1
-**Files:** src/components/guest-rsvp-panel.tsx, src/components/guest-rsvp-panel.test.tsx
-**Interface:** logic unchanged except a `cancelling` state (`true` while `cancel()` runs). Markup (mockup lines
-809–821 and 852–863):
+**Phase:** 6 · **Requirements:** REQ-84, REQ-70, REQ-78, REQ-31, REQ-29 · **Status:** todo · **Revision:** 2
+**Files:** src/components/guest-rsvp-panel.tsx, src/components/guest-rsvp-panel.test.tsx, messages/en.json,
+messages/fr.json, messages/pt-BR.json, e2e/rsvp.spec.ts, e2e/journeys.spec.ts
+**Interface:** apply the C11 changed values `rsvp.youreGoing` and `rsvp.cancel` (three catalogs, values copied
+exactly from C11; no other key changes). Logic unchanged except a `cancelling` state (`true` while `cancel()` runs);
+`statusLine` keeps calling `t('rsvp.youreGoing', { count: rsvp.partySize })` / `t('rsvp.youreNotGoing')`. The Not
+going notice keeps only "Change" (DOC-Q4 default, `spec.md`). Markup (mockup lines 809–821 and 852–863):
 ```tsx
 // ended
 <div className="notice">
@@ -4792,24 +4842,34 @@ The radios keep their visible labels "Going" / "Not going" and the number input 
   </div>
 </div>
 ```
-Names unchanged: "Change", "Cancel" (DOC-Q3 default), heading texts from `statusLine` — existing tests keep passing.
-**Test first** (append to `guest-rsvp-panel.test.tsx`):
+Accessible names after this task (DOC-Q3.1): buttons "Change" and "Cancel RSVP"; headings from `statusLine`:
+"You're going · 3 people" (Maria GOING 3), "You're going · 1 person" (party of one), "You're not going".
+**Test first** — commit 1 `test(rsvp): …` (red): in `guest-rsvp-panel.test.tsx`, `e2e/rsvp.spec.ts` and
+`e2e/journeys.spec.ts` apply exactly the TASK-176 rows of "Existing tests that change" (strings and the one test
+rename; nothing else), then append to `guest-rsvp-panel.test.tsx`:
 - `REQ-84: a going guest sees the confirmation panel with a check badge and "Saved as Maria"` — Maria GOING 3, not
-  ended → `getByRole('heading', { level: 2, name: "You're going (3)" })`; `getByText('Saved as Maria. You can change
-  your answer from this browser until the event starts.')`; `container.querySelector('.check-badge svg')` has
-  `aria-hidden="true"`; `getByRole('status')` contains the heading.
+  ended → `getByRole('heading', { level: 2, name: "You're going · 3 people" })`; `getByText('Saved as Maria. You can
+  change your answer from this browser until the event starts.')`; `container.querySelector('.check-badge svg')` has
+  `aria-hidden="true"`; `getByRole('status')` contains the heading; `getByRole('button', { name: 'Cancel RSVP' })`
+  exists.
+- `REQ-84: a party of one reads "You're going · 1 person"` — `ownRsvp={{ name: 'Kim', status: 'GOING',
+  partySize: 1 }}`, not ended → `getByRole('heading', { level: 2, name: "You're going · 1 person" })` exists.
 - `REQ-70: the ended notice shows a clock icon, the closed-replies line and the own answer with an icon` — ended,
   Maria GOING 3 → `container.querySelector('.notice svg.lucide-clock')` not `null`; `getByText('Replies are closed,
   so answers can no longer be sent or changed.')`; `container.querySelector('.answer-line svg.lucide-check')` not
   `null`.
 - `REQ-78: every icon in the panel is hidden from assistive technology` — Maria GOING 3, not ended → the container has
   at least one `svg` and none without `aria-hidden="true"`.
-Red reason: the status line is a plain `<p>`, no icons, no saved-as line.
-**Done when:** all `guest-rsvp-panel.test.tsx` tests pass; `e2e/rsvp.spec.ts` passes.
+Red reason: the catalogs still say "You're going (3)" / "Cancel"; the status line is a plain `<p>`, no icons, no
+saved-as line. Commit 2 `feat(rsvp): …`: the catalog values and the markup above.
+**Done when:** all `guest-rsvp-panel.test.tsx` tests pass; `src/i18n/messages.test.ts` (REQ-52 parity) passes;
+`e2e/rsvp.spec.ts` and `e2e/journeys.spec.ts` pass; `grep -rn "You're going (" src e2e` finds nothing.
 **TDD exception:** none
+- r2 — human decision DOC-Q3.1, not a failure revision: "You're going · N people" and "Cancel RSVP" (C11 changed
+  values applied here, with the existing tests that read them); Not going keeps only "Change" (DOC-Q4 default).
 
 ### TASK-177 — Event page layout, head and "Ended" pill (375 px)
-**Phase:** 6 · **Requirements:** REQ-73, REQ-84, REQ-85, REQ-70 · **Status:** todo · **Revision:** 1
+**Phase:** 6 · **Requirements:** REQ-73, REQ-84, REQ-85, REQ-70 · **Status:** todo · **Revision:** 2
 **Files:** src/app/[locale]/e/[slug]/page.tsx, src/components/event-details.tsx, e2e/event-page.spec.ts
 **Interface:** `EventDetailsProps` gains `ended: boolean`. `EventDetails` (mockup lines 736–748 and 839):
 ```tsx
@@ -4853,7 +4913,7 @@ Page:
   `name: 'Supercalifragilisticexpialidociousneighbourhoodgettogether2026'` and
   `location: 'https://maps.example.com/riverside-park/north-entrance/picnic-area-7'`; `/en/e/<slug>` →
   `await page.evaluate(() => document.documentElement.scrollWidth)` ≤ 375; fill "Your name" with "Maria", click "Send
-  RSVP", `getByText("You're going (1)")` visible → scroll width ≤ 375 again.
+  RSVP", `getByText("You're going · 1 person")` visible → scroll width ≤ 375 again.
 - `REQ-84: an ended event shows the "Ended" pill with a clock icon` — event with
   `startsAt: new Date('2020-01-01T19:00:00Z')`, `/en/e/<slug>` → `page.locator('.pill-ended')` has text `'Ended'` and
   `page.locator('.pill-ended svg.lucide-clock')` has `aria-hidden="true"`.
@@ -4861,6 +4921,7 @@ Red reason: the unstyled `h1` overflows at 375 px; no pill exists.
 **Done when:** tests pass; `e2e/share.spec.ts`, `e2e/owner.spec.ts`, `e2e/rsvp.spec.ts`, `e2e/security.spec.ts`,
 `e2e/journeys.spec.ts` pass.
 **TDD exception:** none
+- r2 — human decision DOC-Q3.1, not a failure revision: confirmation text "You're going · 1 person".
 
 ### TASK-178 — Invite link field with "Copied" and a live announcement
 **Phase:** 6 · **Requirements:** REQ-79, REQ-85, REQ-70, REQ-38 · **Status:** todo · **Revision:** 1
@@ -5001,7 +5062,7 @@ Red reason: the response is plain text "Not going" and the table does not stack.
 **TDD exception:** none
 
 ### TASK-182 — Keyboard and focus verification
-**Phase:** 6 · **Requirements:** REQ-66, REQ-67 · **Status:** todo · **Revision:** 1
+**Phase:** 6 · **Requirements:** REQ-66, REQ-67 · **Status:** todo · **Revision:** 2
 **Files:** e2e/helpers/keyboard.ts, e2e/a11y.spec.ts
 **Interface:**
 ```ts
@@ -5018,7 +5079,7 @@ computed style of `nextElementSibling` instead; it records `outerHTML.slice(0, 8
   `press('ArrowRight')` → `getByLabel('Not going', { exact: true })` checked; `press('ArrowLeft')` →
   `getByLabel('Going', { exact: true })` checked; `tabTo(page, 'button[aria-label="One more person"]')`,
   `press('Enter')` → the party size input has value `'2'`; `tabTo(page, 'button[type="submit"]')`, `press('Enter')`
-  → `getByText("You're going (2)")` visible.
+  → `getByText("You're going · 2 people")` visible.
 - `REQ-67: the owner deletes an event with the keyboard only` — signed-in owner, event without RSVPs;
   `tabTo(page, 'button[aria-expanded="false"]')` (the "Delete event" trigger), `press('Enter')` → the "Keep" button
   is focused; `press('Shift+Tab')` → `getByRole('button', { name: 'Delete', exact: true })` focused;
@@ -5031,6 +5092,7 @@ computed style of `nextElementSibling` instead; it records `outerHTML.slice(0, 8
   `rings.length` > 5 and `rings.filter((r) => r.style !== 'solid' || r.width !== '2px')` equals `[]`.
 **Done when:** tests pass (fix CSS/markup, not tests — Phase 6 rule 7).
 **TDD exception:** none (characterization test, convention 13)
+- r2 — human decision DOC-Q3.1, not a failure revision: confirmation text "You're going · 2 people".
 
 ### TASK-183 — Labels, hidden icons and target sizes verification
 **Phase:** 6 · **Requirements:** REQ-68, REQ-71, REQ-78 · **Status:** todo · **Revision:** 1
@@ -5052,12 +5114,12 @@ same page after RSVPing "Maria" (confirmation), the owner page with one RSVP, `/
 **TDD exception:** none (characterization test, convention 13)
 
 ### TASK-184 — French layout verification
-**Phase:** 6 · **Requirements:** REQ-77 · **Status:** todo · **Revision:** 1
+**Phase:** 6 · **Requirements:** REQ-77 · **Status:** todo · **Revision:** 2
 **Files:** e2e/i18n-layout.spec.ts
 **Test first (characterization test):** `REQ-77: French pages have no clipped text and no horizontal scrolling` — for
 each width in `[375, 1280]` (`page.setViewportSize({ width, height: 800 })`): `/fr` signed out; `/fr/e/<slug>` of
 an open event as a guest (form), then after filling "Votre nom" with "Maria" and clicking "Envoyer la réponse" →
-"Vous venez (1)" visible (confirmation); signed in as the owner of an event with RSVPs Maria GOING 3 and João
+"Vous venez · 1 personne" visible (confirmation); signed in as the owner of an event with RSVPs Maria GOING 3 and João
 NOT_GOING: `/fr/e/<slug>` (owner), `/fr/dashboard`, `/fr/events/new`. On each, `page.evaluate` returns problems:
 `"page scrolls horizontally"` when `document.documentElement.scrollWidth > document.documentElement.clientWidth`,
 plus one entry per element matching `.btn, .pill, .seg span, .label, .brand` (not inside `[aria-hidden="true"]`,
@@ -5065,6 +5127,7 @@ with at least one client rect) whose `scrollWidth > clientWidth + 1` or `scrollH
 (`className: "text"`); the list equals `[]` for every page and width.
 **Done when:** test passes (fix CSS, e.g. allow wrapping; never shorten copy or change the test).
 **TDD exception:** none (characterization test, convention 13)
+- r2 — human decision DOC-Q3.1, not a failure revision: confirmation text "Vous venez · 1 personne".
 
 ### TASK-148 — README
 **Phase:** 6 · **Requirements:** — · **Status:** todo · **Revision:** 2
