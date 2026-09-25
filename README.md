@@ -4,9 +4,11 @@ Create an event, share one link, see who's coming.
 
 ## Status
 
-Phase 2 of 6 merged: guest RSVP flow.
+Phase 3 of 6 merged: sharing, calendar export and demo.
 
 **Live demo:** https://event-rsvp-app-flax.vercel.app
+
+**Demo event (no sign-in needed):** https://event-rsvp-app-flax.vercel.app/en/e/demoPicnic
 
 ### Features so far
 
@@ -24,11 +26,26 @@ Phase 2 of 6 merged: guest RSVP flow.
 - The guest page never exposes other guests' names — only the visitor's own RSVP and the event totals.
 - Organizers see every RSVP on their event's guest list with totals, and can remove any RSVP, including after
   the event has ended.
+- "Create sample event" fills a new organizer's empty dashboard with a ready-made event and 5 sample RSVPs.
+- "Copy invite link" on the owner's event page copies a locale-free link that opens in the guest's own language.
+- "Add to calendar" downloads a standard .ics file from the guest and owner event pages, no sign-in required.
+- A public demo event, seeded and kept open automatically, lets evaluators RSVP without creating anything.
+- A home page that explains the app to signed-out visitors (with a link to the demo event and to Google
+  sign-in) and greets signed-in organizers with a link to their dashboard.
 
 ### Known limitations
 
 - Google sign-in runs in Testing mode — evaluators' Google accounts are added as test users; guests never need
   to sign in.
+
+## 60-second walkthrough
+
+1. Open the [demo event](https://event-rsvp-app-flax.vercel.app/en/e/demoPicnic) and RSVP as a guest — no sign-in
+   required.
+2. Sign in with Google, go to your dashboard, click "Create sample event" and see the seeded guest list.
+3. Create your own event, copy its invite link, open the link in a private/incognito window and RSVP there.
+
+Google sign-in requires the evaluator's Google account to be added as a test user (see Known limitations above).
 
 ## Run locally
 
