@@ -64,7 +64,10 @@ describe('RegisterForm', () => {
     const { fill, submit, navigate } = setup({ ok: true, data: { redirectTo: '/en/dashboard' } });
     fill(typed);
     await waitFor(() => expect(navigate).toHaveBeenCalledWith('/en/dashboard'));
-    expect(submit).toHaveBeenCalledWith(typed, '/en/dashboard');
+    // An <input type="email"> strips leading and trailing whitespace on every value assignment (HTML value
+    // sanitization, in jsdom and in browsers), so the form only ever holds 'Ana@Example.com'. The case is kept:
+    // the action lower-cases it on the server.
+    expect(submit).toHaveBeenCalledWith({ ...typed, email: 'Ana@Example.com' }, '/en/dashboard');
   });
 
   it('REQ-117: refusals and the rate limit show their message and keep the typed values', async () => {
