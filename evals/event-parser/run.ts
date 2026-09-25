@@ -42,7 +42,9 @@ async function main(): Promise<void> {
   const raw = JSON.parse(readFileSync(casesPath, 'utf8'));
   const cases = evalCasesSchema.parse(raw);
 
-  const parser = new AiEventParser({ client: createAnthropicModelClient(), model });
+  const parser = new AiEventParser({
+    providers: [{ name: 'anthropic', client: createAnthropicModelClient(), model }],
+  });
 
   const results: CaseResult[] = [];
   for (const evalCase of cases) {

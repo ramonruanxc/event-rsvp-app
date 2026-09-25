@@ -55,8 +55,13 @@ export function getServices(): Services {
       exportEventIcs: new ExportEventIcsService({ events, now }),
       parseEventText: new ParseEventTextService({
         parser: new AiEventParser({
-          client: createAnthropicModelClient(),
-          model: process.env.AI_MODEL ?? 'claude-haiku-4-5',
+          providers: [
+            {
+              name: 'anthropic',
+              client: createAnthropicModelClient(),
+              model: process.env.AI_MODEL ?? 'claude-haiku-4-5',
+            },
+          ],
         }),
         rateLimiter,
         now,

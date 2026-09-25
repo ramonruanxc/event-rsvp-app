@@ -14,7 +14,9 @@ describe('AiEventParser', () => {
       timezone: null,
       location: "Mario's",
     });
-    const parser = new AiEventParser({ client: { complete }, model: 'claude-haiku-4-5' });
+    const parser = new AiEventParser({
+      providers: [{ name: 'anthropic', client: { complete }, model: 'claude-haiku-4-5' }],
+    });
 
     const result = await parser.parse({
       text: "Team dinner next Friday 7pm at Mario's",
@@ -47,7 +49,9 @@ describe('AiEventParser', () => {
       timezone: null,
       location: null,
     });
-    const parser = new AiEventParser({ client: { complete }, model: 'claude-haiku-4-5' });
+    const parser = new AiEventParser({
+      providers: [{ name: 'anthropic', client: { complete }, model: 'claude-haiku-4-5' }],
+    });
 
     await parser.parse({
       text: 'Dinner',
@@ -64,7 +68,9 @@ describe('AiEventParser', () => {
 
   it('REQ-47: a client error becomes AiUnavailableError', async () => {
     const complete = vi.fn().mockRejectedValue(new Error('boom'));
-    const parser = new AiEventParser({ client: { complete }, model: 'claude-haiku-4-5' });
+    const parser = new AiEventParser({
+      providers: [{ name: 'anthropic', client: { complete }, model: 'claude-haiku-4-5' }],
+    });
 
     await expect(
       parser.parse({ text: 'Dinner', formTimezone: null, now: new Date() }),
@@ -74,7 +80,9 @@ describe('AiEventParser', () => {
   it('REQ-47: no answer within 10 seconds becomes AiUnavailableError', async () => {
     vi.useFakeTimers();
     const complete = vi.fn().mockReturnValue(new Promise(() => {}));
-    const parser = new AiEventParser({ client: { complete }, model: 'claude-haiku-4-5' });
+    const parser = new AiEventParser({
+      providers: [{ name: 'anthropic', client: { complete }, model: 'claude-haiku-4-5' }],
+    });
 
     const assertion = expect(
       parser.parse({ text: 'Dinner', formTimezone: null, now: new Date() }),

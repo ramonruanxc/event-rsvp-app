@@ -55,4 +55,4 @@ new ParseEventTextService({
   now: () => new Date(),
 });
 // @ts-expect-error AiEventParser takes no EventRepository
-new AiEventParser({ events: {} as EventRepository, client: { complete: vi.fn() }, model: 'm' });
+new AiEventParser({ events: {} as EventRepository, providers: [] });
