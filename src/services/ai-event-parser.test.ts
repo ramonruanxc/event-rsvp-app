@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AiUnavailableError } from '@/domain/errors';
 import { InvalidModelOutputError, ProviderUnavailableError } from '@/lib/ai/errors';
 import { SYSTEM_PROMPT } from '@/lib/ai/prompt';
@@ -91,6 +91,7 @@ describe('AiEventParser', () => {
     });
     const parser = new AiEventParser({
       providers: [{ name: 'anthropic', client: { complete }, model: 'claude-haiku-4-5' }],
+      clock: () => 0,
     });
 
     await parser.parse({
@@ -103,6 +104,7 @@ describe('AiEventParser', () => {
       system: SYSTEM_PROMPT,
       user: expect.stringContaining('<event_text>'),
       model: 'claude-haiku-4-5',
+      timeoutMs: 10_000,
     });
   });
 
@@ -134,6 +136,12 @@ describe('AiEventParser', () => {
 });
 
 describe('AiEventParser — providers', () => {
+  let t = 0;
+  const clock = () => t;
+  beforeEach(() => {
+    t = 0;
+  });
+
   it('REQ-88: when the first provider is down, the next provider answers', async () => {
     const anthropic = vi.fn().mockRejectedValue(new ProviderUnavailableError('server'));
     const openrouter = vi.fn().mockResolvedValue(RAW);
@@ -235,5 +243,72 @@ describe('AiEventParser — providers', () => {
       await expect(parser.parse(REQUEST)).rejects.toBeInstanceOf(AiUnavailableError);
       expect(openrouter).not.toHaveBeenCalled();
     }
+  });
+
+  it('REQ-88: the next provider only gets the time left in the budget', async () => {
+    const anthropic = vi.fn(async () => {
+      t = 3_000;
+      throw new ProviderUnavailableError('rate-limit');
+    });
+    const openrouter = vi.fn().mockResolvedValue(RAW);
+    const parser = new AiEventParser({
+      providers: [
+        provider('anthropic', anthropic, 'claude-haiku-4-5'),
+        provider('openrouter', openrouter, 'anthropic/claude-haiku-4.5'),
+      ],
+      clock,
+    });
+
+    await expect(parser.parse(REQUEST)).resolves.toEqual(EXPECTED);
+    expect(anthropic).toHaveBeenCalledWith(expect.objectContaining({ timeoutMs: 10_000 }));
+    expect(openrouter).toHaveBeenCalledWith(expect.objectContaining({ timeoutMs: 7_000 }));
+  });
+
+  it('REQ-88: no provider is tried with less than one second left', async () => {
+    const anthropic1 = vi.fn(async () => {
+      t = 9_001;
+      throw new ProviderUnavailableError('server');
+    });
+    const openrouter1 = vi.fn().mockResolvedValue(RAW);
+    const parser1 = new AiEventParser({
+      providers: [
+        provider('anthropic', anthropic1, 'claude-haiku-4-5'),
+        provider('openrouter', openrouter1, 'anthropic/claude-haiku-4.5'),
+      ],
+      clock,
+    });
+    await expect(parser1.parse(REQUEST)).rejects.toBeInstanceOf(AiUnavailableError);
+    expect(openrouter1).not.toHaveBeenCalled();
+
+    t = 0;
+    const anthropic2 = vi.fn(async () => {
+      t = 9_000;
+      throw new ProviderUnavailableError('server');
+    });
+    const openrouter2 = vi.fn().mockResolvedValue(RAW);
+    const parser2 = new AiEventParser({
+      providers: [
+        provider('anthropic', anthropic2, 'claude-haiku-4-5'),
+        provider('openrouter', openrouter2, 'anthropic/claude-haiku-4.5'),
+      ],
+      clock,
+    });
+    await expect(parser2.parse(REQUEST)).resolves.toEqual(EXPECTED);
+    expect(openrouter2).toHaveBeenCalledWith(expect.objectContaining({ timeoutMs: 1_000 }));
+  });
+
+  it('REQ-88: a provider that never answers uses the whole budget', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] });
+    const anthropic = vi.fn().mockReturnValue(new Promise(() => {}));
+    const openrouter = vi.fn().mockResolvedValue(RAW);
+    const parser = new AiEventParser({
+      providers: [provider('anthropic', anthropic, 'm1'), provider('openrouter', openrouter, 'm2')],
+    });
+
+    const assertion = expect(parser.parse(REQUEST)).rejects.toBeInstanceOf(AiUnavailableError);
+    await vi.advanceTimersByTimeAsync(10_000);
+    await assertion;
+    expect(openrouter).not.toHaveBeenCalled();
+    vi.useRealTimers();
   });
 });
