@@ -17,6 +17,8 @@ import { ParseEventTextService } from '@/services/parse-event-text';
 import { AiEventParser } from '@/services/ai-event-parser';
 import { PrismaRateLimitRepository } from '@/repositories/prisma/prisma-rate-limit-repository';
 import { createAnthropicModelClient } from '@/lib/ai/anthropic-model-client';
+import { createOpenRouterModelClient } from '@/lib/ai/openrouter-model-client';
+import { buildAiProviders } from '@/lib/ai/providers-config';
 
 /** The application's Prisma-backed services, built once per process. */
 export interface Services {
@@ -55,13 +57,10 @@ export function getServices(): Services {
       exportEventIcs: new ExportEventIcsService({ events, now }),
       parseEventText: new ParseEventTextService({
         parser: new AiEventParser({
-          providers: [
-            {
-              name: 'anthropic',
-              client: createAnthropicModelClient(),
-              model: process.env.AI_MODEL ?? 'claude-haiku-4-5',
-            },
-          ],
+          providers: buildAiProviders(process.env, {
+            anthropic: () => createAnthropicModelClient(),
+            openrouter: () => createOpenRouterModelClient(),
+          }),
         }),
         rateLimiter,
         now,
