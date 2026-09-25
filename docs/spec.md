@@ -1560,7 +1560,7 @@ variable, and the stack answers the three smoke checks of REQ-113.
 
 ### REQ-108 — The app container migrates, seeds, then serves, and never serves after a failed step
 **Rules:** BR-127, BR-128, BR-129
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - The image command is `node --import tsx scripts/docker/start.ts`. The last line of `Dockerfile` is exactly
   `CMD ["node", "--import", "tsx", "scripts/docker/start.ts"]`
@@ -1577,7 +1577,7 @@ variable, and the stack answers the three smoke checks of REQ-113.
 
 ### REQ-109 — AUTH_SECRET is generated at start when absent, and kept when supplied
 **Rules:** BR-133, BR-134, BR-138
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - `withAuthSecret(env, generate)` (C14) handles two cases:
   - `AUTH_SECRET` is missing, `''` or only spaces (a copied `.env.example` has `AUTH_SECRET=`). It returns
@@ -1598,7 +1598,7 @@ variable, and the stack answers the three smoke checks of REQ-113.
 
 ### REQ-110 — The demo seed converges on repeated container starts
 **Rules:** BR-129, BR-130
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - The container seeds with `prisma db seed` (`tsx prisma/seed.ts` → `seedDemo`, REQ-40). This needs no code change,
   because the seed is already idempotent (REQ-40: "running the seed twice changes nothing")
@@ -1613,7 +1613,7 @@ variable, and the stack answers the three smoke checks of REQ-113.
 
 ### REQ-111 — App image: Node 22, full build, no secrets inside
 **Rules:** BR-139, BR-140, BR-144
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - The first line of `Dockerfile` is `FROM node:22-bookworm-slim`. This image has Node 22 with npm 10, the same major
   versions as CI's `node-version: 22` (checked on 2026-09-25: Node 22.23.3, npm 10.9.9). `openssl` is installed for
@@ -1639,7 +1639,7 @@ variable, and the stack answers the three smoke checks of REQ-113.
 
 ### REQ-112 — Compose stack: app service, host port, optional `.env.local`, database-only target
 **Rules:** BR-127, BR-131, BR-132, BR-133, BR-138, BR-141
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - The `db` service of `docker-compose.yml` stays exactly as it is today. A new `app` service has:
   - `build: .` and `init: true`
@@ -1663,7 +1663,7 @@ variable, and the stack answers the three smoke checks of REQ-113.
 
 ### REQ-113 — Container smoke check and its non-required CI job
 **Rules:** BR-142, BR-143, BR-135, BR-131, BR-132
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - `npx tsx scripts/docker/smoke-cli.ts` sends three requests in order to `http://localhost:<APP_PORT, default 3000>`
   (a blank `APP_PORT` counts as unset). It does not follow redirects:

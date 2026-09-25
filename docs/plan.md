@@ -8565,7 +8565,7 @@ changes.
 keep passing unchanged, in particular `scripts/secrets-hygiene.test.ts`: the new CI job mentions no provider key.
 
 ### TASK-239 — Start plan contracts and AUTH_SECRET generation
-**Phase:** 9 · **Requirements:** REQ-109 · **Status:** todo · **Revision:** 1
+**Phase:** 9 · **Requirements:** REQ-109 · **Status:** done · **Revision:** 1
 **Files:** scripts/docker/start-plan.ts, scripts/docker/start-plan.test.ts
 **Interface:** `export function withAuthSecret(env: Env, generate: () => string): { env: Env; generated: boolean }`
 **Steps (red commit):** create `scripts/docker/start-plan.ts` with every C14 symbol of that file, with its TSDoc from
@@ -8622,7 +8622,7 @@ export function withAuthSecret(env: Env, generate: () => string): { env: Env; ge
 **TDD exception:** none
 
 ### TASK-240 — Start steps run in order and stop at the first failure
-**Phase:** 9 · **Requirements:** REQ-108, REQ-109 · **Status:** todo · **Revision:** 1
+**Phase:** 9 · **Requirements:** REQ-108, REQ-109 · **Status:** done · **Revision:** 1
 **Files:** scripts/docker/start-plan.ts, scripts/docker/start-plan.test.ts
 **Interface:** `export async function runStart(deps: StartDeps): Promise<number>` (the stub exists since TASK-239)
 **Test first** (same test file). First, change the import to
@@ -8714,7 +8714,7 @@ and `npm run lint` pass.
 **TDD exception:** none
 
 ### TASK-241 — Repeated seeding converges (characterization)
-**Phase:** 9 · **Requirements:** REQ-110 · **Status:** todo · **Revision:** 1
+**Phase:** 9 · **Requirements:** REQ-110 · **Status:** done · **Revision:** 1
 **Files:** src/lib/demo-seed.int.test.ts
 **Test** (characterization: the behavior has existed since REQ-40, so this test passes at once). Add
 `import { SAMPLE_GUESTS } from '@/domain/sample';` above the `./demo-seed` import, and add this last test inside
@@ -8743,7 +8743,7 @@ Commit `test(seed): repeated container starts converge (characterization)`.
 Mention it in the PR notes.
 
 ### TASK-242 — Smoke check script
-**Phase:** 9 · **Requirements:** REQ-113 · **Status:** todo · **Revision:** 1
+**Phase:** 9 · **Requirements:** REQ-113 · **Status:** done · **Revision:** 1
 **Files:** scripts/docker/smoke.ts, scripts/docker/smoke.test.ts, scripts/docker/smoke-cli.ts
 **Interface:** C14 `smoke.ts`.
 **Steps (red commit):** create `scripts/docker/smoke.ts` with `SMOKE_SLUG` and `SmokeCheck` as in C14, and these
@@ -8902,7 +8902,7 @@ void runSmoke(baseUrl, fetch).then(({ ok, lines }) => {
 **TDD exception:** none (the CLI is a thin wrapper; the stack run in TASK-244 exercises it)
 
 ### TASK-243 — App image: Dockerfile, .dockerignore and start entrypoint
-**Phase:** 9 · **Requirements:** REQ-111, REQ-108 · **Status:** todo · **Revision:** 1
+**Phase:** 9 · **Requirements:** REQ-111, REQ-108 · **Status:** done · **Revision:** 1
 **Files:** scripts/docker/container-files.test.ts, Dockerfile, .dockerignore, scripts/docker/start.ts
 **Test first** (new file `scripts/docker/container-files.test.ts`; vitest runs from the repository root):
 ```ts
@@ -9049,7 +9049,7 @@ the expected red, because the files do not exist yet. Commit `test(docker): app 
 compose run in TASK-244 and the CI job (TASK-245) exercise it.
 
 ### TASK-244 — Compose app service
-**Phase:** 9 · **Requirements:** REQ-112, REQ-108, REQ-110 · **Status:** todo · **Revision:** 1
+**Phase:** 9 · **Requirements:** REQ-112, REQ-108, REQ-110 · **Status:** done · **Revision:** 1
 **Files:** scripts/docker/container-files.test.ts, docker-compose.yml
 **Test first** (same test file). Add this constant after the `lines` helper:
 ```ts
@@ -9177,7 +9177,7 @@ Bash:
 **TDD exception:** none
 
 ### TASK-245 — CI job `container-smoke`
-**Phase:** 9 · **Requirements:** REQ-113 · **Status:** todo · **Revision:** 1
+**Phase:** 9 · **Requirements:** REQ-113 · **Status:** done · **Revision:** 1
 **Files:** scripts/docker/container-files.test.ts, .github/workflows/ci.yml
 **Test first** (same test file; add at the end):
 ```ts
@@ -9241,7 +9241,7 @@ Red: the job list lacks `container-smoke`. Commit `test(ci): container smoke job
 **TDD exception:** none
 
 ### TASK-246 — README: one-command run first, Node path for development, database-only for tests
-**Phase:** 9 · **Requirements:** REQ-112, REQ-109, REQ-113 · **Status:** todo · **Revision:** 1
+**Phase:** 9 · **Requirements:** REQ-112, REQ-109, REQ-113 · **Status:** done · **Revision:** 1
 **Files:** README.md
 **Steps:**
 1. In `README.md`, replace everything from the line `## Run locally` up to (not including) the line `## Tests` with

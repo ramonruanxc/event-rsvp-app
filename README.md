@@ -48,6 +48,8 @@ Create an event, share one link, see who's coming.
   anything.
 - **Dark/light theme with WCAG 2.2 AA checks** — dark theme by default, switchable from the header; automated
   contrast and focus-ring checks guard both themes.
+- **One-command local run** — `docker compose up --build` builds and serves the whole app (Postgres + the app,
+  migrated and seeded); Node is not required and no secret is baked into the image.
 
 ### Security and abuse protection
 
@@ -105,6 +107,9 @@ taken, pick another host port: `APP_PORT=3100 docker compose up --build` (PowerS
   database URLs always point to the compose database. Secrets are read when the container starts and are never
   baked into the image.
 - Stop with `Ctrl+C` or `docker compose down`; `docker compose down -v` also deletes the database.
+
+This path (`docker compose up --build`, then the smoke check below) was run end to end by the implementer agent on
+2026-09-25: image build, migrate, seed, and all three smoke checks green on the first attempt.
 
 ### Development (Node)
 
@@ -246,5 +251,8 @@ active work is **3h 30m**.
 | 2 — Pipeline bootstrap + spec | 1h 14m | 0h 39m |
 | 4 — Execution, review, merges | 11h 36m | 7h 30m |
 | 6 — Ship | 0h 07m | 0h 07m |
+
+Post-delivery, after the timer above closed: Phase 9 (containerize, amendment A5) ran 2026-09-25 14:02–14:45,
+agent-only, no human task. Human active time is unchanged.
 
 Full breakdown, including per-phase agent runs and every pause: [docs/timelog.md](docs/timelog.md).

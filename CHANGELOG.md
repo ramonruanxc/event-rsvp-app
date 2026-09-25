@@ -8,6 +8,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- One-command local run: `docker compose up --build` builds a Node 22 image, starts Postgres and the app, and the
+  app container migrates, seeds and serves in order, stopping without serving if any step fails (REQ-108, REQ-111,
+  REQ-112).
+- `AUTH_SECRET` is generated at container start when `.env.local` does not supply one, so the public side and RSVP
+  submission work without any configuration (REQ-109).
+- Container smoke check (`npx tsx scripts/docker/smoke-cli.ts`) and a non-required CI job `container-smoke` that
+  runs the compose stack and checks the home page, the demo event page and its `.ics` download (REQ-113).
+
+### Changed
+
+- README leads with the one-command Docker path; the Node development path and `docker compose up -d db`
+  (database-only, for tests) follow it (REQ-112, REQ-109, REQ-113).
+
+### Added
+
 - `OPENROUTER_REASONING_EFFORT` setting (default `low`, `omit` sends no reasoning parameter), read fresh on every
   OpenRouter call, like the key (REQ-99; cites BR-64, unchanged).
 - Harder eval gate: each case runs 3 times and passes only if every answered run passes; availability and p95
