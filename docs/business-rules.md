@@ -12,7 +12,7 @@
 
 | Term | Definition |
 |---|---|
-| **Organizer** | A user signed in with Google. Creates and owns events; manages only the events they own. |
+| **Organizer** | A user signed in with Google or with a registered email and password (amendment A6). Creates and owns events; manages only the events they own. |
 | **Guest** | An anonymous person, without an account, who submits an RSVP for an event through its invite link. |
 | **Role** | Not a stored attribute. Contextual per event: the event's owner is its Organizer; everyone else is a Guest for that event. |
 | **Event** | The entity an Organizer creates: name, description, date/time, timezone, optional location, unique slug. |
@@ -30,6 +30,9 @@
 | **Theme** | The application's dark or light visual mode; user-selectable from the header and persisted across visits. |
 | **Reduced motion** | An operating-system-level user preference (`prefers-reduced-motion`) indicating that animated transitions should be minimized. |
 | **Target size** | The clickable or tappable area of an interactive control, measured in pixels. |
+| **Password account** | A user account that has a password set (via registration or via the Account page), allowing sign-in with email and password in addition to any linked Google identity. |
+| **Google-only account** | A user account with a linked Google identity but no password set. |
+| **Account linking** | The process by which a single user account becomes reachable by both Google sign-in and email/password sign-in: either by a user setting a password on their Google-only account (Account page), or by a user signing in with Google using the email of an existing password account. |
 
 ---
 
@@ -38,9 +41,11 @@
 ### Identity & roles
 
 #### BR-01 — Organizer authentication method
-**Rule:** An Organizer signs in with Google.
-**Rationale:** Defines the only supported identity provider for organizers.
+**Rule:** An Organizer signs in with Google, or with an email and password registered through the app's Register
+page.
+**Rationale:** Defines the supported identity methods for organizers.
 **Source:** design brief §2 "Actors and roles"
+**Amended:** 2026-09-25 — design brief §6 amendment A6 (email and password sign-in alongside Google).
 
 #### BR-02 — Guest requires no account
 **Rule:** A Guest RSVPs without creating an account or signing in.
@@ -54,8 +59,10 @@
 
 #### BR-95 — Signed-out access to organizer-only routes
 **Rule:** A signed-out visitor requesting an organizer-only route (e.g. `/dashboard`, `/events/new`) is redirected
-to Google sign-in, and returned to the originally requested page after signing in.
+to the sign-in page (offering Google and email/password sign-in, per BR-154), and returned to the originally
+requested page after signing in.
 **Source:** Human decision 2026-09-24 (open question 8)
+**Amended:** 2026-09-25 — design brief §6 amendment A6: the redirect target is no longer Google-only.
 
 ---
 
@@ -336,8 +343,11 @@ browser timezone, and is pre-populated with 5 fictional RSVPs.
 **Source:** design brief §2 "Organizer dashboard"
 
 #### BR-52 — Signed-out home page content
-**Rule:** The signed-out home page is a single screen containing: an explanation of what the app does, a "Sign in with Google" action, and a link to a public (seeded) demo event.
+**Rule:** The signed-out home page is a single screen containing: an explanation of what the app does, a sign-in
+action leading to the sign-in page (which offers Google and email/password sign-in, per BR-154), and a link to a
+public (seeded) demo event.
 **Source:** design brief §2 "Home (signed out)"
+**Amended:** 2026-09-25 — design brief §6 amendment A6: the home page's sign-in action is no longer Google-only.
 
 ---
 
@@ -760,10 +770,13 @@ survive a container restart; this is accepted because, without `.env.local`, ses
 RSVP, and downloading its `.ics` file — works fully.
 **Source:** design brief §6 amendment A5
 
-#### BR-136 — Sign-in requires the reader's own Google credentials
-**Rule:** Without a `.env.local` file supplying Google OAuth credentials, "Sign in with Google" cannot complete;
-signing in requires the reader to supply their own Google OAuth client credentials.
+#### BR-136 — Google sign-in requires the reader's own Google credentials
+**Rule:** Without a `.env.local` file supplying Google OAuth credentials, "Sign in with Google" specifically cannot
+complete; using that method requires the reader to supply their own Google OAuth client credentials. This does not
+apply to email/password registration and sign-in (see BR-170).
 **Source:** design brief §6 amendment A5
+**Amended:** 2026-09-25 — design brief §6 amendment A6: scoped this rule to the Google sign-in method, since
+email/password is now an alternative that does not depend on Google credentials.
 
 #### BR-137 — AI fill falls back when no AI provider key is configured
 **Rule:** Without a `.env.local` file supplying any AI provider key, every configured provider is skipped for lack
@@ -809,6 +822,153 @@ the image itself; secrets are supplied only at container run time.
 
 ---
 
+### Email and password sign-in (amendment A6 — Phase 10)
+
+#### BR-145 — Registration required fields
+**Rule:** The Register page requires name, email, password, and confirm password.
+**Source:** design brief §6 amendment A6 (a)
+
+#### BR-146 — Registration signs the user in immediately
+**Rule:** On successful registration, the account is created and the user is signed in immediately, without an
+email-verification step.
+**Source:** design brief §6 amendment A6 (a)
+
+#### BR-147 — Email is normalized before use
+**Rule:** On both registration and sign-in, the email address is trimmed of surrounding whitespace and lower-cased
+before it is stored, compared, or used to look up an account.
+**Rationale:** Ensures `Alice@Example.com` and `alice@example.com` are treated as the same account.
+**Source:** design brief §6 amendment A6 (a)
+
+#### BR-148 — Password length bounds
+**Rule:** A password must be between 8 and 128 characters.
+**Source:** design brief §6 amendment A6 (b)
+
+#### BR-149 — No password composition rules
+**Rule:** No character-composition requirement (e.g. mandatory uppercase, digit, or symbol) is enforced on a
+password beyond its length (BR-148).
+**Rationale:** Follows NIST SP 800-63B guidance that composition rules push users toward predictable patterns
+without materially improving security.
+**Source:** design brief §6 amendment A6 (b)
+
+#### BR-150 — Password confirmation must match
+**Rule:** Registration is rejected if the confirm-password field does not match the password field exactly.
+**Source:** design brief §6 amendment A6 (b)
+
+#### BR-151 — Password hashing algorithm and salt
+**Rule:** A password is hashed with `scrypt` from Node's `node:crypto`, using a random salt generated per user (not
+a shared or fixed salt), before it is stored.
+**Rationale:** Avoids adding a new dependency while using a memory-hard KDF; a per-user salt defeats precomputed
+(rainbow-table) attacks and ensures two users with the same password get different stored hashes.
+**Source:** design brief §6 amendment A6 (b)
+
+#### BR-152 — Constant-time password comparison
+**Rule:** Verifying a submitted password against its stored hash uses a constant-time comparison.
+**Rationale:** Prevents a timing side-channel from revealing how much of a guessed password was correct.
+**Source:** design brief §6 amendment A6 (b)
+
+#### BR-153 — Password hash is never logged or returned
+**Rule:** A password's hash is never written to logs and never included in any API or page response.
+**Source:** design brief §6 amendment A6 (b)
+
+#### BR-154 — Sign-in page offers both methods
+**Rule:** The sign-in page lets a user sign in with email and password, and also offers Google sign-in.
+**Source:** design brief §6 amendment A6 (c)
+
+#### BR-155 — Generic sign-in error message
+**Rule:** A failed sign-in attempt — whether caused by an unknown email, a wrong password, or an email that
+belongs to a Google-only account — shows the same generic message: "email or password is incorrect". The response
+does not otherwise reveal which of these three causes applied.
+**Rationale:** Prevents a sign-in attempt from being used to discover whether a given email has an account, or
+which sign-in method it uses.
+**Source:** design brief §6 amendment A6 (c)
+
+#### BR-156 — Failed sign-in attempts are rate-limited per IP and email
+**Rule:** Failed email/password sign-in attempts are rate-limited both by the client's IP address and by the
+submitted email address.
+**Source:** design brief §6 amendment A6 (c)
+**Note:** the brief does not state the specific thresholds; see open question DOC-Q5.
+
+#### BR-157 — Registration is refused for an email already on a Google-only account
+**Rule:** If the submitted registration email belongs to an existing Google-only account, registration is refused;
+no account is created and the existing account is not changed.
+**Source:** design brief §6 amendment A6 (d)
+
+#### BR-158 — Refusal guidance names Google sign-in and the Account page
+**Rule:** The message shown for the refusal in BR-157 tells the person to sign in with Google and, once signed in,
+to set a password from the Account page.
+**Rationale:** Gives the person a path to using both methods without creating a duplicate account.
+**Source:** design brief §6 amendment A6 (d)
+**Note:** telling the person their email is already a Google account reveals that the email has an account
+(account enumeration); see open question DOC-Q6, which documents this trade-off rather than silently accepting it.
+
+#### BR-159 — Account page: set a password when none exists
+**Rule:** A signed-in user with no password set (a Google-only account) can set one from the Account page.
+**Source:** design brief §6 amendment A6 (d)
+
+#### BR-160 — Account page: changing a password requires the current one
+**Rule:** A signed-in user who already has a password must provide their current password to change it from the
+Account page.
+**Source:** design brief §6 amendment A6 (d)
+
+#### BR-161 — Setting a password opens both sign-in methods on the same account
+**Rule:** Once a Google-only account has a password set (BR-159), the same account can be signed in to with either
+Google or that email and password.
+**Source:** design brief §6 amendment A6 (d)
+
+#### BR-162 — Google sign-in with a password account's email links the accounts
+**Rule:** If a user signs in with Google using the email address of an existing password account, that Google
+identity is linked to the existing account rather than a new account being created.
+**Source:** design brief §6 amendment A6 (e)
+
+#### BR-163 — Linking clears the existing password
+**Rule:** When the linking in BR-162 happens, the account's existing password is cleared; it can no longer be used
+to sign in.
+**Rationale:** The password had been set without proof that its owner controlled the email address; clearing it on
+proof of Google ownership (`email_verified`) protects against account pre-hijacking, where an attacker registers a
+password account with a victim's email before the victim ever signs in.
+**Source:** design brief §6 amendment A6 (e)
+
+#### BR-164 — User is notified when their password is cleared
+**Rule:** When the account's password is cleared (BR-163), the user is notified, and can set a new password from
+the Account page (BR-159) at any time afterward.
+**Source:** design brief §6 amendment A6 (e)
+**Note:** the brief does not specify the notification's form (in-app message, banner, etc.); see open question
+DOC-Q6.
+
+#### BR-165 — Sessions are JWT-based
+**Rule:** Signed-in sessions are represented as JWTs, not as rows in the database.
+**Rationale:** Auth.js requires JWT sessions when a credentials (email/password) provider is enabled alongside
+OAuth.
+**Source:** design brief §6 amendment A6 (f)
+
+#### BR-166 — User and account records remain in PostgreSQL
+**Rule:** Despite sessions being JWT-based (BR-165), user and account records (including password hashes and
+linked Google identities) continue to be stored in PostgreSQL.
+**Source:** design brief §6 amendment A6 (f)
+
+#### BR-167 — Existing sessions end once, at deploy
+**Rule:** Deploying this change ends every session that existed under the previous (database) session mechanism,
+one time; it does not otherwise shorten session lifetimes.
+**Source:** design brief §6 amendment A6 (f)
+
+#### BR-168 — Sign-out clears the session cookie
+**Rule:** Signing out clears the session cookie.
+**Source:** design brief §6 amendment A6 (f)
+
+#### BR-169 — New screens follow existing i18n and accessibility rules
+**Rule:** The Register page, the sign-in page, and the Account page each comply with the existing internationalization
+rules (BR-73 through BR-78) and the existing accessibility rules (BR-97 through BR-118), in both themes.
+**Source:** design brief §6 amendment A6 (g)
+
+#### BR-170 — Email/password auth works without `.env.local` in the containerized run
+**Rule:** Without a `.env.local` file, registration and email/password sign-in still work fully, since they depend
+only on the generated `AUTH_SECRET` (BR-134) and not on external OAuth credentials.
+**Rationale:** Extends the containerized local run (amendment A5) to the new sign-in method: unlike Google sign-in
+(BR-136), email/password does not require the reader to supply their own credentials.
+**Source:** design brief §6 amendment A5; §6 amendment A6
+
+---
+
 ## Out of scope
 
 Per the brief's principle "Maximum with minimum": everything left out is recorded here with the reason the brief
@@ -827,6 +987,8 @@ carries the one-line reason for each excluded item).
 | Strict CSP | Listed in the brief's out-of-scope list (design brief §2); the brief notes other XSS mitigations instead (React escaping only, no `dangerouslySetInnerHTML` — §4), but does not give an explicit reason for omitting CSP itself. |
 | Observability beyond logs | Listed in the brief's out-of-scope list (design brief §2); no reason given in the brief. |
 | Per-PR preview deployments | Explicitly decided: "no per-PR previews (would migrate the production database)" (design brief §7 "Repository and delivery"). |
+| Password reset | Explicitly decided: out of scope for Phase 10 because it needs email sending (design brief §6 amendment A6). |
+| Email verification | Explicitly decided: out of scope for Phase 10 because it needs email sending (design brief §6 amendment A6); registration is not gated on it (BR-146). |
 
 Note: the eval accuracy gate (design brief §5, "≥ 90% overall and 100% on 'must not invent' and 'prompt injection'")
 is a process/test-quality gate on the AI feature, not a product business rule, and is intentionally not listed as a
@@ -836,7 +998,30 @@ BR above.
 
 ## Open questions
 
-**Open** — none.
+**Open** — from amendment A6 (email and password sign-in), reported to the human by the `analyst`:
+
+- **DOC-Q5** — What are the failed-sign-in rate-limit thresholds per IP and per email (BR-156)? The brief says
+  rate limiting applies "per client IP and email" but gives no numbers.
+  **Recommendation:** 5 failed attempts per email per 15 minutes, and 20 failed attempts per IP per 15 minutes —
+  tighter than the RSVP limit (BR-79: 10/10 min per IP) because credential-stuffing risk is higher than RSVP spam,
+  while still allowing a genuine user a few honest mistakes before being blocked.
+- **DOC-Q6** — What form does the "notify" in BR-164 take, when a Google sign-in clears an existing password?
+  Options: (1) an in-app banner/toast shown immediately after the linking sign-in completes; (2) a persistent
+  notice on the Account page until the user sets a new password or dismisses it; (3) an email notification.
+  **Recommendation:** (1) combined with (2) — email (option 3) is unavailable since email sending is out of scope
+  for this phase (declared alongside password reset and email verification, design brief §6 amendment A6), and a
+  one-time toast alone risks being missed if the user is mid-redirect.
+**Resolved — A6 (documented trade-off, not silently decided)**: the design brief's amendment A6 (d) explicitly
+requires the registration-refusal message (BR-157, BR-158) to tell the person their email belongs to a Google
+account. This necessarily reveals, to whoever submits that email on the Register page, that an account with that
+email exists (account enumeration) — the same information a generic "check your email" message would hide.
+**Recommendation:** accept this trade-off as specified in A6 (already approved by the human on 2026-09-25): the
+alternative (a generic refusal that does not say why) would strand a returning Google user with no path back to
+their account, which the brief's own goal for this phase ("the evaluator can sign in without being added as a
+Google test user, and one person can use both methods") argues against. Mitigate the residual risk with the
+sign-in rate limit (BR-156), which also slows automated enumeration via the registration endpoint, and record the
+trade-off explicitly in the README's "What I left out and why" / security notes so it is a visible, intentional
+choice rather than an oversight.
 
 **Resolved — A3** — decided by the human (Ramon) on 2026-09-24, at Phase 7 spec kickoff:
 
