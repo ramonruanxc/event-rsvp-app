@@ -421,12 +421,20 @@ describe('AiEventParser — why a fill failed (REQ-132)', () => {
   it('REQ-132: one provider that times out is AiTimeoutError; one that is down is AiUnavailableError', async () => {
     const slow = new AiEventParser({
       providers: [
-        provider('openrouter', vi.fn().mockRejectedValue(new ProviderUnavailableError('timeout')), 'm'),
+        provider(
+          'openrouter',
+          vi.fn().mockRejectedValue(new ProviderUnavailableError('timeout')),
+          'm',
+        ),
       ],
     });
     const down = new AiEventParser({
       providers: [
-        provider('openrouter', vi.fn().mockRejectedValue(new ProviderUnavailableError('server')), 'm'),
+        provider(
+          'openrouter',
+          vi.fn().mockRejectedValue(new ProviderUnavailableError('server')),
+          'm',
+        ),
       ],
     });
 

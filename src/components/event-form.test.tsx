@@ -231,9 +231,7 @@ describe('EventForm — Fill with AI (REQ-51)', () => {
     ];
     for (const [code, message] of cases) {
       const aiFill = vi.fn().mockResolvedValue({ ok: false, code });
-      const { container, unmount } = renderWithIntl(
-        <EventForm submit={vi.fn()} aiFill={aiFill} />,
-      );
+      const { container, unmount } = renderWithIntl(<EventForm submit={vi.fn()} aiFill={aiFill} />);
       describeAndFill(container);
 
       expect((await screen.findByRole('alert')).textContent).toBe(message);
