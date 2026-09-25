@@ -189,7 +189,6 @@ of [docs/timelog.md](docs/timelog.md).
 | Strict CSP | Listed in the brief's out-of-scope list; other XSS mitigations are used instead (React escaping only, no `dangerouslySetInnerHTML`). |
 | Observability beyond logs | Listed in the brief's out-of-scope list; no reason given in the brief. |
 | Per-PR preview deployments | Explicitly decided: "no per-PR previews (would migrate the production database)". |
-| Containerizing the app | Next.js serves the UI and the server logic from one Node process, so there is no separate front end and back end to connect, and production runs on Vercel, not Docker. Docker provides only PostgreSQL, the one external dependency, the same way locally and in CI. |
 | Publishing the Google OAuth app (stays in Testing mode) | Google requires full branding (home page, privacy policy, verified authorized domain) to publish an External OAuth app, and `vercel.app` ownership cannot be proven; the evaluator's Google account is added as a test user instead. |
 | Upgrading Next 15 → 16 and Vitest 3 → 4+ | Six Dependabot alerts (postcss pinned inside next@15; vitest dev-only) are not exploitable here: postcss only runs at build time on first-party CSS and vitest never ships. Both need major upgrades, out of scope for this exercise; alerts were dismissed as tolerable risk with this reasoning. |
 
