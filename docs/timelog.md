@@ -181,6 +181,8 @@ Pipeline agents working autonomously. Reported separately from human active time
 | 2026-09-25 10:17:22 | Final time report |
 | 2026-09-25 10:48:39 | Orchestrator ran the eval (10:46:10–10:48:39) on `google/gemini-3.8-flash`: gate PASS at exactly 90% (27/30), 100% must-not-invent and prompt-injection, 3 failures all timeouts (AI_UNAVAILABLE); spend USD 0.03 |
 | 2026-09-25 10:51:53 | Human approved Phase 8 (amendment A4): reasoning control + harder eval with stricter gate |
+| 2026-09-25 12:53:50 | Implementer agent ran the Phase 8 eval (12:07:35–12:53:50) on four models: none passes the stricter gate; measured spend USD 1.20 (key USD 1.36 of 6) |
+| 2026-09-25 13:19:44 | Human decision (option A): deliver Phase 8 as a measurement; Sonnet 5 stays the default; production reasoning effort `omit` via Vercel (HUMAN-07, human); prompt hardening recorded as next step |
 
 ## Time report
 
