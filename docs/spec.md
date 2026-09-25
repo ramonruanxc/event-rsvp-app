@@ -74,6 +74,17 @@ Decided by the human on 2026-09-24 and recorded in `docs/business-rules.md`.
      under `docs/evals/phase-8/`, and TASK-238 stopping to ask in its listed cases. The OpenRouter key's spend limit
      was raised from USD 3 to **USD 6** (usage then ≈ USD 0.16); the Phase 8 budget guard stops at USD 5.50 (limit −
      0.50) and every `npm run openrouter:key` call in Phase 8 passes `--limit 6` (TASK-237 Rev 2).
+  5. **Phase 8 outcome** (human decision, 2026-09-25, option A): no model passes the Phase 8 gate (TASK-237, reports
+     in `docs/evals/phase-8/`, incident #22). Every model is weakest on must-not-invent (33–67%). A failure shared by
+     every model points to the prompt, not to the model. Sonnet 5 at effort `low`: 88% overall, must-not-invent 56%,
+     prompt-injection 89%, hold-out 90%, availability 100%, p95 4.4 s. Phase 8 is delivered as a **measurement**:
+     - the code default stays `anthropic/claude-sonnet-5` (default effort `low` in code unchanged); TASK-238 is
+       resolved with no code change;
+     - production sets `OPENROUTER_REASONING_EFFORT=omit` in Vercel (HUMAN-07). This restores the provider-default
+       reasoning under which Sonnet 5 passed the Phase 7 gate. It is not measured against the Phase 8 gate;
+     - **next step** (recorded, not planned as tasks): harden the prompt on must-not-invent using tuning cases only
+       (the hold-out stays untouched, REQ-104), then re-run the gate and apply REQ-107's production-choice rule.
+     No BR changes.
 
 ---
 
@@ -1831,6 +1842,13 @@ These requirements are code in the repository and are TDD'd like product code. T
   gate; the code default of `OPENROUTER_MODEL` follows it (TASK-238). If only `anthropic/claude-sonnet-5` passes, the
   default stays. If none passes, or the cheapest passing model needs an effort other than `low`, the choice goes to
   the human (the default effort `low` was approved in A4)
+- **Outcome of the "none passes" branch (human decision, 2026-09-25, option A; "Resolved — A4" item 5):** no model
+  passed the Phase 8 gate (TASK-237: every model is weakest on must-not-invent, 33–67%). In that case the rule
+  applied is: Phase 8 is a **measurement**; the code default of `OPENROUTER_MODEL` stays `anthropic/claude-sonnet-5`
+  and the code default effort stays `low` (no code change, TASK-238 resolved). Production overrides the effort with
+  `OPENROUTER_REASONING_EFFORT=omit` in Vercel (HUMAN-07). This restores the provider-default reasoning under which
+  Sonnet 5 passed the Phase 7 gate. At effort `low` Sonnet 5 scored 88% overall, must-not-invent 56% and
+  prompt-injection 89%. At `omit` it has not been measured against the Phase 8 gate
 **Test level:** unit + runner test against the local OpenRouter mock
 
 ---

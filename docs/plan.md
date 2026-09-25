@@ -18,7 +18,7 @@
 | 5 | `phase-5/hardening` | RSVP rate limit, honeypot, headers, XSS check, journeys | REQ-56, REQ-58, REQ-60, REQ-61 | 8 |
 | 6 | `phase-6/ui-ux` | UI/UX redesign (A2): tokens and themes, primitives, header and logo, every screen, accessibility checks, README | REQ-62–REQ-85 (+ amended REQ-19, REQ-30, REQ-34, REQ-36, REQ-38, REQ-39) | 36 (TASK-150–TASK-184 + TASK-148) |
 | 7 | `phase-7/openrouter` | OpenRouter as the default AI provider, Anthropic optional (A3): provider list (default `openrouter`) and failover in one 10 s budget, OpenRouter client, OpenAI-compatible E2E mock, key hygiene, eval `--provider` (default `openrouter`), key-provisioning script, OpenRouter eval run on 3 models (absorbs TASK-131), code default model follows the eval (`anthropic/claude-sonnet-5`) | REQ-86–REQ-89, REQ-93–REQ-98 | 29 + 1 human (TASK-190–TASK-218, HUMAN-06) |
-| 8 | `phase-8/eval-hardening` | Harder AI evaluation + reasoning control (A4): `OPENROUTER_REASONING_EFFORT` (default `low`) sent as `reasoning: { effort }`; 3 runs per case (every answered run must pass); availability and p95 latency (< 8 s) reported apart from correctness; description-invention check; every category ≥ 80%; hidden hold-out split (⅓); +30 hard cases; real run on four models; code default model follows the new gate | REQ-99–REQ-107 (+ amended REQ-91, REQ-92, REQ-93, REQ-94) | 19 (TASK-220–TASK-238) |
+| 8 | `phase-8/eval-hardening` | Harder AI evaluation + reasoning control (A4): `OPENROUTER_REASONING_EFFORT` (default `low`) sent as `reasoning: { effort }`; 3 runs per case (every answered run must pass); availability and p95 latency (< 8 s) reported apart from correctness; description-invention check; every category ≥ 80%; hidden hold-out split (⅓); +30 hard cases; real run on four models; code default model follows the new gate. **Outcome:** no model passes; delivered as a measurement (human decision, option A): default stays `anthropic/claude-sonnet-5`, production sets `OPENROUTER_REASONING_EFFORT=omit` (HUMAN-07) | REQ-99–REQ-107 (+ amended REQ-91, REQ-92, REQ-93, REQ-94) | 19 + 1 human (TASK-220–TASK-238, HUMAN-07) |
 
 Totals: 107 requirements (95 product + 12 tooling), 205 agent tasks, 6 human tasks.
 
@@ -7102,7 +7102,7 @@ category needs 80% (REQ-103); a third of the cases is a hidden hold-out (REQ-104
 (REQ-105); 30 hard cases are added (REQ-106). A real run on four models picks the production model (REQ-107). No UI
 change, no business-rule change ("Resolved — A4" in `docs/spec.md`).
 
-Order: TASK-220 → TASK-238 in document order. Only TASK-237 calls a real API.
+Order: TASK-220 → TASK-238 in document order, then HUMAN-07. Only TASK-237 calls a real API.
 
 **Phase 8 rules (read once, in addition to "How to execute a task" and Phase 7 rules 1–3 and 6):**
 1. **No new dependency.** `package.json` and `package-lock.json` do not change in this phase.
@@ -8378,7 +8378,12 @@ USD 5.50 (limit − 0.50). Key usage before this task was about USD 0.16.
   `--limit 6` everywhere, README cost line says "of the USD 6 limit".
 
 ### TASK-238 — The code default model follows the Phase 8 gate
-**Phase:** 8 · **Requirements:** REQ-107, REQ-87 · **Status:** todo · **Revision:** 1
+**Phase:** 8 · **Requirements:** REQ-107, REQ-87 · **Status:** resolved (human decision) · **Revision:** 2
+**Outcome (2026-09-25):** TASK-237 found that no model passes the Phase 8 gate (the "no model passes" branch below;
+incident #22 in `docs/pipeline/failures.md`). The human chose option A: Phase 8 is delivered as a **measurement**.
+The code default stays `anthropic/claude-sonnet-5`, and **no file of this task changes** (no test, code, `.env.example` or
+README commit). Production sets `OPENROUTER_REASONING_EFFORT=omit` in Vercel (HUMAN-07). The branches and steps
+below are kept as the record of the rule that was applied; do not execute them.
 **Files:** src/lib/ai/providers-config.test.ts, src/lib/ai/providers-config.ts, .env.example, README.md
 **Input:** `<CHOSEN>` = the model named in the "**Production choice (Phase 8):**" paragraph of
 `docs/evals/README.md` (TASK-237). Do not change `.env.test`, any other test, the eval reports or `.env.local`.
@@ -8405,7 +8410,38 @@ names `<CHOSEN>` instead; in `README.md` ("Run locally", AI bullet) `` `OPENROUT
 `npm run typecheck`, `npm run lint` and `npm run trace` pass; `git grep -n "anthropic/claude-sonnet-5" --
 src/lib/ai/providers-config.ts .env.example` prints nothing; the `test(ai): …` commit precedes the `feat(ai): …` one.
 **TDD exception:** none (the `.env.example` / README commit is docs)
+**Changelog:**
+- Rev 2 — human decision (option A), not a failure revision: status resolved; no model passes the Phase 8 gate, so
+  the code default stays `anthropic/claude-sonnet-5` with no code change, and production sets
+  `OPENROUTER_REASONING_EFFORT=omit` (HUMAN-07).
 
-**After the Phase 8 merge:** no Vercel variable is needed — the effort default (`low`) and the model default are in
-code. The release smoke test should include one "Fill with AI" call in production to confirm the answer arrives within
-the 10 s budget with `reasoning` sent.
+### HUMAN-07 — Reasoning effort `omit` in Vercel
+**Phase:** 8 · **Owner:** human · **When:** now (2026-09-25, after TASK-237). Any time before or after the Phase 8
+merge works; the setting takes effect with the first deploy that runs after it is saved.
+**Status:** todo
+**Why:** TASK-237 measured `anthropic/claude-sonnet-5` at effort `low` (the code default, REQ-99) at 88% overall,
+must-not-invent 56% and prompt-injection 89% — below the gate. The Phase 7 client sent no `reasoning` field, and
+Sonnet 5 passed the Phase 7 gate with that provider-default reasoning. `omit` makes the Phase 8 client send no
+`reasoning` field again (REQ-99), which restores that behavior. The only other difference from Phase 7 is
+`max_tokens` 2048 (REQ-99). Sonnet 5 at `omit` has **not** been measured against the Phase 8 gate.
+**Not needed for CI or local runs:** tests use fakes and the E2E mock; do not add the variable to `.env.example`,
+`.env.test`, GitHub secrets or any workflow.
+1. Vercel → the project → **Settings** → **Environment Variables**.
+2. Add a variable: key `OPENROUTER_REASONING_EFFORT`, value `omit` (lower case, no quotes, no spaces), environment
+   **Production** only.
+3. Save. Do not add or change any other variable. `OPENROUTER_MODEL` stays unset (code default
+   `anthropic/claude-sonnet-5`, HUMAN-06 step 3).
+4. The next production deploy applies it: the Phase 8 merge deploy, or a **Redeploy** of the current production
+   deployment if you want it applied before the merge. Before the Phase 8 deploy the variable is ignored, because the
+   Phase 7 code does not read it.
+5. Tell the orchestrator the variable is set and which deploy picked it up (do not paste any key in the chat).
+
+**After the Phase 8 merge:** the model default stays in code (`anthropic/claude-sonnet-5`); the reasoning effort in
+production comes from the Vercel variable of HUMAN-07 (`omit`), not from the code default (`low`). The release smoke test
+should include one "Fill with AI" call in production to confirm the answer arrives within the 10 s budget.
+
+**Next step after Phase 8 (recorded, not planned as tasks):** harden `src/lib/ai/prompt.ts` on must-not-invent (the
+weakest category of every model, 33–67%: vague times, partial dates and weekday/date conflicts are filled in instead of
+being left `null` and listed in `missing`), tuning **only** against cases without `"holdout": true`; the hold-out cases
+stay untouched (REQ-104, Phase 8 rule 4). Then re-run the Phase 8 gate (TASK-237 procedure) and apply the REQ-107
+production-choice rule to the new results. The spec-writer plans these tasks when the human starts that work.
