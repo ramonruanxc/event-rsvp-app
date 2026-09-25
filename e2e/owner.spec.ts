@@ -30,10 +30,50 @@ test.describe('REQ-34: the owner guest list', () => {
     await expect(mariaRow).toContainText('3');
 
     const joaoRow = page.getByRole('row', { name: /João/ });
-    await expect(joaoRow).toContainText('Not going');
+    await expect(joaoRow).toContainText('Declined');
     await expect(joaoRow).toContainText('0');
 
     await expect(page.getByRole('button', { name: 'Send RSVP' })).toHaveCount(0);
+  });
+
+  test('REQ-85: each response is a pill with an icon', async ({ page, context }) => {
+    const { id: ownerId } = await signInAs(context, {
+      email: 'owner1b@example.com',
+      name: 'Owner',
+    });
+    const event = await createEvent(ownerId);
+    await createRsvp(event.id, 'Maria', 'GOING', 3);
+    await createRsvp(event.id, 'João', 'NOT_GOING');
+
+    await page.goto(`/en/e/${event.slug}`);
+
+    await expect(
+      page.getByRole('row', { name: /João/ }).locator('.pill-declined svg[aria-hidden="true"]'),
+    ).toHaveCount(1);
+    await expect(page.getByRole('row', { name: /Maria/ }).locator('.pill-going')).toHaveText(
+      'Going',
+    );
+  });
+
+  test('REQ-85: at 375 px the guest list stacks without horizontal scrolling', async ({
+    page,
+    context,
+  }) => {
+    const { id: ownerId } = await signInAs(context, {
+      email: 'owner1c@example.com',
+      name: 'Owner',
+    });
+    const event = await createEvent(ownerId);
+    await createRsvp(event.id, 'Maria', 'GOING', 3);
+    await createRsvp(event.id, 'João', 'NOT_GOING');
+
+    await page.setViewportSize({ width: 375, height: 740 });
+    await page.goto(`/en/e/${event.slug}`);
+
+    expect((await page.locator('table thead').boundingBox())!.width).toBeLessThanOrEqual(1);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
+      375,
+    );
   });
 
   test('REQ-34: an event without RSVPs says so', async ({ page, context }) => {
