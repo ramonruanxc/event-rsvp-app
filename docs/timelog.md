@@ -174,7 +174,9 @@ Pipeline agents working autonomously. Reported separately from human active time
 | 2026-09-25 01:22:17 | Real eval via OpenRouter: only claude-sonnet-5 passes the gate (Haiku 4.5 and gpt-4o-mini invent data); measured spend USD 0.1283 |
 | 2026-09-25 01:33:48 | TASK-218: code default model follows the eval (claude-sonnet-5); phase 7 complete |
 | 2026-09-25 01:35:43 | Phase 6 complete: 36/36 tasks (TASK-182 characterization found a real focus-ring defect, fixed) |
-| 2026-09-25 10:10:04 | Human back; tested plan for AI fill; Nageeb added as Google test user; Dependabot triaged (6 alerts dismissed as tolerable risk, PR #1 rebased) |
+| 2026-09-25 02:09:17 | Production smoke test after the phase 6 deploy: dark theme by default, light theme from the cookie, logo and theme toggle, X-Frame-Options DENY, demo event page, `/icon.svg`, `.ics` |
+| 2026-09-25 02:28:29 | Production smoke test after the phase 7 deploy: /en /fr /pt-BR, demo event, `.ics`, dashboard redirects to sign-in, auth providers, dark theme, all three security headers |
+| 2026-09-25 10:10:04 | Human back; AI fill tested by hand in production (7/7 cases passed); Nageeb added as Google test user; Dependabot triaged (6 alerts dismissed as tolerable risk, PR #1 rebased) |
 | 2026-09-25 10:17:22 | Final time report |
 
 ## Time report
@@ -185,10 +187,15 @@ Timer: 2026-09-24 12:06:04 → 2026-09-25 10:17:22 (America/Fortaleza). Phase 0 
 |---|---|
 | Wall clock | 22h 11m |
 | Paused (6 pauses: breaks, work calls, sleep) | 13h 03m |
-| **Human active time** | **9h 07m** |
+| **Human active time (self-reported)** | **3h 30m** |
+| Timer minus announced pauses | 9h 07m |
 | Agent run time (sum of all agent runs; many ran in parallel and during pauses) | 13h 48m |
 
-| Phase | Wall clock | Active (wall clock minus pauses) |
+The timer only subtracts pauses the human announced. While agents ran for long stretches, the human was often
+not at the keyboard without announcing it, so the timer overstates hands-on time; the human's own measurement of
+active work is **3h 30m**.
+
+| Phase | Wall clock | Timer minus announced pauses |
 |---|---|---|
 | 1 — Spec definition | 1h 29m | 0h 50m |
 | 2 — Pipeline bootstrap + spec | 1h 14m | 0h 39m |

@@ -147,14 +147,15 @@ What I verified by hand:
 
 - Google sign-in end to end in production (2026-09-24).
 - The production domain (https://event-rsvp-app-flax.vercel.app), its public access, and smoke tests of the live site
-  after the phase 1, 3, 6 and 7 deployments (locales, demo event, `.ics`, sign-in redirect, theme, security headers).
+  after the phase 1, 3, 6 and 7 deployments (locales, demo event, `.ics`, sign-in redirect, theme, security headers;
+  see the Events table in [docs/timelog.md](docs/timelog.md)).
 - The approved visual direction (mockup) and every business-rule decision raised as a DOC question during the
   pipeline.
 - The real AI evaluation results (three models via OpenRouter) and the decision that the code default follows
   them.
 - The key handling: the OpenRouter key was provisioned with a spend limit and never printed.
-<!-- Fill with AI tested by hand in production with the seven cases in the evaluation categories.
-     confirm after the human's manual AI test -->
+- "Fill with AI" in production with seven hand-picked cases (English, French and Portuguese input, a missing time,
+  an explicit timezone, non-event text and a prompt-injection attempt): all seven behaved as expected (2026-09-25).
 
 ## What I left out and why
 
@@ -184,10 +185,15 @@ Timer: 2026-09-24 12:06:04 → 2026-09-25 10:17:22 (America/Fortaleza). Phase 0 
 |---|---|
 | Wall clock | 22h 11m |
 | Paused (6 pauses: breaks, work calls, sleep) | 13h 03m |
-| **Human active time** | **9h 07m** |
+| **Human active time (self-reported)** | **3h 30m** |
+| Timer minus announced pauses | 9h 07m |
 | Agent run time (sum of all agent runs; many ran in parallel and during pauses) | 13h 48m |
 
-| Phase | Wall clock | Active (wall clock minus pauses) |
+The timer only subtracts pauses the human announced. While agents ran for long stretches, the human was often
+not at the keyboard without announcing it, so the timer overstates hands-on time; the human's own measurement of
+active work is **3h 30m**.
+
+| Phase | Wall clock | Timer minus announced pauses |
 |---|---|---|
 | 1 — Spec definition | 1h 29m | 0h 50m |
 | 2 — Pipeline bootstrap + spec | 1h 14m | 0h 39m |
