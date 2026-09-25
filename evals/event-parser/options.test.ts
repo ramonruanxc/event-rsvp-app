@@ -120,7 +120,8 @@ describe('eval options (REQ-107)', () => {
         OPENROUTER_API_KEY: 'y',
       }),
     ).toEqual({
-      error: '--reasoning-effort must be one of: max, xhigh, high, medium, low, minimal, none, omit',
+      error:
+        '--reasoning-effort must be one of: max, xhigh, high, medium, low, minimal, none, omit',
     });
     expect(parseEvalOptions(['--runs', '0'], { OPENROUTER_API_KEY: 'y' })).toEqual({
       error: '--model is required',

@@ -60,7 +60,9 @@ export function parseEvalOptions(
   } else {
     const normalized = effortFlag.trim().toLowerCase();
     if (!(REASONING_EFFORT_SETTINGS as readonly string[]).includes(normalized)) {
-      return { error: `--reasoning-effort must be one of: ${REASONING_EFFORT_SETTINGS.join(', ')}` };
+      return {
+        error: `--reasoning-effort must be one of: ${REASONING_EFFORT_SETTINGS.join(', ')}`,
+      };
     }
     reasoningEffort = normalized as ReasoningEffortSetting;
   }
