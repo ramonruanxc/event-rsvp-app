@@ -2320,7 +2320,7 @@ party size, `formatEventDateTime(row.updatedAt, event.timezone, locale)`, and a 
 Order: TASK-90 → TASK-100.
 
 ### TASK-90 — CreateSampleEventService
-**Phase:** 3 · **Requirements:** REQ-37 · **Status:** todo · **Revision:** 1
+**Phase:** 3 · **Requirements:** REQ-37 · **Status:** done · **Revision:** 1
 **Files:** src/services/create-sample-event.ts, src/services/create-sample-event.test.ts, src/domain/sample.ts,
 src/domain/event-time.ts, src/domain/event-time.test.ts
 **Interface:** C5 `CreateSampleEventService`, `SampleContent`;
@@ -2341,7 +2341,7 @@ Alex Martin GOING 2, Priya Shah GOING 1, Lucas Oliveira GOING 3, Chloé Dubois N
 **TDD exception:** none
 
 ### TASK-91 — "Create sample event" on the empty dashboard
-**Phase:** 3 · **Requirements:** REQ-37 · **Status:** todo · **Revision:** 1
+**Phase:** 3 · **Requirements:** REQ-37 · **Status:** done · **Revision:** 1
 **Files:** src/components/create-sample-button.tsx, src/app/[locale]/dashboard/actions.ts,
 src/app/[locale]/dashboard/page.tsx, src/lib/container.ts, e2e/dashboard.spec.ts
 **Interface:** `createSampleEventAction(timezone: string): Promise<ActionResult<{ slug: string }>>` ('use server':
@@ -2356,7 +2356,7 @@ session required; content from `getTranslations('sample')` → `{ name: t('name'
 **TDD exception:** none
 
 ### TASK-92 — Invite URL
-**Phase:** 3 · **Requirements:** REQ-38 · **Status:** todo · **Revision:** 1
+**Phase:** 3 · **Requirements:** REQ-38 · **Status:** done · **Revision:** 1
 **Files:** src/lib/invite-url.ts, src/lib/invite-url.test.ts
 **Interface:** `export function buildInviteUrl(origin: string, slug: string): string` (strip one trailing `/` from origin)
 **Test first:** `REQ-38: invite URL has no locale` (REQ-38 example; also origin with trailing slash gives the same URL).
@@ -2364,7 +2364,7 @@ session required; content from `getTranslations('sample')` → `{ name: t('name'
 **TDD exception:** none
 
 ### TASK-93 — Copy invite link button
-**Phase:** 3 · **Requirements:** REQ-38 · **Status:** todo · **Revision:** 1
+**Phase:** 3 · **Requirements:** REQ-38 · **Status:** done · **Revision:** 1
 **Files:** src/components/copy-invite-link-button.tsx, src/components/copy-invite-link-button.test.tsx,
 src/app/[locale]/e/[slug]/page.tsx
 **Interface:** `CopyInviteLinkButton({ slug }: { slug: string })` ('use client')
@@ -2375,7 +2375,7 @@ click "Copy invite link" → `writeText` called with `buildInviteUrl(window.loca
 **TDD exception:** none
 
 ### TASK-94 — Invite link opens in the guest's language (E2E)
-**Phase:** 3 · **Requirements:** REQ-38 · **Status:** todo · **Revision:** 1
+**Phase:** 3 · **Requirements:** REQ-38 · **Status:** done · **Revision:** 1
 **Files:** e2e/share.spec.ts
 **Test first (characterization test — next-intl middleware from TASK-11):** `REQ-38: an invite link without locale
 redirects to the browser language` — `test.use({ locale: 'fr-FR' })`; event from factories; `page.goto('/e/<slug>')`
@@ -2384,7 +2384,7 @@ redirects to the browser language` — `test.use({ locale: 'fr-FR' })`; event fr
 **TDD exception:** none (characterization test, convention 13)
 
 ### TASK-95 — iCalendar text escaping and line folding
-**Phase:** 3 · **Requirements:** REQ-41 · **Status:** todo · **Revision:** 1
+**Phase:** 3 · **Requirements:** REQ-41 · **Status:** done · **Revision:** 1
 **Files:** src/lib/ics.ts, src/lib/ics.test.ts
 **Interface:** `export function escapeIcsText(value: string): string`; `export function foldIcsLine(line: string): string`
 **Test first:**
@@ -2399,7 +2399,7 @@ redirects to the browser language` — `test.use({ locale: 'fr-FR' })`; event fr
 **TDD exception:** none
 
 ### TASK-96 — Build the .ics document
-**Phase:** 3 · **Requirements:** REQ-41 · **Status:** todo · **Revision:** 1
+**Phase:** 3 · **Requirements:** REQ-41 · **Status:** done · **Revision:** 1
 **Files:** src/lib/ics.ts, src/lib/ics.test.ts
 **Interface:** `export function buildIcs(event: Pick<EventRecord, 'slug' | 'name' | 'description' | 'location' | 'startsAt'>, now: Date): string`
 **Test first:** `REQ-41: builds a 2-hour VEVENT in UTC` — REQ-41 example → `toBe` the exact expected string (lines of
@@ -2410,7 +2410,7 @@ end = start + 2 h; text values through `escapeIcsText`; every line through `fold
 **TDD exception:** none
 
 ### TASK-97 — Calendar download route
-**Phase:** 3 · **Requirements:** REQ-42 · **Status:** todo · **Revision:** 1
+**Phase:** 3 · **Requirements:** REQ-42 · **Status:** done · **Revision:** 1
 **Files:** src/services/export-event-ics.ts, src/services/export-event-ics.test.ts,
 src/app/e/[slug]/calendar.ics/route.ts, src/app/e/[slug]/calendar.ics/route.int.test.ts, src/lib/container.ts
 **Interface:** C5 `ExportEventIcsService` (returns `{ filename: \`${slug}.ics\`, body: buildIcs(event, now()) }`,
@@ -2429,7 +2429,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ slu
 **TDD exception:** none
 
 ### TASK-98 — "Add to calendar" links
-**Phase:** 3 · **Requirements:** REQ-42 · **Status:** todo · **Revision:** 1
+**Phase:** 3 · **Requirements:** REQ-42 · **Status:** done · **Revision:** 1
 **Files:** src/components/event-details.tsx, e2e/share.spec.ts
 **Test first:** `REQ-42: guest and owner pages link to the calendar file` — guest page and owner page both have
 `getByRole('link', { name: 'Add to calendar' })` with `href` `/e/<slug>/calendar.ics`; `page.request.get(href)` → 200.
@@ -2438,7 +2438,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ slu
 **TDD exception:** none
 
 ### TASK-99 — Idempotent demo seed
-**Phase:** 3 · **Requirements:** REQ-40 · **Status:** todo · **Revision:** 1
+**Phase:** 3 · **Requirements:** REQ-40 · **Status:** done · **Revision:** 1
 **Files:** src/lib/demo-seed.ts, src/lib/demo-seed.int.test.ts, prisma/seed.ts, package.json
 **Interface:** `export const DEMO_SLUG = 'demoPicnic'`; `export const DEMO_EMAIL = 'demo@event-rsvp.invalid'`;
 `export async function seedDemo(prisma: PrismaClient, now: Date): Promise<void>`
@@ -2466,7 +2466,7 @@ seedDemo(prisma, new Date()).then(() => prisma.$disconnect()).catch(async (e) =>
 **TDD exception:** none
 
 ### TASK-100 — Signed-out home page
-**Phase:** 3 · **Requirements:** REQ-39 · **Status:** todo · **Revision:** 1
+**Phase:** 3 · **Requirements:** REQ-39 · **Status:** done · **Revision:** 1
 **Files:** src/app/[locale]/page.tsx, e2e/home.spec.ts
 **Test first:** `e2e/home.spec.ts`:
 - `REQ-39: signed-out home explains the app and offers sign-in and the demo` — `/en` → heading "Plan an event. Share

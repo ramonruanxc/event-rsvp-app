@@ -8,6 +8,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- "Create sample event" fills a new organizer's empty dashboard with a ready-made event and 5 sample RSVPs
+  (REQ-37).
+- "Copy invite link" on the owner's event page, with a locale-free invite URL that redirects to the guest's
+  browser language (REQ-38).
+- Signed-out home page explaining the app, with links to Google sign-in and the public demo event; signed-in
+  organizers see a link to their dashboard instead (REQ-39).
+- A public, idempotent demo event seed (`demoPicnic`) that stays open for evaluators, re-run automatically on
+  deploy (REQ-40).
+- .ics calendar file generation for any event, with iCalendar text escaping and line folding (REQ-41).
+- "Add to calendar" download route and link on both the guest and owner event pages, no sign-in required
+  (REQ-42).
 - Guests submit an RSVP from the event page without an account: name, Going / Not going, and party size
   (REQ-20, REQ-23).
 - A returning guest (same browser) sees their own RSVP instead of a blank form, and can change or cancel it,
