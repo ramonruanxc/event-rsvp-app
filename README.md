@@ -134,6 +134,8 @@ npx tsx scripts/docker/smoke-cli.ts   # smoke check of a running docker compose 
 - The key handling: the OpenRouter key was provisioned with a spend limit and never printed.
 - "Fill with AI" in production with seven hand-picked cases (English, French and Portuguese input, a missing time,
   an explicit timezone, non-event text and a prompt-injection attempt): all seven behaved as expected (2026-09-25).
+- The one-command local run on a fresh clone with no `.env.local` (`docker compose up --build`): registered with
+  email and password, signed out and signed in again (2026-09-25).
 
 Agent-run smoke tests and fresh-clone verifications are recorded separately, with their actor, in the
 [timelog Events table](docs/timelog.md).

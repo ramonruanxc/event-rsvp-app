@@ -216,6 +216,8 @@ Pipeline agents working autonomously. Reported separately from human active time
 | 2026-09-25 17:39:40 | Human confirmed the Phase 10 merge |
 | 2026-09-25 17:40:17 | PR #16 merged by the orchestrator; Phase 10 closed |
 | 2026-09-25 17:42:30 | Orchestrator smoke-tested production after the deploy: sign-in and register pages in en/fr/pt-BR, organizer routes redirect to sign-in, demo event, `.ics`, security headers. Registering and signing in with a password in production is left to the human (agents never create accounts or type passwords) |
+| 2026-09-25 17:47:30 | Orchestrator ran `docker compose up --build` on a fresh clone of `main` with an empty database and no `.env.local`: AUTH_SECRET generated, migrate → seed → serve, smoke 3/3 |
+| 2026-09-25 17:49:00 | Human registered with email and password, signed out and signed in again on that local container: all worked |
 
 ## Time report
 
