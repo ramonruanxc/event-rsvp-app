@@ -26,4 +26,8 @@ describe('authConfig', () => {
       expires: '2026-10-25T00:00:00.000Z',
     });
   });
+
+  it('REQ-126: Auth.js sends its sign-in and error pages to /sign-in', () => {
+    expect(authConfig.pages).toEqual({ signIn: '/sign-in', error: '/sign-in' });
+  });
 });
