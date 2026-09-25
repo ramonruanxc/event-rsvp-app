@@ -14,7 +14,7 @@ export class MemoryRateLimitRepository implements RateLimitRepository {
   }
 
   /** Current count of (key, windowStart); 0 when there is no row. */
-  async count(_key: string, _windowStart: Date): Promise<number> {
-    throw new Error('not implemented');
+  async count(key: string, windowStart: Date): Promise<number> {
+    return this.store.rateLimits.get(`${key}|${windowStart.toISOString()}`) ?? 0;
   }
 }

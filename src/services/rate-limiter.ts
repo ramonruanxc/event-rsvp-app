@@ -43,7 +43,11 @@ export class RateLimiter {
   }
 
   /** True when (rule, subject) already reached rule.limit in the current window; never increments. */
-  async isBlocked(_rule: RateLimitRule, _subject: string): Promise<boolean> {
-    throw new Error('not implemented');
+  async isBlocked(rule: RateLimitRule, subject: string): Promise<boolean> {
+    const count = await this.deps.repo.count(
+      `${rule.name}:${subject}`,
+      windowStart(this.deps.now(), rule.windowMs),
+    );
+    return count >= rule.limit;
   }
 }
