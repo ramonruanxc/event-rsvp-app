@@ -115,6 +115,8 @@ Pipeline agents working autonomously. Reported separately from human active time
 | Implementer TASK-239–246 | sonnet | 2026-09-25 14:27:38 | 2026-09-25 14:44:00 | 16m 22s | 8/8 first attempt; local compose run + smoke OK |
 | Reviewer PR #15 | sonnet | 2026-09-25 14:44:50 | 2026-09-25 14:50:39 | 5m 49s | APPROVE, 0 findings, 1 nit |
 | Analyst: doc-sync PR #15 | sonnet | 2026-09-25 14:51:00 | 2026-09-25 14:55:35 | 4m 35s | statuses, README, CHANGELOG |
+| Analyst: BR-145–170 (A6) | sonnet | 2026-09-25 14:57:55 | 2026-09-25 15:01:18 | 3m 23s | 26 new BRs, 4 amended; DOC-Q5, DOC-Q6 raised |
+| Analyst: resolve DOC-Q5/Q6 | sonnet | 2026-09-25 15:01:25 | 2026-09-25 15:02:35 | 1m 10s | recommendations applied (human pre-authorized) |
 
 ## Events
 
@@ -198,6 +200,9 @@ Pipeline agents working autonomously. Reported separately from human active time
 | 2026-09-25 14:45:30 | Orchestrator added the missing `Co-Authored-By` trailer to one unpushed commit (local rebase, no force push) and opened the Phase 9 PR |
 | 2026-09-25 14:47:00 | Human authorized the Phase 9 merge once review, doc-sync and CI pass |
 | 2026-09-25 14:56:51 | Human requested email and password sign-in and approved amendment A6 decisions (link only after proof of email ownership; clear the unverified password on Google link; JWT sessions; lean password rules, no recovery) |
+| 2026-09-25 14:58:10 | Human pre-authorized every spec approval and merge for Phase 10; DOC questions take the analyst's recommendation |
+| 2026-09-25 14:58:34 | PR #15 merged by the orchestrator (human authorized); Phase 9 closed |
+| 2026-09-25 15:02:35 | DOC-Q5 (5 failures per email / 20 per IP per 15 min) and DOC-Q6 (banner + Account notice) resolved with the analyst's recommendations under the human pre-authorization |
 
 ## Time report
 
