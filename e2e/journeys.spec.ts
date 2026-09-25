@@ -20,7 +20,7 @@ test.describe('REQ-40: a guest RSVPs to the public demo event', () => {
     await page.getByLabel('How many people, including you?').fill('2');
     await page.getByRole('button', { name: 'Send RSVP' }).click();
 
-    await expect(page.getByText("You're going (2)")).toBeVisible();
+    await expect(page.getByText("You're going · 2 people")).toBeVisible();
     await expect(page.getByText('9 people going')).toBeVisible();
   });
 });
@@ -47,7 +47,7 @@ test.describe('REQ-34: organizer creates an event with AI and sees the guest lis
     await guestPage.getByLabel('Your name').fill('Maria');
     await guestPage.getByLabel('How many people, including you?').fill('3');
     await guestPage.getByRole('button', { name: 'Send RSVP' }).click();
-    await expect(guestPage.getByText("You're going (3)")).toBeVisible();
+    await expect(guestPage.getByText("You're going · 3 people")).toBeVisible();
     await guestContext.close();
 
     await page.reload();
