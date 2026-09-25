@@ -90,6 +90,24 @@ describe('RsvpForm', () => {
     ).toBe('3');
   });
 
+  test('REQ-58: a rejected honeypot shows a generic form error and keeps the values', async () => {
+    const submit = vi
+      .fn()
+      .mockResolvedValue({ ok: false, code: 'VALIDATION_ERROR', fieldErrors: { form: 'invalidFormat' } });
+    renderWithIntl(<RsvpForm submit={submit} />);
+    fillGoing('Maria', 3);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Send RSVP' }));
+
+    const alert = await screen.findByRole('alert');
+    expect(alert.textContent).toBe('Please fix the highlighted fields.');
+    expect(alert.textContent?.toLowerCase()).not.toContain('website');
+    expect((screen.getByLabelText('Your name') as HTMLInputElement).value).toBe('Maria');
+    expect(
+      (screen.getByLabelText('How many people, including you?') as HTMLInputElement).value,
+    ).toBe('3');
+  });
+
   test('REQ-57: a rate-limited submission shows the message and keeps the values', async () => {
     const submit = vi.fn().mockResolvedValue({ ok: false, code: 'RATE_LIMITED' });
     renderWithIntl(<RsvpForm submit={submit} />);
