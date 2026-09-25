@@ -2,93 +2,151 @@
 
 Create an event, share one link, see who's coming.
 
-## Status
+## Live demo
 
-Phase 5 of 7 merged: abuse protection and hardening.
+**Production URL:** https://event-rsvp-app-flax.vercel.app
 
-**Live demo:** https://event-rsvp-app-flax.vercel.app
+**Demo event (no sign-in needed):** https://event-rsvp-app-flax.vercel.app/e/demoPicnic
 
-**Demo event (no sign-in needed):** https://event-rsvp-app-flax.vercel.app/en/e/demoPicnic
-
-### Features so far
-
-- Sign in with Google.
-- Create an event (name, description, date/time, timezone prefilled from the browser, optional location).
-- View an event page with its formatted date/time in the event's timezone.
-- Edit an event you own, until it starts.
-- Delete an event you own, with a confirmation prompt.
-- Dashboard listing your upcoming and past events.
-- Three interface languages (English, French, Brazilian Portuguese) with a language switcher.
-- Guests RSVP from the event page without an account: name, Going / Not going, and party size.
-- A returning guest (same browser) sees their own RSVP instead of a blank form, and can change or cancel it.
-- Duplicate guest names on the same event are blocked, whether or not the guest has a cookie.
-- RSVP submission and editing close once the event starts; the guest page becomes read-only.
-- The guest page never exposes other guests' names — only the visitor's own RSVP and the event totals.
-- Organizers see every RSVP on their event's guest list with totals, and can remove any RSVP, including after
-  the event has ended.
-- "Create sample event" fills a new organizer's empty dashboard with a ready-made event and 5 sample RSVPs.
-- "Copy invite link" on the owner's event page copies a locale-free link that opens in the guest's own language.
-- "Add to calendar" downloads a standard .ics file from the guest and owner event pages, no sign-in required.
-- A public demo event, seeded and kept open automatically, lets evaluators RSVP without creating anything.
-- A home page that explains the app to signed-out visitors (with a link to the demo event and to Google
-  sign-in) and greets signed-in organizers with a link to their dashboard.
-- "Fill with AI" on the new-event form: describe the event in your own words (English, French or Brazilian
-  Portuguese) and the form fields are filled in automatically. Production AI is enabled once a provider key is
-  configured on the deployment; the manual form always works on its own.
-- RSVP submissions are rate-limited to 10 per 10 minutes per hashed IP address.
-- A hidden honeypot field on the RSVP form rejects automated spam submissions.
-- Every response carries `X-Frame-Options`, `Referrer-Policy` and `X-Content-Type-Options` security headers.
-
-### Evaluation
-
-The AI is measured by a 30-case quiz (`npm run eval`); results will be published in `docs/evals/` after the
-real run (Phase 7).
-
-### Known limitations
-
-- Google sign-in runs in Testing mode — evaluators' Google accounts are added as test users; guests never need
-  to sign in.
+> Google sign-in runs in Testing mode: an evaluator's Google account must be added as a test user. Guests never
+> need to sign in.
 
 ## 60-second walkthrough
 
-1. Open the [demo event](https://event-rsvp-app-flax.vercel.app/en/e/demoPicnic) and RSVP as a guest — no sign-in
-   required.
-2. Sign in with Google, go to your dashboard, click "Create sample event" and see the seeded guest list.
-3. Create your own event, copy its invite link, open the link in a private/incognito window and RSVP there.
+1. Open the demo event and RSVP as a guest — no sign-in required.
+2. Sign in with Google.
+3. Go to your dashboard and click "Create sample event" to see a seeded guest list.
+4. Create your own event and try "Fill with AI" to prefill it from pasted text.
+5. Copy the event's invite link, open it in a private/incognito window, RSVP there, and watch the
+   organizer's guest list update.
 
-Google sign-in requires the evaluator's Google account to be added as a test user (see Known limitations above).
+## Features
+
+### Core
+
+- **Events** — create, edit and delete an event you own (name, description, date/time, timezone, optional
+  location); a dashboard lists your upcoming and past events with RSVP counts.
+- **RSVP** — guests respond from the event page without an account (name, Going / Not going, party size); a
+  returning guest (same browser) sees and can change or cancel their own RSVP; duplicate names on the same
+  event are blocked; RSVP submission and editing close once the event starts.
+- **Guest list** — organizers see every RSVP on their event with totals, and can remove any RSVP, including
+  after the event has ended; guest names are never exposed to other guests.
+
+### Bonus
+
+- **Google SSO with per-event roles** — sign in with Google; there is no admin role, only Organizer (for the
+  events you own) and Guest (everywhere else).
+- **AI fill** — "Fill with AI" turns pasted text into a prefilled event form, flagging any field it could not
+  find for the organizer to complete.
+- **i18n EN/FR/PT-BR** — three interface languages with a language switcher, browser-locale detection on first
+  visit, and a remembered choice afterwards.
+- **.ics** — "Add to calendar" downloads a standard `.ics` file from the guest and owner event pages, no
+  sign-in required.
+- **Sample event** — "Create sample event" fills a new organizer's empty dashboard with a ready-made event and
+  sample RSVPs.
+- **Demo** — a public demo event, seeded and kept open automatically, lets evaluators RSVP without creating
+  anything.
+- **Dark/light theme with WCAG 2.2 AA checks** — dark theme by default, switchable from the header; automated
+  contrast and focus-ring checks guard both themes.
+
+### Security and abuse protection
+
+- RSVP submissions are rate-limited to 10 per 10 minutes per client; only a salted hash of the IP is stored.
+- A hidden honeypot field rejects automated spam submissions without revealing why.
+- Every response carries `X-Frame-Options`, `Referrer-Policy` and `X-Content-Type-Options` headers.
+- User content always renders as text (no raw HTML); authorization is enforced in the services, not only in the UI.
+
+## Architecture
+
+Layered folders, each with one responsibility:
+
+| Folder | Responsibility |
+|---|---|
+| `src/domain` | Pure business rules and types: validation, time/timezone handling, slugs, policies, totals — no I/O. |
+| `src/services` | Use cases (create/update/delete an event, submit/cancel/remove an RSVP, AI parsing, rate limiting) that orchestrate the domain and repositories. |
+| `src/repositories` | Data access behind interfaces, with a Prisma implementation and an in-memory one for tests. |
+| `src/lib` | Cross-cutting helpers: auth, crypto, cookies, IP hashing, `.ics` generation, theme, contrast, the AI client. |
+| `src/app` | Next.js routes, pages, layouts and Server Actions — thin controllers that call one service and map its result. |
+
+Diagrams: [agent pipeline](docs/diagrams/agent-pipeline.svg), [user flows](docs/diagrams/user-flows.svg),
+[AI event parsing](docs/diagrams/ai-event-parsing.svg) (source and regeneration instructions in
+[docs/diagrams/README.md](docs/diagrams/README.md)).
+
+## Business rules and specification
+
+- **Business rules:** [docs/business-rules.md](docs/business-rules.md)
+- **Specification (requirements):** [docs/spec.md](docs/spec.md)
+- **Implementation plan (tasks):** [docs/plan.md](docs/plan.md)
+- **Product brief:** [docs/PRODUCT.md](docs/PRODUCT.md)
+- **Design system:** [docs/DESIGN.md](docs/DESIGN.md)
 
 ## Run locally
 
 Prerequisites: Node 22, Docker.
 
 ```bash
-npm ci
 docker compose up -d
 cp .env.example .env.local   # then fill in the values (see docs/plan.md, HUMAN-04)
 npx dotenv -e .env.local -- prisma migrate dev
+npx dotenv -e .env.local -- prisma db seed
 npm run dev
 ```
 
-The app serves on `http://localhost:3000`. If port 3000 is already in use, set `E2E_PORT` (see below) and run
+The app serves on `http://localhost:3000`. If port 3000 is already in use, set `E2E_PORT` and run
 `npm run dev -- -p 3100` instead.
 
 ## Tests
 
 ```bash
-npm run test:unit     # Vitest, no database
-npm run test:int      # Vitest, Docker Postgres (rsvp_test)
-npm run test:e2e      # Playwright, Docker Postgres (rsvp_test); uses E2E_PORT (default 3000)
+npm run test:unit     # Vitest, no database — domain, services and components in isolation
+npm run test:int      # Vitest, Docker Postgres (rsvp_test) — repositories and Server Actions against a real database
+npm run test:e2e      # Playwright, Docker Postgres (rsvp_test) — full user journeys in a browser; uses E2E_PORT (default 3000)
 npm run trace         # traceability check: every done requirement is cited by a passing test
 ```
 
-## Start here
+## AI evaluation
 
-- **Design brief:** [docs/design/2026-09-24-design-brief.md](docs/design/2026-09-24-design-brief.md)
-- **Agent pipeline:** [docs/diagrams/agent-pipeline.svg](docs/diagrams/agent-pipeline.svg)
-- **User flows:** [docs/diagrams/user-flows.svg](docs/diagrams/user-flows.svg)
-- **Business rules:** [docs/business-rules.md](docs/business-rules.md)
-- **Spec:** [docs/spec.md](docs/spec.md)
-- **Plan:** [docs/plan.md](docs/plan.md)
-- **Failure log:** [docs/pipeline/failures.md](docs/pipeline/failures.md)
-- **Time log:** [docs/timelog.md](docs/timelog.md)
+The "Fill with AI" prompt is scored against a fixed case set (accuracy, hallucination and
+prompt-injection resistance) by the runner in [evals/event-parser](evals/event-parser). Run it with:
+
+```bash
+npm run eval -- --model <id>
+```
+
+Each run needs `ANTHROPIC_API_KEY` in `.env.local` (see `docs/plan.md`, HUMAN-05) and writes a dated report to
+`docs/evals/`, along with `docs/evals/README.md` summarizing the models compared and the one chosen for
+production — not yet generated in this branch.
+
+## How I used AI
+
+The whole app was built by a pipeline of Claude agents (analyst, spec-writer, implementer, reviewer) working
+from a human-approved spec, each gated by tests and a reviewer before merge — see
+[docs/diagrams/agent-pipeline.svg](docs/diagrams/agent-pipeline.svg) for the escalation path (execution →
+specification → documentation) and which model ran which stage.
+
+Failures the pipeline hit along the way, and their root causes, are logged in
+[docs/pipeline/failures.md](docs/pipeline/failures.md).
+
+What I verified by hand: <!-- human fills -->
+
+## What I left out and why
+
+| Item | Reason |
+|---|---|
+| Capacity limits on RSVPs | Explicitly decided: "No capacity limit" (design brief). |
+| Email notifications | Explicitly decided: guests are not notified of date changes because "email out of scope" (design brief). |
+| "Maybe" RSVP response | Response is limited to Going / Not going by design; no reason given beyond the decision itself. |
+| CSV export | Listed in the brief's out-of-scope list; no reason given in the brief. |
+| Admin role | Listed in the brief's out-of-scope list; consistent with roles being only Organizer/Guest, contextual per event. |
+| Multiple organizers per event | Listed in the brief's out-of-scope list; consistent with the data model's single owner per event. |
+| Cross-device RSVP editing for guests | Listed in the brief's out-of-scope list, and stated directly as unsupported. |
+| Strict CSP | Listed in the brief's out-of-scope list; other XSS mitigations are used instead (React escaping only, no `dangerouslySetInnerHTML`). |
+| Observability beyond logs | Listed in the brief's out-of-scope list; no reason given in the brief. |
+| Per-PR preview deployments | Explicitly decided: "no per-PR previews (would migrate the production database)". |
+
+Full detail, including the brief citations, is in the
+["Out of scope" section of docs/business-rules.md](docs/business-rules.md#out-of-scope).
+
+## Time report
+
+Wall-clock and agent-run tracking for the whole challenge: [docs/timelog.md](docs/timelog.md).

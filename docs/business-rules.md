@@ -26,6 +26,9 @@
 | **Public demo event** | A seeded event linked from the signed-out home page so evaluators can see the app without signing in. |
 | **Missing field (AI)** | A form field the AI event-parsing feature could not determine from the organizer's free text; returned as missing rather than guessed. |
 | **Fill with AI** | The action that sends organizer free text to the AI parser and populates the event form; it never saves the event itself. |
+| **Theme** | The application's dark or light visual mode; user-selectable from the header and persisted across visits. |
+| **Reduced motion** | An operating-system-level user preference (`prefers-reduced-motion`) indicating that animated transitions should be minimized. |
+| **Target size** | The clickable or tappable area of an interactive control, measured in pixels. |
 
 ---
 
@@ -227,8 +230,13 @@ BR-10's cascade).
 ### Guest RSVP editing
 
 #### BR-35 — Returning guest sees their RSVP status
-**Rule:** A guest returning to the event page in the same browser (holding a valid edit-token cookie for that event) sees "You're going (N) · Change · Cancel" instead of a blank RSVP form.
-**Source:** design brief §2 "RSVPs"
+**Rule:** A guest returning to the event page in the same browser (holding a valid edit-token cookie for that
+event) sees, instead of a blank RSVP form: "You're going · N people" (where N is their party size) with "Change"
+and "Cancel RSVP" actions when their response is "Going", or "You're not going" with only a "Change" action when
+their response is "Not going" (a "Cancel RSVP" action on an already "Not going" RSVP would change nothing).
+**Source:** design brief §2 "RSVPs"; DESIGN.md; approved mockup
+**Amended:** 2026-09-24 — human decision (DOC-Q3.1)
+**Amended:** 2026-09-25 — human decision (DOC-Q4)
 
 #### BR-36 — Cancel sets response to Not going, does not delete
 **Rule:** Using "Cancel" on an existing RSVP sets its response to "Not going" rather than deleting the RSVP record.
@@ -517,6 +525,129 @@ submissions — please try again in a few minutes." and preserves the values the
 
 ---
 
+### Interface & accessibility
+
+#### BR-97 — Dark theme is the default
+**Rule:** On first visit, with no stored theme preference, the application renders in the dark theme.
+**Rationale:** Establishes a single, predictable default appearance for new visitors, consistent with the approved
+visual direction.
+**Source:** design brief §6 amendment A2; DESIGN.md §"Scene"; PRODUCT.md §"Accessibility & Inclusion"
+
+#### BR-98 — Theme switch available in the header on every page
+**Rule:** Every page displays a control in the header that lets the user switch between the dark and light themes.
+**Source:** design brief §6 amendment A2; DESIGN.md §"Layout"
+
+#### BR-99 — Theme choice is remembered across visits
+**Rule:** Once a user selects a theme, that choice is applied on subsequent page loads and future visits in the same
+browser, until the user changes it again.
+**Rationale:** Avoids forcing the user to re-select their preferred theme on every visit.
+**Source:** design brief §6 amendment A2; DESIGN.md §"Theme implementation notes"
+
+#### BR-100 — Theme is applied without a flash of the other theme
+**Rule:** When a page loads, the user's previously chosen theme is the first theme rendered; the page never
+visibly renders in the other theme before switching to the chosen one.
+**Rationale:** A visible flash of the wrong theme reads as a bug and undermines the calm, trustworthy brand
+personality.
+**Source:** design brief §6 amendment A2; DESIGN.md §"Theme implementation notes"
+
+#### BR-101 — Both themes meet AA contrast for text
+**Rule:** In both the dark theme and the light theme, independently, body and label text has a contrast ratio of
+at least 4.5:1 against its background.
+**Source:** PRODUCT.md §"Accessibility & Inclusion"; DESIGN.md §"Tokens (OKLCH)"
+
+#### BR-102 — Both themes meet AA contrast for large text and UI boundaries
+**Rule:** In both the dark theme and the light theme, independently, large text and the visual boundaries of UI
+components (e.g. input borders, focus indicators) have a contrast ratio of at least 3:1 against their adjacent
+background.
+**Source:** PRODUCT.md §"Accessibility & Inclusion"; DESIGN.md §"Tokens (OKLCH)"
+
+#### BR-103 — Visible focus indicator on every interactive control
+**Rule:** Every interactive control (link, button, input, toggle) shows a visible focus indicator when it
+receives keyboard focus.
+**Source:** PRODUCT.md §"Accessibility & Inclusion"; DESIGN.md §"Components"
+
+#### BR-104 — Full keyboard operability
+**Rule:** Every user action available with a pointer is also available using only the keyboard.
+**Source:** PRODUCT.md §"Accessibility & Inclusion"
+
+#### BR-105 — Every input has a visible label
+**Rule:** Every form input displays a visible text label; a placeholder is never the only label for an input.
+Exception: the header's language select is not required to show a visible text label — its visible content (a
+globe icon plus the current language name, or the globe icon alone below a 480 px viewport width) together with
+an accessible name supplied via `aria-label` satisfies this rule for that control. Every input inside the main
+content area of any page keeps a visible label with no exception.
+**Source:** PRODUCT.md §"Accessibility & Inclusion"; DESIGN.md §"Components"
+**Amended:** 2026-09-24 — human decision (DOC-Q3.3)
+
+#### BR-106 — Form errors are announced to assistive technology
+**Rule:** When a form submission produces a validation or server error, the error message is exposed to
+assistive technology (e.g. via `role="alert"` or an `aria-live` region), not only shown visually.
+**Source:** PRODUCT.md §"Accessibility & Inclusion"
+
+#### BR-107 — Status and state are never conveyed by color alone
+**Rule:** Wherever the interface conveys a status or state with color (e.g. going / not going / ended, an error,
+a success confirmation), it also conveys the same information with an icon, a text label, or both.
+**Rationale:** Keeps the interface usable for users who cannot distinguish the colors involved (e.g. color-blind
+users) or who rely on assistive technology that does not render color.
+**Source:** PRODUCT.md §"Design Principles" (#4 "State is always visible"); DESIGN.md §"Components"
+
+#### BR-108 — Minimum interactive target size
+**Rule:** Every interactive control has a target size of at least 24x24 px.
+**Source:** PRODUCT.md §"Accessibility & Inclusion"
+
+#### BR-109 — Larger touch targets for guest RSVP controls
+**Rule:** On the guest-facing RSVP page, the response choice, the party-size stepper controls, and the submit
+action each have a target size of at least 44x44 px.
+**Rationale:** These are the controls a guest completing an RSVP on a phone touches directly; a larger target
+reduces mis-taps on small screens.
+**Source:** DESIGN.md §"Components"; PRODUCT.md §"Design Principles" (#2 "Guest first, phone first")
+
+#### BR-110 — Confirmation required before removing an RSVP
+**Rule:** Organizer removal of an RSVP requires an explicit confirmation step before the RSVP is removed.
+**Rationale:** Removal is destructive and not reversible by the guest; explicit confirmation prevents accidental
+removal, mirroring the existing requirement for deleting an event (BR-09).
+**Source:** DESIGN.md §"Components" ("Inline confirm")
+
+#### BR-111 — Destructive-action confirmations are inline, not modal
+**Rule:** Confirmation for deleting an event (BR-09) and for removing an RSVP (BR-110) is presented inline,
+expanding in place next to the control that triggered it, rather than in a modal dialog.
+**Source:** design brief §6 amendment A2; DESIGN.md §"Components" ("Inline confirm")
+
+#### BR-112 — Guest RSVP page usable at 375 px width without horizontal scrolling
+**Rule:** The guest-facing RSVP page (`/e/[slug]`) is fully usable at a 375 px viewport width without any
+horizontal scrolling.
+**Source:** PRODUCT.md §"Design Principles" (#2 "Guest first, phone first")
+
+#### BR-113 — Reduced motion is respected
+**Rule:** When the user's system is set to prefer reduced motion, all interface transitions are limited to
+opacity changes only (no movement, scaling, or other motion).
+**Source:** PRODUCT.md §"Accessibility & Inclusion"; DESIGN.md §"Motion"
+
+#### BR-114 — Header displays the app logo on every page
+**Rule:** Every page's header displays the application's logo mark.
+**Source:** design brief §6 amendment A2; DESIGN.md §"Layout"
+
+#### BR-115 — Favicon is the app logo
+**Rule:** The browser favicon is the application's logo.
+**Source:** design brief §6 amendment A2; DESIGN.md §"Theme implementation notes"
+
+#### BR-116 — Layouts tolerate longer French strings
+**Rule:** Every layout displaying UI text remains usable and free of clipped, overlapping, or truncated text when
+the French translation of that text is up to 30% longer than the English source.
+**Source:** PRODUCT.md §"Accessibility & Inclusion"
+
+#### BR-117 — Decorative icons are hidden from assistive technology
+**Rule:** Icons used purely for decoration, that do not convey information on their own, are hidden from
+assistive technology and are not announced by screen readers.
+**Source:** DESIGN.md §"Iconography"
+
+#### BR-118 — Copy-link confirmation is announced to assistive technology
+**Rule:** After the invite link is copied successfully, the confirmation is announced to assistive technology
+(e.g. via an `aria-live` region), in addition to any visual change.
+**Source:** DESIGN.md §"Components" ("Copy invite link")
+
+---
+
 ## Out of scope
 
 Per the brief's principle "Maximum with minimum": everything left out is recorded here with the reason the brief
@@ -563,3 +694,20 @@ None open.
 
 - DOC-Q1 (edit-token cookie belonging to a different RSVP of the same event) → BR-37, BR-38 (amended)
 - DOC-Q2 (AI response to text that does not describe an event) → BR-55 (amended), BR-96 (new)
+
+**Resolved** — decided by the human (Ramon) on 2026-09-24, from `spec-writer`'s DOC failure report (Phase 6):
+
+- DOC-Q3.1 (returning-guest line wording) → BR-35 (amended): follow DESIGN.md / the approved mockup —
+  "You're going · N people" / "You're not going", with "Change" and "Cancel RSVP" actions.
+- DOC-Q3.2 ("Copy invite link" vs DESIGN.md's "Copy link") → BR-51 kept as is, no change; the BR wording is
+  authoritative over DESIGN.md's "Copy link" for this action's label.
+- DOC-Q3.3 (visible label on every input vs the header language select) → BR-105 (amended): documented
+  exception for the header language select (globe icon + current language name, globe only below 480 px, plus
+  `aria-label`); every input in the main content keeps a visible label.
+
+**Resolved** — decided by the human (Ramon) on 2026-09-25, from `spec-writer`'s DOC failure report (Phase 6):
+
+- DOC-Q4 (amended BR-35 said both "Going" and "Not going" panels get "Change" and "Cancel RSVP", but DESIGN.md
+  gives the Not going panel only "Change", and "Cancel RSVP" on an already "Not going" RSVP would change nothing)
+  → BR-35 (amended again): the Not going panel shows only "Change"; the "Going" panel keeps "Change" and
+  "Cancel RSVP". Confirms the default already applied in `docs/spec.md` REQ-31, REQ-84.

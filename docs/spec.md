@@ -21,6 +21,16 @@ Decided by the human on 2026-09-24 and recorded in `docs/business-rules.md`.
   fields in `missing`, no description drafted, the result says so explicitly (`notAnEvent: true`), and the UI shows
   "Couldn't find event details in that text." (`ai.notAnEvent`) instead of flagging every field. → BR-55 (amended),
   BR-96 (new). Applied in REQ-45, REQ-51, REQ-91, REQ-92.
+- **DOC-Q3** (Phase 6 wording and the header label, decided 2026-09-24) →
+  1. Returning-guest wording follows DESIGN.md: "You're going · N people" / "You're not going", actions "Change" and
+     "Cancel RSVP" → BR-35 (amended). Applied in REQ-29, REQ-31, REQ-67, REQ-70, REQ-84; C11 changed values
+     `rsvp.youreGoing`, `rsvp.cancel` (TASK-176).
+  2. The owner action keeps the BR-51 label "Copy invite link" (not DESIGN.md's "Copy link") → BR-51 unchanged.
+  3. The header language select is exempt from the visible-label rule (globe + current language name, globe only
+     below 480 px, accessible name via `aria-label`) → BR-105 (amended). Applied in REQ-68, REQ-80 (TASK-165).
+- **DOC-Q4** (decided 2026-09-25) — Does the Not going panel also get a "Cancel RSVP" action, per amended BR-35's
+  general wording? → **No.** The Not going panel shows only "Change" (a "Cancel RSVP" on an already "Not going"
+  RSVP would change nothing) → BR-35 (amended again). Confirms the default already applied in REQ-31, REQ-84.
 
 ---
 
@@ -335,9 +345,12 @@ server started by Playwright). Production code is unchanged; only the base URL d
 **Status:** done
 **Acceptance criteria:**
 - Given the owner's event page with the "Delete event" button
-- When the owner clicks it, `window.confirm` is shown with "Delete this event and all its RSVPs? This cannot be undone."
-- If the owner cancels → the delete action is not called and the page is unchanged
-- If the owner confirms → the delete action is called once with the slug, then the browser goes to `/<locale>/dashboard`
+- When the owner clicks it, the button is replaced in place by the question "Delete this event and all its RSVPs?
+  This cannot be undone." with "Delete" and "Keep" (inline, REQ-72); no dialog, no `window.confirm`
+- If the owner clicks "Keep" → the delete action is not called and the "Delete event" button is back
+- If the owner clicks "Delete" → the delete action is called once with the slug, then the browser goes to
+  `/<locale>/dashboard`
+**Amended (A2):** `window.confirm` replaced by the inline confirmation (BR-111); tests rewritten in TASK-179.
 **Test level:** unit (component) + e2e
 
 ### RSVPs
@@ -462,7 +475,9 @@ server started by Playwright). Production code is unchanged; only the base URL d
 - `SubmitRsvpService.execute(...)` (new or edit) → `EventEndedError`; `CancelRsvpService.execute(...)` →
   `EventEndedError`
 - At now = `2026-10-02T23:00:00.000Z` exactly, submission is still accepted
-- E2E: the guest page of an ended event shows "This event has ended" and has no RSVP form, "Change" or "Cancel"
+- E2E: the guest page of an ended event shows "This event has ended" and has no RSVP form, "Change" or
+  "Cancel RSVP"
+**Amended (DOC-Q3.1):** the cancel action is named "Cancel RSVP" (BR-35); E2E updated in TASK-176.
 **Test level:** unit + e2e
 
 ### REQ-30 — Organizer removes any RSVP, also after the event ended
@@ -473,7 +488,9 @@ server started by Playwright). Production code is unchanged; only the base URL d
 - Works when the event has ended
 - `userId: "u2"` → `NotOwnerError`; `rsvpId` of an RSVP of another event → `NotFoundError`; unknown slug →
   `NotFoundError`
-- E2E: the owner clicks "Remove" on "Maria" → the row disappears and totals update
+- E2E: the owner clicks "Remove Maria", then "Remove" in the inline confirmation (REQ-72) → the row disappears and
+  totals update
+**Amended (A2):** removal now asks for confirmation first (BR-110); E2E updated in TASK-180.
 **Test level:** unit + e2e
 
 ### REQ-31 — Guest event page
@@ -485,14 +502,18 @@ server started by Playwright). Production code is unchanged; only the base URL d
   (REQ-12), the location, "N people going" and an RSVP form with: "Your name", radio "Going" / "Not going", a number
   input labelled "How many people, including you?" (min 1, max 10, default 1; hidden when "Not going"), and
   "Send RSVP"
-- After a successful submit as "Maria" (Going, 3) → the page shows "You're going (3) · Change · Cancel"
+- After a successful submit as "Maria" (Going, 3) → the page shows "You're going · 3 people" with the buttons
+  "Change" and "Cancel RSVP" (party size 1 reads "You're going · 1 person")
 - Returning later in the same browser → the same line (no blank form)
 - "Change" shows the form prefilled with the guest's values; saving updates the line
-- "Cancel" → the line becomes "You're not going · Change"
+- "Cancel RSVP" → the line becomes "You're not going" with only the "Change" button (see DOC-Q4 under "Interface &
+  accessibility")
 - Ended event → "This event has ended", the aggregate total, and (if the browser has one) the guest's own RSVP line
-  without "Change"/"Cancel"; no form
+  without "Change"/"Cancel RSVP"; no form
 - Viewing `/fr/e/<slug>` shows UI labels in French while the event name and description are unchanged
 - Component: `RsvpForm` renders the party-size label text exactly "How many people, including you?"
+**Amended (DOC-Q3.1):** BR-35 wording "You're going · N people" / "Cancel RSVP" replaces "You're going (N)" /
+"Cancel"; unit and E2E tests updated in TASK-176.
 **Test level:** unit (component) + e2e
 
 ### Guest list visibility
@@ -528,13 +549,16 @@ server started by Playwright). Production code is unchanged; only the base URL d
 **Status:** done
 **Acceptance criteria:**
 - Given the owner opens `/en/e/<slug>` with RSVPs "Maria" (Going, 3) and "João" (Not going)
-- Then the page shows "Going: 1 · Declined: 1 · People: 3" and a table with columns "Name", "Response", "People",
-  "Last updated", and a "Remove" button per row; "Response" shows "Going" / "Not going"; "Last updated" shows the
-  RSVP's `updatedAt` formatted in the event timezone (REQ-12)
+- Then the page shows "1 going · 1 declined · 3 people" and a table with columns "Name", "Response", "People",
+  "Last updated", and a "Remove" button per row (named "Remove Maria", confirmed inline, REQ-72); "Response" shows
+  a "Going" / "Declined" pill (REQ-70); "Last updated" shows the RSVP's `updatedAt` in the event timezone with its
+  label, short format (`formatShortDateTime`, REQ-85)
 - With no RSVPs the table is replaced by "No RSVPs yet."
 - The page shows "Copy invite link", "Delete event", "Add to calendar", and (only while the event has not ended) "Edit"
 - The owner view has no RSVP form
 - After the event has ended the list, totals, "Remove" and "Delete event" are still shown
+**Amended (A2):** totals wording (REQ-82), "Declined" pill, short "Last updated", inline removal; E2E updated in
+TASK-172, TASK-180 and TASK-181.
 **Test level:** e2e
 
 ### Dashboard, sample data, home
@@ -558,10 +582,13 @@ server started by Playwright). Production code is unchanged; only the base URL d
 **Acceptance criteria:**
 - Given a signed-in organizer with one upcoming and one past event
 - `/en/dashboard` shows the heading "My events", sections "Upcoming" and "Past", and for each event its name (linking
-  to `/en/e/<slug>`), its formatted date (REQ-12) and "Going: N · Declined: N · People: N"
-- The page always has a "Create event" link to `/en/events/new`
+  to `/en/e/<slug>`), its formatted date (REQ-12) and "N going · N declined · N people" ("No replies yet" when the
+  event has no RSVP, REQ-82)
+- The page always has exactly one "Create event" link to `/en/events/new` (page head when there are events, empty
+  state panel otherwise)
 - Given an organizer with no events → the empty state "You have no events yet." with "Create event" (and
   "Create sample event", REQ-37)
+**Amended (A2):** counts wording and row layout (REQ-82); E2E updated in TASK-172.
 **Test level:** e2e
 
 ### REQ-37 — Sample event
@@ -588,7 +615,8 @@ server started by Playwright). Production code is unchanged; only the base URL d
 - `buildInviteUrl("https://rsvp.example.com", "abc123XYZ_")` → `"https://rsvp.example.com/e/abc123XYZ_"` (no locale;
   the guest's locale is detected on arrival)
 - Component: clicking "Copy invite link" calls `navigator.clipboard.writeText` with
-  `buildInviteUrl(window.location.origin, slug)` and then shows "Link copied"
+  `buildInviteUrl(window.location.origin, slug)` and then shows "Link copied" (A2: in a polite live region, while the
+  button reads "Copied" — REQ-79, REQ-85)
 - E2E: opening `/e/<slug>` (no locale) with browser locale `fr-FR` redirects to `/fr/e/<slug>`
 **Test level:** unit + unit (component) + e2e
 
@@ -598,8 +626,8 @@ server started by Playwright). Production code is unchanged; only the base URL d
 **Acceptance criteria:**
 - Given a signed-out visitor on `/en`
 - Then one screen shows: the heading "Plan an event. Share one link. See who's coming.", a short explanation, a
-  "Sign in with Google" link to `/api/login?callbackUrl=%2Fen%2Fdashboard`, and a "See a demo event" link to
-  `/en/e/demoPicnic`
+  "Sign in with Google" link to `/api/login?callbackUrl=%2Fen%2Fdashboard`, and a "See the demo event" link to
+  `/en/e/demoPicnic` (A2: was "See a demo event"; layout in REQ-81; E2E updated in TASK-169)
 - Given a signed-in organizer on `/en` → the "Sign in with Google" link is replaced by "My events" linking to
   `/en/dashboard`
 **Test level:** e2e
@@ -883,6 +911,342 @@ server started by Playwright). Production code is unchanged; only the base URL d
   `window.__xss` is `undefined`
 **Test level:** e2e (+ lint)
 
+### Interface & accessibility (amendment A2)
+
+Phase 6 redesigns every screen following `docs/DESIGN.md` (tokens, typography, components, motion) with
+`docs/design/phase-6-mockup.html` as the visual reference. Where the mockup and DESIGN.md disagree, DESIGN.md wins;
+where DESIGN.md copy contradicts a business rule, the business rule wins. No new product feature beyond the theme
+switch and the logo/favicon.
+
+**Resolved DOC-Q3** (see "Resolved DOC questions" at the top): returning-guest copy "You're going · N people" /
+"You're not going" with "Change" and "Cancel RSVP" (BR-35 amended; C11 changed values applied by TASK-176); "Copy
+invite link" kept (BR-51); the header language select is exempt from the visible label and is named by `aria-label`
+"Language" (BR-105 amended). "You're going · N people" pluralizes N like `totals.peopleGoing` ("1 person").
+
+**Resolved DOC-Q4** (2026-09-25, see "Resolved DOC questions" at the top): the Not going panel shows only "Change"
+(DESIGN.md, BR-35 amended again) — "Cancel RSVP" on a Not going RSVP would change nothing (BR-36). This confirms
+the default already applied in this spec (REQ-31, REQ-84, TASK-176).
+
+### REQ-62 — Dark theme by default; the choice is stored in a `theme` cookie
+**Rules:** BR-97, BR-99
+**Status:** done
+**Acceptance criteria:**
+- `parseTheme(undefined)`, `parseTheme('')`, `parseTheme('purple')` and `parseTheme('LIGHT')` → `'dark'`;
+  `parseTheme('light')` → `'light'`; `parseTheme('dark')` → `'dark'`
+- `nextTheme('dark')` → `'light'`; `nextTheme('light')` → `'dark'`
+- `themeCookieString('light')` → `"theme=light; Path=/; Max-Age=31536000; SameSite=Lax"` (365 days, whole site)
+- E2E: a new browser context (no cookie) opening `/en` gets `<html data-theme="dark">`
+**Test level:** unit + e2e
+
+### REQ-63 — The server renders the stored theme (no flash)
+**Rules:** BR-100
+**Status:** done
+**Acceptance criteria:**
+- Given the cookie `theme=light`, the HTML the server returns for `/en` (response body, before any script runs)
+  contains the `<html` start tag with `data-theme="light"`; with `theme=purple` it contains `data-theme="dark"`
+- The root layout reads the cookie on the server; no client script reads the cookie or sets the theme on load (the
+  toggle, REQ-64, changes it only on user action)
+**Test level:** e2e
+
+### REQ-64 — Theme toggle in the header of every page
+**Rules:** BR-98, BR-99
+**Status:** done
+**Acceptance criteria:**
+- Home, event page (guest and owner), dashboard and new-event page each have, inside the `banner` landmark, a button
+  named "Dark theme" (`nav.darkTheme`) with `aria-pressed="true"` in the dark theme and `"false"` in the light theme;
+  its icon is a moon in dark and a sun in light (both `aria-hidden`)
+- Pressing it in dark sets `data-theme="light"` on `<html>` at once (no reload), writes the cookie `theme=light`
+  (REQ-62) and sets `aria-pressed="false"`; pressing again returns to dark and writes `theme=dark`
+- After a reload, and on another page, the light theme is still applied and the button shows `aria-pressed="false"`
+**Test level:** unit (component) + e2e
+
+### REQ-65 — Design tokens meet AA contrast in both themes
+**Rules:** BR-101, BR-102
+**Status:** done
+**Acceptance criteria:**
+- `src/app/globals.css` defines the DESIGN.md tokens with DESIGN.md's exact OKLCH values under `:root,
+  [data-theme='dark']` and under `[data-theme='light']`; `--on-danger` is `var(--bg)` in dark and `var(--on-primary)`
+  in light
+- Contrast is computed from the CSS token values (OKLCH → linear sRGB → gamma-encoded sRGB clamped to 0…1 → WCAG
+  relative luminance → `(L1 + 0.05) / (L2 + 0.05)`). In **each** theme:
+  - text pairs ≥ 4.5:1 — text/bg, text/surface, text/surface-2, text-muted/bg, text-muted/surface,
+    text-muted/surface-2, on-primary/primary, on-primary/primary-hover, link/bg, link/surface, link/surface-2,
+    success/bg, success/surface, success/success-bg, text/success-bg, warning/bg, warning/surface-2,
+    warning/warning-bg, text/warning-bg, danger/bg, danger/surface, danger/danger-bg, text/danger-bg,
+    on-danger/danger, bg/success (check badge)
+  - UI boundary pairs ≥ 3:1 — border-input/bg, border-input/surface, border-input/surface-2, link/bg (focus ring),
+    link/surface, link/surface-2, primary/bg, primary/surface
+- Computed reference values (informative): dark on-primary/primary 5.01, dark border-input/surface-2 3.43, dark
+  primary/surface 3.44, light success/success-bg 4.89, light border-input/surface-2 3.47
+- Math checks: `contrastRatio([1,1,1],[0,0,0])` ≈ 21; `#767676` on white ≈ 4.54;
+  `oklchToSrgb(0.6279553606145516, 0.25768330773615683, 29.2338851923426)` ≈ `[1, 0, 0]` (sRGB red)
+**Test level:** unit
+
+### REQ-66 — Visible focus indicator
+**Rules:** BR-103
+**Status:** done
+**Acceptance criteria:**
+- Every focusable control shows, when focused from the keyboard, `outline: 2px solid var(--link)` (offset 2 px;
+  −2 px inside the stepper and the dashboard event rows). The segmented control's radio inputs are transparent; its
+  ring is drawn on the visible segment (`input:focus-visible + span`)
+- E2E: the first Tab on `/en` focuses an element whose computed `outline-style` is `solid` and `outline-width` `2px`
+- E2E: tabbing through the guest event page, the owner event page and the new-event page, every focused element
+  (for segment radios: its next sibling `span`) has `outline-style: solid` and `outline-width: 2px`
+**Test level:** e2e
+
+### REQ-67 — Every action works from the keyboard
+**Rules:** BR-104
+**Status:** done
+**Acceptance criteria:**
+- A guest answers with Tab, arrow keys and Enter only: types "Kim" in "Your name", ArrowRight / ArrowLeft move the
+  answer between "Not going" and "Going", Enter on "One more person" makes the party size 2, Enter on "Send RSVP" →
+  "You're going · 2 people"
+- The owner deletes with the keyboard: Enter on "Delete event" moves focus to "Keep"; Shift+Tab reaches "Delete";
+  Enter → `/en/dashboard`
+- Escape inside an open inline confirmation closes it and returns focus to its trigger (REQ-72)
+- Enter on the theme toggle switches the theme; Enter on the account menu summary opens it and shows "My events"
+**Test level:** unit (component) + e2e
+
+### REQ-68 — Every form input has a visible label
+**Rules:** BR-105
+**Status:** done
+**Acceptance criteria:**
+- Every `input` (except `type="hidden"`), `select` and `textarea` inside `main` that is not inside an
+  `aria-hidden="true"` subtree has a `<label>` (by `for` or by wrapping) with a non-zero rendered size and without the
+  `sr-only` class — event form, AI panel ("Describe your event"; the example sentence stays a placeholder), RSVP form
+  (the two radios are labelled by their visible segment text "Going" / "Not going"), invite link field
+- Exception (BR-105 amended, DOC-Q3.3): the header language select (inside `banner`, outside `main`) has no
+  `<label>`; its visible content is the globe icon plus the current language name (the globe alone below 480 px)
+  and its accessible name is `aria-label="Language"` (`nav.language`; REQ-80). No input inside `main` uses this
+  exception.
+**Test level:** e2e
+
+### REQ-69 — Form errors are announced
+**Rules:** BR-106
+**Status:** done
+**Acceptance criteria:**
+- A field error renders `<p id="<field id>-error" role="alert">` with an alert icon and the translated message; the
+  input has `aria-invalid="true"` and its `aria-describedby` includes the error id
+- Form-level server errors, AI errors (REQ-51) and the cancel error of the guest panel render in an element with
+  `role="alert"` (the `Alert` primitive: alert icon + text). In the RSVP form that alert keeps the Phase 5 texts:
+  `errors.<code>` for `DUPLICATE_NAME` / `RATE_LIMITED` (REQ-26, REQ-57) and `rsvp.formRejected` ("We couldn't send
+  your RSVP. Please try again.") for a `VALIDATION_ERROR` whose `fieldErrors` has `form` (REQ-58) — never
+  "Please fix the highlighted fields."
+- Component: `RsvpForm` submitted with an empty name → an element with `role="alert"` has the text "This field is
+  required."; `EventForm` submitted with an empty name (other fields valid) → same
+**Test level:** unit (component)
+
+### REQ-70 — Status is never conveyed by color alone
+**Rules:** BR-107
+**Status:** done
+**Acceptance criteria:**
+- `StatusPill`: `going` = check icon + label, `declined` = x icon + label, `ended` = clock icon + label; the owner's
+  guest list shows "Going" / "Declined", event pages show "Ended" (`event.endedPill`)
+- Guest confirmation: check badge + heading "You're going · 3 people"; not going: x icon + heading; ended notice: clock
+  icon + heading "This event has ended"
+- Copied: the button text becomes "Copied" with a check icon (REQ-79)
+- AI missing field: the word "Needed" with an alert icon next to the label, plus the hint text (REQ-51)
+- Errors: alert icon + text (REQ-69); selected segment: check icon on "Going", weight 600 and border, plus the native
+  checked state
+**Test level:** unit (component) + e2e
+
+### REQ-71 — Interactive targets are large enough
+**Rules:** BR-108, BR-109
+**Status:** done
+**Acceptance criteria:**
+- `buttonClass(variant, size)` heights: `sm` 36 px, `md` 40 px, `lg` 44 px; icon buttons, the language select and
+  the account menu summary are 40 px high
+- E2E: every visible link, button, input, select, textarea and summary (not `tabindex="-1"`, not inside
+  `aria-hidden="true"`) on the home, guest event, owner event, dashboard and new-event pages is at least 24×24 px
+- E2E (guest event page): the "Going" and "Not going" radios (hit area = their segment), "One less person",
+  "One more person" and "Send RSVP" are each at least 44×44 px
+**Test level:** unit (component) + e2e
+
+### REQ-72 — Destructive actions are confirmed inline
+**Rules:** BR-09, BR-41, BR-110, BR-111
+**Status:** done
+**Acceptance criteria:**
+- `InlineConfirm` closed: one button (the trigger). Activating it replaces the trigger in place with a
+  `role="group"` element labelled by the question, containing the confirm button (danger) and "Keep" (secondary);
+  no dialog element and no `window.confirm`; focus moves to "Keep"
+- "Keep", or Escape inside the group, closes it without calling the action and returns focus to the trigger
+- The confirm button calls the action once and has `aria-busy="true"` while it runs
+- Delete event: trigger "Delete event", question "Delete this event and all its RSVPs? This cannot be undone.",
+  confirm "Delete", cancel "Keep"; confirming deletes and goes to `/<locale>/dashboard` (REQ-19)
+- Remove RSVP: trigger text "Remove", accessible name "Remove Maria"; question "Remove Maria from the guest list?"
+  (visually hidden, labels the group); confirm "Remove", cancel "Keep"; confirming removes and refreshes (REQ-30)
+**Test level:** unit (component) + e2e
+
+### REQ-73 — Guest event page works at 375 px without horizontal scrolling
+**Rules:** BR-112
+**Status:** done
+**Acceptance criteria:**
+- Given a 375×740 viewport and an open event named
+  `Supercalifragilisticexpialidociousneighbourhoodgettogether2026` with location
+  `https://maps.example.com/riverside-park/north-entrance/picnic-area-7`
+- Then `document.documentElement.scrollWidth` ≤ 375 on the RSVP form and again after "Maria" RSVPs (confirmation)
+**Test level:** e2e
+
+### REQ-74 — Reduced motion keeps only opacity changes
+**Rules:** BR-113
+**Status:** done
+**Acceptance criteria:**
+- Without a reduced-motion preference: a `.btn` element's computed `transition-property` is
+  `background-color, border-color, color, transform`, and a `.confirm` element's `reveal` animation keyframes
+  include `transform`
+- With `prefers-reduced-motion: reduce`: the `.btn` `transition-property` does not contain `transform`, and the
+  `.confirm` keyframes animate `opacity` and not `transform`; the loading spinner pulses (opacity) instead of rotating
+**Test level:** e2e
+
+### REQ-75 — The header shows the logo on every page
+**Rules:** BR-114
+**Status:** done
+**Acceptance criteria:**
+- `LogoMark` renders an `svg` 24×24 with `viewBox="0 0 24 24"`, `aria-hidden="true"`, `data-logo-mark`, the calendar
+  filled `#3630B0` and the check stroked `#3BDBD1`
+- E2E: on the home, event, dashboard and new-event pages the `banner` has a link named "Event RSVP" to `/<locale>`
+  containing exactly one `svg[data-logo-mark]`
+**Test level:** unit (component) + e2e
+
+### REQ-76 — The favicon is the logo
+**Rules:** BR-115
+**Status:** done
+**Acceptance criteria:**
+- `src/app/icon.svg` is the logo (contains `#3630B0` and `#3BDBD1`); `src/app/favicon.ico` no longer exists
+- E2E: `/en` has exactly one `link[rel="icon"][type="image/svg+xml"]`, its `href` starts with `/icon.svg`, fetching
+  it returns 200 and a body containing both colors; there is no `link[rel="icon"]` whose `href` contains
+  `favicon.ico`
+**Test level:** unit + e2e
+
+### REQ-77 — Layouts hold with French strings
+**Rules:** BR-116
+**Status:** done
+**Acceptance criteria:**
+- At 375 px and at 1280 px wide, on `/fr` (signed out), the French guest event page (form and confirmation), the
+  French owner event page, `/fr/dashboard` and `/fr/events/new`: `document.documentElement.scrollWidth` ≤ the
+  viewport width, and no `.btn`, `.pill`, `.seg span`, `.label` or `.brand` element has
+  `scrollWidth > clientWidth + 1` or `scrollHeight > clientHeight + 1`
+**Test level:** e2e
+
+### REQ-78 — Decorative icons are hidden from assistive technology
+**Rules:** BR-117
+**Status:** done
+**Acceptance criteria:**
+- `Icon` renders its `svg` with `aria-hidden="true"` and `focusable="false"`; the logo mark, the Google mark and the
+  check badge are hidden too
+- E2E: on the home, guest event (form and confirmation), owner event, dashboard and new-event pages, no `svg` is
+  outside an `aria-hidden="true"` subtree (`svg.closest('[aria-hidden="true"]')` is never `null`)
+**Test level:** unit (component) + e2e
+
+### REQ-79 — The copy-link confirmation is announced
+**Rules:** BR-118
+**Status:** done
+**Acceptance criteria:**
+- `CopyInviteLinkButton` always renders `<p class="sr-only" aria-live="polite">`: empty before copying, "Link copied"
+  (`event.linkCopied`) after a successful copy, empty again when the button returns to "Copy invite link" (after
+  `copiedMs`, default 2000 ms)
+**Test level:** unit (component)
+
+### REQ-80 — Header: language, theme and account
+**Rules:** BR-01, BR-75, BR-108
+**Status:** done
+**Acceptance criteria:**
+- The `banner` holds, left, the link "Event RSVP" (logo + wordmark, REQ-75); right, in this order: the language select
+  (globe icon, current language name, `aria-label="Language"` and no `<label>` element — BR-105 exception, REQ-68;
+  options "English", "Français", "Português (Brasil)"), the theme toggle (REQ-64), then the auth area
+- Below 480 px wide the language select is 40 px wide (globe only; the native list still shows full names) and the
+  sign-in link reads "Sign in" (`nav.signInShort`); from 480 px it reads "Sign in with Google"; it links to
+  `/api/login?callbackUrl=%2F<locale>%2Fdashboard`
+- Signed in: an account menu (`<details>`) whose summary is named "Account menu" and shows the avatar initial; open,
+  it shows "Signed in as Ana", the link "My events" (`/<locale>/dashboard`) and the button "Sign out"
+- `userInitial('ana', null)` → `'A'`; `userInitial(null, 'zoe@example.com')` → `'Z'`; `userInitial('  élise ', null)`
+  → `'É'`; `userInitial(null, null)` and `userInitial('', '')` → `'?'`
+**Test level:** unit + unit (component) + e2e
+
+### REQ-81 — Home page
+**Rules:** BR-52
+**Status:** done
+**Acceptance criteria:**
+- One column below 768 px, two from 768 px: headline (display style), explanation, a primary "Sign in with Google"
+  link with the Google mark (or "My events" when signed in) and a secondary "See the demo event" link to
+  `/<locale>/e/demoPicnic`; beside them a `figure` previewing the guest page (content `aria-hidden`) captioned
+  "What a guest sees after tapping your link. One page, one answer."
+**Test level:** e2e
+
+### REQ-82 — Dashboard
+**Rules:** BR-46, BR-47, BR-48, BR-49
+**Status:** done
+**Acceptance criteria:**
+- Heading "My events"; when the organizer has at least one event, a primary "Create event" link (calendar-plus icon)
+  in the page head
+- Empty: a panel with the heading "You have no events yet.", "Three steps, about a minute:", an ordered list of three
+  steps titled "Create an event", "Share one link", "Watch replies come in", the primary "Create event" link (the only
+  one on the page), the secondary "Create sample event" button and the hint "The sample comes with five fictional
+  guests so you can look around. Delete it when you're done."
+- Not empty: regions "Upcoming" and "Past"; each event is one link row with a date tile (`aria-hidden`: short month in
+  upper case, day, short weekday — in the event timezone), the name, the formatted date/time (REQ-12) and the counts
+  "1 going · 1 declined · 2 people", or "No replies yet" when the event has no RSVP
+- `dateTileParts(new Date('2026-10-02T23:00:00.000Z'), 'America/New_York', 'en')` → `{ month: 'OCT', day: '2',
+  weekday: 'Fri' }`; with `'2026-10-03T02:00:00.000Z'` → the same (22:00 on Oct 2 in New York); with the first
+  instant and `'fr'` → `{ month: 'OCT.', day: '2', weekday: 'ven.' }`
+- `totals.summary` = "{going} going · {declined} declined · {people, plural, one {# person} other {# people}}"
+**Test level:** unit + e2e
+
+### REQ-83 — Event form and "Fill with AI" panel
+**Rules:** BR-20, BR-53, BR-57, BR-65, BR-66, BR-89, BR-96
+**Status:** done
+**Acceptance criteria:**
+- Fields are grouped in fieldsets named by their legends: "What" (Name, Description), "When" (Date and Time side by
+  side from 480 px, Timezone with the hint "Guests see the date and time in this timezone."), "Where" (Location
+  (optional))
+- "Save event" is the primary button; while saving it keeps its label, is disabled and has `aria-busy="true"`
+- New-event page only: the AI panel above the groups — label "Describe your event" (sparkles icon), textarea of 3 rows,
+  secondary "Fill with AI" (sparkles icon) and a `role="status"` line. While working the button keeps its label, is
+  disabled and busy, and the status reads "Filling…"; after a fill it reads "Filled 5 fields · check them below"
+  (count = fields returned non-null); missing fields get the warning tint and a "Needed" badge besides the existing
+  hint; not-an-event, AI_UNAVAILABLE and AI_LIMIT_REACHED show in the panel with `role="alert"` (texts of REQ-51)
+**Test level:** unit (component)
+
+### REQ-84 — Guest RSVP controls and confirmation
+**Rules:** BR-23, BR-25, BR-26, BR-27, BR-33, BR-35, BR-36
+**Status:** done
+**Acceptance criteria:**
+- RSVP form: heading "Will you come?"; "Your name" with the hint "The organizer sees this name on the guest list."
+  (linked by `aria-describedby`); a radio group named "Your answer" with "Going" (check icon) and "Not going"
+  (x icon); when Going, a stepper labelled "How many people, including you?" with buttons "One less person" and
+  "One more person" (disabled at 1 and at 10) and the hint "Up to 10."; "Send RSVP" primary, large, busy while sending
+- The form's alert (under the heading) is the `Alert` primitive and keeps the Phase 5 texts (REQ-69): a
+  `{ ok: false, code: "VALIDATION_ERROR", fieldErrors: { form: "invalidFormat" } }` result shows exactly "We couldn't
+  send your RSVP. Please try again." (`rsvp.formRejected`, REQ-58) with an alert icon
+- Stepper: from 3, "One more person" → 4; "One less person" twice → 2; at 1 "One less person" is disabled; at 10
+  "One more person" is disabled
+- Returning guest, Going: a confirmation panel with a check badge, heading "You're going · 3 people" ("You're going ·
+  1 person" for a party of one), the line "Saved as Maria. You can change your answer from this browser until the
+  event starts.", "Change" (pencil, secondary) and "Cancel RSVP" (ghost danger)
+- Not going: a neutral notice with an x icon, heading "You're not going", the saved-as line and "Change" only
+  (DOC-Q4 default)
+- Ended: a notice with a clock icon, heading "This event has ended", "Replies are closed, so answers can no longer be
+  sent or changed." and, when the browser has an RSVP, its line ("You're going · 3 people") with a check (or x) icon;
+  no form, no buttons
+- An ended event shows the "Ended" pill (clock icon) above its title, for guests and owner
+**Test level:** unit (component) + e2e
+
+### REQ-85 — Owner event page
+**Rules:** BR-42, BR-43, BR-51, BR-91, BR-94
+**Status:** done
+**Acceptance criteria:**
+- Owner tools under the event head: a panel with the read-only input labelled "Invite link" whose value is
+  `buildInviteUrl(window.location.origin, slug)`, the hint "Anyone with this link can reply. Guests don't need an
+  account." and the "Copy invite link" button (becomes "Copied" with a check for 2 s, REQ-79); then an actions row
+  with "Edit" (pencil; only before the event ends) and "Delete event" (REQ-72)
+- Guest list: heading "Guest list" and the totals "1 going · 1 declined · 3 people"; from 640 px a table with column
+  headers "Name", "Response", "People", "Last updated" and a visually hidden "Actions"; "Response" is a pill
+  ("Going" / "Declined", REQ-70); "Last updated" uses `formatShortDateTime`; below 640 px each row stacks (header
+  visually hidden: the `thead` box is at most 1 px wide) and a 375 px page has no horizontal scroll
+- `formatShortDateTime(new Date('2026-09-24T14:02:00.000Z'), 'America/New_York', 'en')` with every whitespace
+  character replaced by a plain space → `'Sep 24, 10:02 AM EDT'`
+**Test level:** unit + e2e
+
 ---
 
 ## Tooling requirements
@@ -955,7 +1319,7 @@ These requirements are code in the repository and are TDD'd like product code. T
 
 | BR | Covered by |
 |---|---|
-| BR-01 | REQ-01 |
+| BR-01 | REQ-01, REQ-80 |
 | BR-02 | REQ-23, REQ-31 |
 | BR-03 | REQ-03 |
 | BR-04 | REQ-04, REQ-14 |
@@ -963,7 +1327,7 @@ These requirements are code in the repository and are TDD'd like product code. T
 | BR-06 | REQ-06, REQ-14 |
 | BR-07 | REQ-16, REQ-17 |
 | BR-08 | REQ-18 |
-| BR-09 | REQ-19 |
+| BR-09 | REQ-19, REQ-72 |
 | BR-10 | REQ-18 |
 | BR-11 | REQ-16 |
 | BR-12 | REQ-16 (no notifier dependency); non-functional: no email capability exists in the system |
@@ -977,9 +1341,9 @@ These requirements are code in the repository and are TDD'd like product code. T
 | BR-20 | REQ-13 |
 | BR-21 | REQ-10, REQ-14 |
 | BR-22 | REQ-20 |
-| BR-23 | REQ-20 |
+| BR-23 | REQ-20, REQ-84 |
 | BR-24 | REQ-20 |
-| BR-25 | REQ-31 |
+| BR-25 | REQ-31, REQ-84 |
 | BR-26 | REQ-20 |
 | BR-27 | REQ-20, REQ-28 |
 | BR-28 | REQ-22, REQ-23 |
@@ -989,29 +1353,29 @@ These requirements are code in the repository and are TDD'd like product code. T
 | BR-32 | REQ-29 |
 | BR-33 | REQ-29, REQ-31 |
 | BR-34 | REQ-23 |
-| BR-35 | REQ-31 |
+| BR-35 | REQ-31, REQ-84 |
 | BR-36 | REQ-28 |
 | BR-37 | REQ-21, REQ-25 |
 | BR-38 | REQ-21, REQ-26 |
 | BR-39 | REQ-27 |
 | BR-40 | REQ-26 |
-| BR-41 | REQ-30 |
-| BR-42 | REQ-33, REQ-34 |
-| BR-43 | REQ-32, REQ-34 |
+| BR-41 | REQ-30, REQ-72 |
+| BR-42 | REQ-33, REQ-34, REQ-85 |
+| BR-43 | REQ-32, REQ-34, REQ-85 |
 | BR-44 | REQ-31, REQ-32, REQ-33 |
 | BR-45 | REQ-33 |
-| BR-46 | REQ-35, REQ-36 |
-| BR-47 | REQ-32, REQ-35, REQ-36 |
-| BR-48 | REQ-36 |
-| BR-49 | REQ-37 |
+| BR-46 | REQ-35, REQ-36, REQ-82 |
+| BR-47 | REQ-32, REQ-35, REQ-36, REQ-82 |
+| BR-48 | REQ-36, REQ-82 |
+| BR-49 | REQ-37, REQ-82 |
 | BR-50 | REQ-37 |
-| BR-51 | REQ-34, REQ-38 |
-| BR-52 | REQ-39, REQ-40 |
+| BR-51 | REQ-34, REQ-38, REQ-85 |
+| BR-52 | REQ-39, REQ-40, REQ-81 |
 | BR-53 | REQ-51 |
 | BR-54 | REQ-45 |
 | BR-55 | REQ-44, REQ-45 |
 | BR-56 | REQ-45 |
-| BR-57 | REQ-51 |
+| BR-57 | REQ-51, REQ-83 |
 | BR-58 | REQ-50 |
 | BR-59 | REQ-43, REQ-45 |
 | BR-60 | REQ-46 |
@@ -1029,7 +1393,7 @@ These requirements are code in the repository and are TDD'd like product code. T
 | BR-72 | REQ-41 |
 | BR-73 | REQ-52 |
 | BR-74 | REQ-53 |
-| BR-75 | REQ-54 |
+| BR-75 | REQ-54, REQ-80 |
 | BR-76 | REQ-12 |
 | BR-77 | REQ-31 |
 | BR-78 | REQ-52 |
@@ -1051,5 +1415,28 @@ These requirements are code in the repository and are TDD'd like product code. T
 | BR-94 | REQ-16, REQ-17 |
 | BR-95 | REQ-02 |
 | BR-96 | REQ-45, REQ-51 (+ eval category `non-event`, REQ-91, REQ-92) |
+| BR-97 | REQ-62 |
+| BR-98 | REQ-64 |
+| BR-99 | REQ-62, REQ-64 |
+| BR-100 | REQ-63 |
+| BR-101 | REQ-65 |
+| BR-102 | REQ-65 |
+| BR-103 | REQ-66 |
+| BR-104 | REQ-67 |
+| BR-105 | REQ-68 |
+| BR-106 | REQ-69 |
+| BR-107 | REQ-70 |
+| BR-108 | REQ-71, REQ-80 |
+| BR-109 | REQ-71 |
+| BR-110 | REQ-72 |
+| BR-111 | REQ-72 |
+| BR-112 | REQ-73 |
+| BR-113 | REQ-74 |
+| BR-114 | REQ-75 |
+| BR-115 | REQ-76 |
+| BR-116 | REQ-77 |
+| BR-117 | REQ-78 |
+| BR-118 | REQ-79 |
 
-96 business rules, 96 covered (BR-12 additionally non-functional). Tooling: REQ-90, REQ-91, REQ-92.
+118 business rules, 118 covered (BR-12 additionally non-functional). BR-97 … BR-118 added by
+amendment A2 (REQ-62 … REQ-85). Tooling: REQ-90, REQ-91, REQ-92.

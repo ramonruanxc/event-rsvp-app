@@ -15,9 +15,10 @@
 | 2 | `phase-2/rsvp-flow` | Guest RSVP, edit cookie, duplicates, cancel, ended events, role views | REQ-20–REQ-26, REQ-28–REQ-31, REQ-33, REQ-34, REQ-56 (IP hashing only), REQ-57 | 20 |
 | 3 | `phase-3/share-and-demo` | Sample event, invite link, .ics, home, demo seed | REQ-37–REQ-42 | 11 |
 | 4 | `phase-4/ai-fill` | AI event creation, rate limiter, eval runner and cases, eval run | REQ-43–REQ-51, REQ-55, REQ-91, REQ-92 | 24 + 1 human |
-| 5 | `phase-5/hardening` | RSVP rate limit, honeypot, headers, XSS check, journeys, README | REQ-56, REQ-58, REQ-60, REQ-61 | 9 |
+| 5 | `phase-5/hardening` | RSVP rate limit, honeypot, headers, XSS check, journeys | REQ-56, REQ-58, REQ-60, REQ-61 | 8 |
+| 6 | `phase-6/ui-ux` | UI/UX redesign (A2): tokens and themes, primitives, header and logo, every screen, accessibility checks, README | REQ-62–REQ-85 (+ amended REQ-19, REQ-30, REQ-34, REQ-36, REQ-38, REQ-39) | 36 (TASK-150–TASK-184 + TASK-148) |
 
-Totals: 64 requirements (61 product + 3 tooling), 122 agent tasks, 5 human tasks.
+Totals: 88 requirements (85 product + 3 tooling), 157 agent tasks, 5 human tasks.
 
 **Adjustments to the suggested phases (with reasons):**
 - *All Prisma repositories move to Phase 1* (including the RSVP repository and its unique-constraint test REQ-27):
@@ -32,6 +33,8 @@ Totals: 64 requirements (61 product + 3 tooling), 122 agent tasks, 5 human tasks
 - *Phase 0's TDD behavior is event-name validation (REQ-04), exercised by unit tests and CI rather than rendered on the
   home page*: rendering a validation rule without a form would be throw-away UI. The deployed home page (translated,
   locale-detected) plus `prisma migrate deploy` on Vercel prove the full path: code → CI → Neon → live URL.
+- *The README (TASK-148) moves from Phase 5 to the end of Phase 6* (amendment A2): it describes the final product,
+  which now includes the redesign.
 
 ---
 
@@ -476,6 +479,174 @@ these translations:
 (Phase 3, TASK-99 changes `vercel-build` to `prisma generate && prisma migrate deploy && prisma db seed && next build`.)
 `e2e:server` has no port on purpose: Playwright runs `npm run e2e:server -- -p <E2E_PORT>` (TASK-10), and npm appends
 arguments after `--` to the end of the script, i.e. to `next start`. Run by hand without arguments it serves on 3000.
+
+### C10 — Phase 6 helpers and UI primitives (amendment A2)
+
+Created by TASK-150 … TASK-168 before any screen uses them (lesson #9). Every exported symbol gets a one-line TSDoc.
+`Icon`, `Button`, the field primitives, `StatusPill`, `LogoMark` and `GoogleMark` use no hooks and have no
+`'use client'`: server and client components can both render them. **Never pass a lucide icon component as a prop
+from a server component to a client component** (functions are not serializable); a client component imports its
+icons itself.
+
+```ts
+// src/lib/cx.ts
+export function cx(...parts: Array<string | false | null | undefined>): string; // truthy parts joined by ' '
+
+// src/lib/theme.ts
+export type Theme = 'dark' | 'light';
+export const THEME_COOKIE = 'theme';
+export const DEFAULT_THEME: Theme = 'dark';
+export function parseTheme(value: string | null | undefined): Theme; // 'light' only for exactly 'light'
+export function nextTheme(theme: Theme): Theme;
+export function themeCookieString(theme: Theme): string; // `theme=${theme}; Path=/; Max-Age=31536000; SameSite=Lax`
+
+// src/lib/contrast.ts
+export type Rgb = readonly [number, number, number]; // gamma-encoded sRGB channels, 0..1
+export function oklchToSrgb(l: number, c: number, h: number): Rgb;
+export function relativeLuminance(rgb: Rgb): number;
+export function contrastRatio(a: Rgb, b: Rgb): number;
+export function readThemeTokens(css: string, theme: Theme): Record<string, Rgb>; // keys without '--'
+
+// src/lib/user-initial.ts
+export function userInitial(name: string | null, email: string | null): string;
+
+// src/lib/session.ts (addition; getCurrentUserId and requireUserId unchanged)
+export interface CurrentUser { id: string; name: string | null; email: string | null }
+export async function getCurrentUser(): Promise<CurrentUser | null>;
+
+// src/lib/format-date.ts (additions; formatEventDateTime unchanged)
+export interface DateTileParts { month: string; day: string; weekday: string }
+export function dateTileParts(instant: Date, timeZone: string, locale: string): DateTileParts;
+export function formatShortDateTime(instant: Date, timeZone: string, locale: string): string;
+
+// src/components/ui/icon.tsx
+export type IconSize = 12 | 16 | 20;
+export interface IconProps { icon: LucideIcon; size?: IconSize; className?: string } // LucideIcon: type from 'lucide-react'
+export function Icon(props: IconProps): React.JSX.Element;
+
+// src/components/ui/button.tsx
+export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'ghost-danger' | 'danger';
+export type ButtonSize = 'sm' | 'md' | 'lg'; // heights 36 / 40 / 44 px (classes btn-sm / none / btn-lg)
+export function buttonClass(variant?: ButtonVariant, size?: ButtonSize, extra?: string): string; // defaults 'secondary', 'md'
+export interface ButtonProps extends React.ComponentProps<'button'> { variant?: ButtonVariant; size?: ButtonSize; loading?: boolean }
+export function Button(props: ButtonProps): React.JSX.Element; // type defaults to 'button'; `ref` passes through (React 19)
+
+// src/components/ui/field.tsx
+export function Field(props: { missing?: boolean; className?: string; children: React.ReactNode }): React.JSX.Element;
+export function FieldLabel(props: { htmlFor: string; badge?: React.ReactNode; children: React.ReactNode }): React.JSX.Element;
+export function FieldHint(props: { id: string; children: React.ReactNode }): React.JSX.Element;
+export function FieldError(props: { id: string; children: React.ReactNode }): React.JSX.Element; // role="alert"
+export function NeededBadge(props: { children: React.ReactNode }): React.JSX.Element;
+export function Alert(props: { children: React.ReactNode }): React.JSX.Element; // role="alert"
+export function describedBy(...ids: Array<string | false | null | undefined>): string | undefined;
+
+// src/components/ui/segmented-control.tsx
+export interface SegmentOption<V extends string> { value: V; label: string; icon: LucideIcon; tone: 'success' | 'muted' }
+export interface SegmentedControlProps<V extends string> {
+  name: string; label: string; labelId: string; value: V;
+  options: ReadonlyArray<SegmentOption<V>>; onChange: (value: V) => void;
+}
+export function SegmentedControl<V extends string>(props: SegmentedControlProps<V>): React.JSX.Element;
+
+// src/components/ui/stepper.tsx
+export interface StepperProps {
+  id: string; value: number; min: number; max: number; onChange: (value: number) => void;
+  decreaseLabel: string; increaseLabel: string; describedBy?: string; invalid?: boolean;
+}
+export function Stepper(props: StepperProps): React.JSX.Element;
+
+// src/components/ui/status-pill.tsx
+export type PillStatus = 'going' | 'declined' | 'ended';
+export function StatusPill(props: { status: PillStatus; children: React.ReactNode }): React.JSX.Element;
+
+// src/components/ui/inline-confirm.tsx ('use client')
+export interface InlineConfirmProps {
+  triggerLabel: string; triggerAriaLabel?: string; question: string;
+  confirmLabel: string; cancelLabel: string; onConfirm: () => Promise<void>; layout?: 'block' | 'row';
+}
+export function InlineConfirm(props: InlineConfirmProps): React.JSX.Element;
+
+// src/components/logo-mark.tsx · src/components/google-mark.tsx
+export function LogoMark(): React.JSX.Element;
+export function GoogleMark(): React.JSX.Element;
+
+// src/components/theme-toggle.tsx ('use client')
+export interface ThemeToggleProps { initialTheme: Theme }
+export function ThemeToggle(props: ThemeToggleProps): React.JSX.Element;
+
+// src/components/user-menu.tsx ('use client')
+export interface UserMenuProps { name: string | null; initial: string; signOutAction: () => Promise<void> }
+export function UserMenu(props: UserMenuProps): React.JSX.Element;
+
+// src/components/invite-preview.tsx (server component)
+export async function InvitePreview(): Promise<React.JSX.Element>;
+```
+
+### C11 — Phase 6 messages (amendment A2)
+
+**New keys** — TASK-156 adds all of them, in the three files, inside the existing sections (keep `{placeholders}`
+and plural syntax exactly):
+
+| Key | en | fr | pt-BR |
+|---|---|---|---|
+| `nav.signInShort` | Sign in | Se connecter | Entrar |
+| `nav.darkTheme` | Dark theme | Thème sombre | Tema escuro |
+| `nav.accountMenu` | Account menu | Menu du compte | Menu da conta |
+| `nav.signedInAs` | Signed in as {name} | Connecté en tant que {name} | Conectado como {name} |
+| `home.previewCaption` | What a guest sees after tapping your link. One page, one answer. | Ce que voit un invité après avoir touché votre lien. Une page, une réponse. | O que um convidado vê ao tocar no seu link. Uma página, uma resposta. |
+| `dashboard.stepsIntro` | Three steps, about a minute: | Trois étapes, environ une minute : | Três passos, cerca de um minuto: |
+| `dashboard.step1Title` | Create an event | Créez un événement | Crie um evento |
+| `dashboard.step1Text` | Fill the form, or describe the event in a sentence and let AI fill it. | Remplissez le formulaire, ou décrivez l'événement en une phrase et laissez l'IA le remplir. | Preencha o formulário, ou descreva o evento em uma frase e deixe a IA preencher. |
+| `dashboard.step2Title` | Share one link | Partagez un seul lien | Compartilhe um único link |
+| `dashboard.step2Text` | Send the invite link in any chat. Guests don't need an account. | Envoyez le lien d'invitation dans n'importe quelle discussion. Les invités n'ont pas besoin de compte. | Envie o link de convite em qualquer conversa. Os convidados não precisam de conta. |
+| `dashboard.step3Title` | Watch replies come in | Suivez les réponses | Acompanhe as respostas |
+| `dashboard.step3Text` | See who's going and how many people, in one list. | Voyez qui vient et combien de personnes, dans une seule liste. | Veja quem vai e quantas pessoas, em uma só lista. |
+| `dashboard.sampleHint` | The sample comes with five fictional guests so you can look around. Delete it when you're done. | L'exemple contient cinq invités fictifs pour que vous puissiez explorer. Supprimez-le une fois terminé. | O exemplo vem com cinco convidados fictícios para você explorar. Exclua-o quando terminar. |
+| `dashboard.noReplies` | No replies yet | Pas encore de réponses | Nenhuma resposta ainda |
+| `eventForm.groupWhat` | What | Quoi | O quê |
+| `eventForm.groupWhen` | When | Quand | Quando |
+| `eventForm.groupWhere` | Where | Où | Onde |
+| `eventForm.timezoneHint` | Guests see the date and time in this timezone. | Les invités voient la date et l'heure dans ce fuseau horaire. | Os convidados veem a data e a hora neste fuso horário. |
+| `ai.filled` | {count, plural, one {Filled # field} other {Filled # fields}} · check them below | {count, plural, one {# champ rempli} other {# champs remplis}} · vérifiez-les ci-dessous | {count, plural, one {# campo preenchido} other {# campos preenchidos}} · confira abaixo |
+| `ai.needed` | Needed | Requis | Necessário |
+| `event.endedPill` | Ended | Terminé | Encerrado |
+| `event.endedHint` | Replies are closed, so answers can no longer be sent or changed. | Les réponses sont closes : elles ne peuvent plus être envoyées ni modifiées. | As respostas estão encerradas e não podem mais ser enviadas nem alteradas. |
+| `event.inviteLink` | Invite link | Lien d'invitation | Link de convite |
+| `event.inviteHint` | Anyone with this link can reply. Guests don't need an account. | Toute personne disposant de ce lien peut répondre. Les invités n'ont pas besoin de compte. | Qualquer pessoa com este link pode responder. Os convidados não precisam de conta. |
+| `event.copied` | Copied | Copié | Copiado |
+| `event.deleteConfirmAction` | Delete | Supprimer | Excluir |
+| `event.keep` | Keep | Conserver | Manter |
+| `event.removeNamed` | Remove {name} | Retirer {name} | Remover {name} |
+| `event.removeConfirm` | Remove {name} from the guest list? | Retirer {name} de la liste des invités ? | Remover {name} da lista de convidados? |
+| `event.declined` | Declined | Décliné | Recusou |
+| `event.actions` | Actions | Actions | Ações |
+| `event.updatedPrefix` | Updated | Mis à jour | Atualizado |
+| `event.peopleSuffix` | {count, plural, one {person} other {people}} | {count, plural, one {personne} other {personnes}} | {count, plural, one {pessoa} other {pessoas}} |
+| `rsvp.nameHint` | The organizer sees this name on the guest list. | L'organisateur voit ce nom sur la liste des invités. | O organizador vê este nome na lista de convidados. |
+| `rsvp.answer` | Your answer | Votre réponse | Sua resposta |
+| `rsvp.partySizeHint` | Up to 10. | Jusqu'à 10. | Até 10. |
+| `rsvp.decrease` | One less person | Une personne de moins | Uma pessoa a menos |
+| `rsvp.increase` | One more person | Une personne de plus | Uma pessoa a mais |
+| `rsvp.savedAs` | Saved as {name}. You can change your answer from this browser until the event starts. | Enregistré au nom de {name}. Vous pouvez modifier votre réponse depuis ce navigateur jusqu'au début de l'événement. | Salvo como {name}. Você pode alterar sua resposta neste navegador até o início do evento. |
+
+**Changed values** — only in the task named (it also updates the tests that read them):
+
+| Key | New en | New fr | New pt-BR | Task |
+|---|---|---|---|---|
+| `home.demoLink` | See the demo event | Voir l'événement de démonstration | Ver o evento de demonstração | TASK-169 |
+| `totals.summary` | {going} going · {declined} declined · {people, plural, one {# person} other {# people}} | {going, plural, one {# vient} other {# viennent}} · {declined, plural, one {# décliné} other {# déclinés}} · {people, plural, one {# personne} other {# personnes}} | {going, plural, one {# confirmado} other {# confirmados}} · {declined, plural, one {# recusado} other {# recusados}} · {people, plural, one {# pessoa} other {# pessoas}} | TASK-172 |
+| `rsvp.youreGoing` | You're going · {count, plural, one {# person} other {# people}} | Vous venez · {count, plural, one {# personne} other {# personnes}} | Você vai · {count, plural, one {# pessoa} other {# pessoas}} | TASK-176 |
+| `rsvp.cancel` | Cancel RSVP | Annuler ma réponse | Cancelar confirmação | TASK-176 |
+
+The `·` in these values is U+00B7 (MIDDLE DOT) with one plain space on each side, as in `totals.summary`; the
+apostrophe in "You're" is the straight ASCII `'`. `rsvp.youreGoing` keeps its placeholder name `count` (the panel
+already calls `t('rsvp.youreGoing', { count: rsvp.partySize })`).
+
+Unchanged on purpose: `rsvp.youreNotGoing` ("You're not going"), `rsvp.change` ("Change"), `event.copyLink` ("Copy
+invite link", BR-51, DOC-Q3.2), `errors.VALIDATION_ERROR` ("Please fix the highlighted fields."). Already in the
+catalogs since Phase 5 (TASK-143 r3) and **not** to be added again, moved or edited by any Phase 6 task:
+`rsvp.formRejected` (en "We couldn't send your RSVP. Please try again."). `ai.filling` and `eventForm.saving` stay;
+`ai.filling` becomes the status text while the AI works, `eventForm.saving` is no longer rendered.
 
 ---
 
@@ -3281,7 +3452,7 @@ production model is the cheapest one that passes the gate (Haiku if it passes). 
 
 ## Phase 5 — Abuse protection, hardening and delivery (`phase-5/hardening`)
 
-Order: TASK-140 → TASK-148.
+Order: TASK-140 → TASK-147. (TASK-148, README, moved to the end of Phase 6 — amendment A2.)
 
 ### TASK-140 — RSVP rate limit in the service
 **Phase:** 5 · **Requirements:** REQ-56 · **Status:** done · **Revision:** 2
@@ -3462,17 +3633,1516 @@ signed out): `/e/<slug>` → RSVP "Maria", Going, 3; organizer reloads → table
 **Done when:** test passes.
 **TDD exception:** none (characterization test, convention 13)
 
+---
+
+## Phase 6 — UI/UX (`phase-6/ui-ux`, amendment A2)
+
+Goal: every screen follows `docs/DESIGN.md`, with `docs/design/phase-6-mockup.html` ("the mockup"; line numbers below
+refer to it) as the approved visual reference; dark theme by default, light theme from the header, logo and favicon;
+WCAG 2.2 AA in both themes. No new product feature beyond the theme switch and the logo/favicon.
+
+Order: TASK-150 → TASK-184, then TASK-148 (README, moved here from Phase 5).
+
+**Phase 6 rules (read once, in addition to "How to execute a task"):**
+1. Do not invent colors, sizes or copy: tokens come from TASK-153, CSS classes from TASK-155, strings from C11,
+   signatures from C10. Where the mockup and DESIGN.md disagree, DESIGN.md wins.
+2. All styling lives in `src/app/globals.css`. Components use its class names (`btn`, `field`, `pill`, …; links
+   styled as buttons use `buttonClass(...)`). Tailwind utilities only for small spacing (`mt-2`, `mt-3`, `mt-4`,
+   `mt-6`, `mb-3`, `mb-8`), the token color `text-link`, and the ones already in the code (`whitespace-pre-wrap`,
+   `sr-only`, the honeypot's classes).
+3. Icons only through `Icon` (C10) with lucide icons imported from `lucide-react`. Never pass a lucide icon component
+   from a server component to a client component (C10).
+4. Every new or changed message goes into `en`, `fr` and `pt-BR` in the same commit (REQ-52 parity test).
+5. Existing tests: the table below lists every existing test this phase changes and the task that changes it. Any
+   other existing test that breaks is a defect of your change: fix the code, never the test.
+6. A component's accessible name or role changes only where a task says so.
+7. Verification tasks TASK-182 … TASK-184 are characterization tests (convention 13). If one fails, fix the CSS or
+   markup named in the failure message (commit `fix(ui): …`), never the test or the copy.
+
+**Existing tests that change (and nothing else):**
+
+| File | Test | Change | Task |
+|---|---|---|---|
+| `e2e/home.spec.ts` | `REQ-39: signed-out home explains the app…` | link name `'See a demo event'` → `'See the demo event'` | TASK-169 |
+| `e2e/journeys.spec.ts` | `REQ-40: a visitor opens the demo…` | link name `'See a demo event'` → `'See the demo event'` | TASK-169 |
+| `e2e/dashboard.spec.ts` | `REQ-36: lists upcoming and past events with counts` | `'Going: 1 · Declined: 1 · People: 2'` → `'1 going · 1 declined · 2 people'` | TASK-172 |
+| `e2e/dashboard.spec.ts` | `REQ-37: an organizer with no events creates the sample event` | `'Going: 4 · Declined: 1 · People: 7'` → `'4 going · 1 declined · 7 people'` | TASK-172 |
+| `e2e/owner.spec.ts` | `REQ-34: the owner sees every RSVP with totals` | `'Going: 1 · Declined: 1 · People: 3'` → `'1 going · 1 declined · 3 people'` | TASK-172 |
+| `e2e/owner.spec.ts` | `REQ-30: the owner removes an RSVP` | `'Going: 0 · Declined: 1 · People: 0'` → `'0 going · 1 declined · 0 people'` | TASK-172 |
+| `e2e/journeys.spec.ts` | `REQ-34: organizer fills with AI, shares…` | `'Going: 1 · Declined: 0 · People: 3'` → `'1 going · 0 declined · 3 people'` | TASK-172 |
+| `src/components/delete-event-button.test.tsx` | both `REQ-19` tests | rewritten for the inline confirmation | TASK-179 |
+| `e2e/events.spec.ts` | `REQ-18: the owner deletes an event` | dialog handler → click "Delete" (exact) | TASK-179 |
+| `e2e/owner.spec.ts` | `REQ-30: the owner removes an RSVP`, `REQ-34: after the event ended…` | extra click on "Remove" (exact) | TASK-180 |
+| `e2e/owner.spec.ts` | `REQ-34: the owner sees every RSVP with totals` | João's row `'Not going'` → `'Declined'` | TASK-181 |
+| `src/components/guest-rsvp-panel.test.tsx` | `REQ-31: a returning guest who is going sees "You're going (3)" with Change and Cancel` | renamed `REQ-31: a returning guest who is going sees "You're going · 3 people" with Change and Cancel RSVP`; `"You're going (3)"` → `"You're going · 3 people"`; button `'Cancel'` → `'Cancel RSVP'` | TASK-176 |
+| `src/components/guest-rsvp-panel.test.tsx` | `REQ-31: a guest who is not going sees "You're not going" and only Change` | button `'Cancel'` → `'Cancel RSVP'` (still `toBeNull()`) | TASK-176 |
+| `src/components/guest-rsvp-panel.test.tsx` | `REQ-31: Cancel calls the cancel action` | button `'Cancel'` → `'Cancel RSVP'` | TASK-176 |
+| `src/components/guest-rsvp-panel.test.tsx` | `REQ-31: an ended event shows the notice, the own status without buttons, and no form` | `"You're going (3)"` → `"You're going · 3 people"`; button `'Cancel'` → `'Cancel RSVP'` (still `toBeNull()`) | TASK-176 |
+| `e2e/rsvp.spec.ts` | `REQ-23: a guest without an account RSVPs…`, `REQ-24: the edit cookie is httpOnly…`, `REQ-31: a returning guest sees their RSVP…` (2×), `REQ-26: a second browser cannot take a name…` | `"You're going (3)"` → `"You're going · 3 people"` | TASK-176 |
+| `e2e/rsvp.spec.ts` | `REQ-31: change and cancel` | `"You're going (3)"` → `"You're going · 3 people"`; `"You're going (5)"` → `"You're going · 5 people"`; button `'Cancel'` → `'Cancel RSVP'` | TASK-176 |
+| `e2e/rsvp.spec.ts` | `REQ-29: the guest page of an ended event is read-only` | button `'Cancel'` → `'Cancel RSVP'` (still count 0) | TASK-176 |
+| `e2e/journeys.spec.ts` | `REQ-40: a visitor opens the demo…` | `"You're going (2)"` → `"You're going · 2 people"` | TASK-176 |
+| `e2e/journeys.spec.ts` | `REQ-34: organizer fills with AI, shares…` | `"You're going (3)"` → `"You're going · 3 people"` | TASK-176 |
+
+**Existing tests that must keep passing unchanged** (Phase 5 behavior; restyling must not alter it): every test in
+`src/components/rsvp-form.test.tsx`, in particular `REQ-58: a rejected honeypot shows a generic form error and keeps
+the values` (alert text exactly "We couldn't send your RSVP. Please try again."; no "Please fix the highlighted
+fields."), `REQ-26: a duplicate name shows the message and keeps the values` and `REQ-57: a rate-limited submission
+shows the message and keeps the values`. Each of them finds exactly one `role="alert"` and compares its
+`textContent`: the alert icon is an `svg` without text, so the `Alert` primitive keeps those texts exact.
+
+Expected values in this phase are derived from fixtures: e.g. RSVPs Maria GOING 3 + João NOT_GOING →
+`computeTotals` = going 1, declined 1, people 3 → "1 going · 1 declined · 3 people" (lesson #11).
+
+### TASK-150 — Pin lucide-react and add the Icon primitive
+**Phase:** 6 · **Requirements:** REQ-78 · **Status:** done · **Revision:** 1
+**Files:** package.json, package-lock.json, src/lib/cx.ts, src/lib/cx.test.ts, src/components/ui/icon.tsx,
+src/components/ui/icon.test.tsx
+**Steps (dependency first, its own `chore(deps)` commit):**
+1. `npx -y npm@10 install --save-exact lucide-react@1.48.0` → `package.json` `dependencies` gets
+   `"lucide-react": "1.48.0"` (exact, no caret) and the lockfile is written by npm 10 (CI's npm; failure #4).
+2. Validate: `npx -y npm@10 ci` and then `npm ci` both succeed. Commit `chore(deps): add lucide-react 1.48.0`.
+**Interface (C10):** `cx`, `Icon`:
+```tsx
+import type { LucideIcon } from 'lucide-react';
+import { cx } from '@/lib/cx';
+/** Decorative lucide icon: 1.75 stroke, hidden from assistive technology (REQ-78, BR-117). */
+export function Icon({ icon: Glyph, size = 16, className }: IconProps) {
+  return (
+    <Glyph size={size} strokeWidth={1.75} aria-hidden="true" focusable="false"
+      className={cx('i', size === 20 && 'i-20', size === 12 && 'i-12', className)} />
+  );
+}
+```
+**Test first:**
+- `src/lib/cx.test.ts` — `REQ-78: cx joins the truthy class names` — `cx('a', false, null, undefined, '', 'b')` →
+  `'a b'`; `cx()` → `''`.
+- `src/components/ui/icon.test.tsx` (jsdom; `renderWithIntl`):
+  - `REQ-78: Icon renders a 16 px svg hidden from assistive technology` — `<Icon icon={Check} />` →
+    `container.querySelector('svg')` has `aria-hidden="true"`, `focusable="false"`, `width="16"`,
+    `stroke-width="1.75"`, and its `classList` contains `i` and `lucide-check`.
+  - `REQ-78: Icon size 20 adds the i-20 class and keeps extra classes` — `<Icon icon={Sun} size={20} className="extra" />`
+    → `width="20"`, `classList` contains `i`, `i-20`, `extra`.
+  Stubs: `cx` throws `Error('not implemented')`; `Icon` returns `null`.
+**Done when:** tests pass; typecheck and lint pass; `git status` clean.
+**TDD exception:** chore (the dependency install commit only)
+
+### TASK-151 — Contrast math and theme token reader
+**Phase:** 6 · **Requirements:** REQ-65 · **Status:** done · **Revision:** 1
+**Files:** src/lib/contrast.ts, src/lib/contrast.test.ts
+**Interface (C10).** Formulas (OKLab → linear sRGB matrices from Björn Ottosson; WCAG 2.x luminance):
+```ts
+export function oklchToSrgb(l: number, c: number, h: number): Rgb {
+  const rad = (h * Math.PI) / 180;
+  const a = c * Math.cos(rad);
+  const b = c * Math.sin(rad);
+  const l3 = (l + 0.3963377774 * a + 0.2158037573 * b) ** 3;
+  const m3 = (l - 0.1055613458 * a - 0.0638541728 * b) ** 3;
+  const s3 = (l - 0.0894841775 * a - 1.291485548 * b) ** 3;
+  const linear = [
+    4.0767416621 * l3 - 3.3077115913 * m3 + 0.2309699292 * s3,
+    -1.2684380046 * l3 + 2.6097574011 * m3 - 0.3413193965 * s3,
+    -0.0041960863 * l3 - 0.7034186147 * m3 + 1.707614701 * s3,
+  ];
+  const encode = (x: number) => {
+    const v = Math.min(1, Math.max(0, x));
+    return v <= 0.0031308 ? 12.92 * v : 1.055 * v ** (1 / 2.4) - 0.055;
+  };
+  return [encode(linear[0]), encode(linear[1]), encode(linear[2])];
+}
+```
+- `relativeLuminance([r, g, b])` = `0.2126 R + 0.7152 G + 0.0722 B` with each channel
+  `c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4`.
+- `contrastRatio(a, b)` = `(max(La, Lb) + 0.05) / (min(La, Lb) + 0.05)`.
+- `readThemeTokens(css, theme)`: find the block with
+  `new RegExp(`\\[data-theme=['"]${theme}['"]\\]\\s*\\{([^}]*)\\}`)` (both quote styles; a selector list such as
+  `:root,\n[data-theme='dark'] {` matches too); if absent throw `Error(`No [data-theme='${theme}'] block`)`. In the
+  block, every `/--([a-z0-9-]+):\s*oklch\(\s*([\d.]+)\s+([\d.]+)\s+([\d.]+)\s*\)\s*;/g` becomes
+  `tokens[name] = oklchToSrgb(L, C, H)`; then every `/--([a-z0-9-]+):\s*var\(--([a-z0-9-]+)\)\s*;/g` copies the
+  referenced token (throw `Error(`--${name} refers to unknown --${ref}`)` if missing). Other declarations (e.g.
+  `color-scheme`, shadows with `/ alpha`) are ignored.
+**Test first** (`src/lib/contrast.test.ts`, node):
+- `REQ-65: sRGB red round-trips from its OKLCH coordinates` —
+  `oklchToSrgb(0.6279553606145516, 0.25768330773615683, 29.2338851923426)` → channels `toBeCloseTo(1, 4)`,
+  `toBeCloseTo(0, 4)`, `toBeCloseTo(0, 4)`.
+- `REQ-65: white on black is 21:1 and #767676 on white is 4.54:1` — `contrastRatio([1, 1, 1], [0, 0, 0])`
+  `toBeCloseTo(21, 6)`; `const g = 0x76 / 255; contrastRatio([g, g, g], [1, 1, 1])` `toBeCloseTo(4.54, 2)`.
+- `REQ-65: readThemeTokens reads OKLCH and var() tokens of one theme` — with
+  ```ts
+  const css = `:root,\n[data-theme='dark'] {\n  color-scheme: dark;\n  --bg: oklch(0 0 0);\n  --text: oklch(1 0 0);\n  --on-danger: var(--bg);\n  --shadow-pop: 0 1px 2px oklch(0.1 0.02 277 / 0.4);\n}\n[data-theme="light"] {\n  --bg: oklch(1 0 0);\n}\n`;
+  ```
+  `Object.keys(readThemeTokens(css, 'dark')).sort()` → `['bg', 'on-danger', 'text']`; dark `text` channels ≈ 1
+  (4 digits) and `on-danger` equals `bg`; light `bg` channels ≈ 1; `readThemeTokens('', 'dark')` throws
+  `/data-theme='dark'/`.
+Stubs throw `Error('not implemented')`.
+**Done when:** tests pass.
+**TDD exception:** none
+
+### TASK-152 — Theme helpers
+**Phase:** 6 · **Requirements:** REQ-62 · **Status:** done · **Revision:** 1
+**Files:** src/lib/theme.ts, src/lib/theme.test.ts
+**Interface (C10):** `Theme`, `THEME_COOKIE = 'theme'`, `DEFAULT_THEME = 'dark'`, `parseTheme`, `nextTheme`,
+`themeCookieString` (`` `${THEME_COOKIE}=${theme}; Path=/; Max-Age=31536000; SameSite=Lax` ``).
+**Test first:**
+- `REQ-62: anything but "light" is the dark theme` — `parseTheme(undefined)`, `parseTheme(null)`, `parseTheme('')`,
+  `parseTheme('purple')`, `parseTheme('LIGHT')`, `parseTheme('dark')` → `'dark'`; `parseTheme('light')` → `'light'`.
+- `REQ-62: nextTheme flips the theme` — `'dark'` → `'light'`, `'light'` → `'dark'`.
+- `REQ-62: the cookie keeps the theme for a year on the whole site` — `themeCookieString('light')` →
+  `'theme=light; Path=/; Max-Age=31536000; SameSite=Lax'`.
+Stubs throw.
+**Done when:** tests pass.
+**TDD exception:** none
+
+### TASK-153 — Design tokens and base styles
+**Phase:** 6 · **Requirements:** REQ-65, REQ-66 · **Status:** done · **Revision:** 1
+**Files:** src/app/globals.css, src/app/theme-tokens.test.ts, e2e/a11y.spec.ts
+**Interface:** replace the whole of `src/app/globals.css` with:
+```css
+@import 'tailwindcss';
+
+:root {
+  --font: var(--font-geist-sans), system-ui, sans-serif;
+  --mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --ease: cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+:root,
+[data-theme='dark'] {
+  /* mockup lines 20–42 verbatim, except: --on-danger: var(--bg); */
+}
+
+[data-theme='light'] {
+  /* mockup lines 45–64 verbatim, except: --on-danger: var(--on-primary); */
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-border: var(--border);
+  --color-border-input: var(--border-input);
+  --color-text: var(--text);
+  --color-text-muted: var(--text-muted);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-on-primary: var(--on-primary);
+  --color-link: var(--link);
+  --color-success: var(--success);
+  --color-success-bg: var(--success-bg);
+  --color-warning: var(--warning);
+  --color-warning-bg: var(--warning-bg);
+  --color-danger: var(--danger);
+  --color-danger-bg: var(--danger-bg);
+  --color-on-danger: var(--on-danger);
+  --font-sans: var(--font-geist-sans), system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+}
+
+@layer base {
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font: 400 1rem/1.55 var(--font);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  a {
+    color: var(--link);
+    text-underline-offset: 3px;
+  }
+  :focus-visible {
+    outline: 2px solid var(--link);
+    outline-offset: 2px;
+  }
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+    color: inherit;
+  }
+  fieldset {
+    border: 0;
+    padding: 0;
+    margin: 0;
+    min-width: 0;
+  }
+}
+```
+The token values are DESIGN.md's (the mockup blocks match it; `color-scheme` and `--shadow-pop` lines included). The
+`:root` alias makes dark the fallback before TASK-154 sets `data-theme`. The layout's `bg-white text-slate-900` body
+classes still override the body colors until TASK-154 removes them (expected).
+**Test first:**
+- `src/app/theme-tokens.test.ts` (node): read `readFileSync(join(process.cwd(), 'src/app/globals.css'), 'utf8')`;
+  ```ts
+  const TEXT_PAIRS: Array<[string, string]> = [
+    ['text', 'bg'], ['text', 'surface'], ['text', 'surface-2'], ['text-muted', 'bg'], ['text-muted', 'surface'],
+    ['text-muted', 'surface-2'], ['on-primary', 'primary'], ['on-primary', 'primary-hover'], ['link', 'bg'],
+    ['link', 'surface'], ['link', 'surface-2'], ['success', 'bg'], ['success', 'surface'], ['success', 'success-bg'],
+    ['text', 'success-bg'], ['warning', 'bg'], ['warning', 'surface-2'], ['warning', 'warning-bg'],
+    ['text', 'warning-bg'], ['danger', 'bg'], ['danger', 'surface'], ['danger', 'danger-bg'], ['text', 'danger-bg'],
+    ['on-danger', 'danger'], ['bg', 'success'],
+  ];
+  const UI_PAIRS: Array<[string, string]> = [
+    ['border-input', 'bg'], ['border-input', 'surface'], ['border-input', 'surface-2'], ['link', 'bg'],
+    ['link', 'surface'], ['link', 'surface-2'], ['primary', 'bg'], ['primary', 'surface'],
+  ];
+  /** Pairs of `theme` below `min`, as "fg/bg ratio" (or "fg/bg missing"); empty means the theme passes. */
+  function failures(theme: 'dark' | 'light', pairs: Array<[string, string]>, min: number): string[] { … }
+  ```
+  - `REQ-65: text pairs are at least 4.5:1 in the dark and the light theme` —
+    `expect({ dark: failures('dark', TEXT_PAIRS, 4.5), light: failures('light', TEXT_PAIRS, 4.5) }).toEqual({ dark: [], light: [] })`.
+  - `REQ-65: UI boundary pairs are at least 3:1 in the dark and the light theme` — same with `UI_PAIRS`, `3`.
+  Red reason: today's CSS has no `[data-theme]` block, so `readThemeTokens` throws.
+- `e2e/a11y.spec.ts` (new; `test.beforeEach(resetDatabase)`):
+  `REQ-66: the first Tab on the home page shows a 2 px solid focus ring` — `page.goto('/en')`,
+  `page.keyboard.press('Tab')`, then
+  `page.evaluate(() => { const s = getComputedStyle(document.activeElement as Element); return { style: s.outlineStyle, width: s.outlineWidth }; })`
+  → `{ style: 'solid', width: '2px' }`. Red reason: Chromium's default ring is `outline-style: auto`.
+**Done when:** both tests pass; all unit tests pass; `npm run build` passes.
+**TDD exception:** none
+
+### TASK-154 — Root layout: Geist fonts and the theme from the cookie
+**Phase:** 6 · **Requirements:** REQ-62, REQ-63 · **Status:** done · **Revision:** 1
+**Files:** src/app/[locale]/layout.tsx, e2e/theme.spec.ts
+**Interface:** in the layout add
+```tsx
+import { Geist, Geist_Mono } from 'next/font/google';
+import { cookies } from 'next/headers';
+import { parseTheme, THEME_COOKIE } from '@/lib/theme';
+
+const geistSans = Geist({ variable: '--font-geist-sans', subsets: ['latin'] });
+const geistMono = Geist_Mono({ variable: '--font-geist-mono', subsets: ['latin'] });
+```
+and in the component, after `setRequestLocale(locale)`:
+`const theme = parseTheme((await cookies()).get(THEME_COOKIE)?.value);` then render
+`<html lang={locale} data-theme={theme} className={`${geistSans.variable} ${geistMono.variable}`}>` and a plain
+`<body>` (remove `min-h-screen bg-white text-slate-900 antialiased`). Nothing else changes (no script, no effect —
+REQ-63).
+**Test first** (`e2e/theme.spec.ts`, new; `test.beforeEach(resetDatabase)`):
+- `REQ-62: a first visit renders the dark theme` — `page.goto('/en')` →
+  `expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')`.
+- `REQ-63: the stored theme is already in the server HTML` —
+  `context.addCookies([{ name: 'theme', value: 'light', domain: 'localhost', path: '/' }])`;
+  `const res = await page.goto('/en')`; `expect(await res!.text()).toMatch(/<html[^>]*\sdata-theme="light"/)`;
+  then `addCookies` with `value: 'purple'` and `page.goto('/en')` again → the body text matches
+  `/<html[^>]*\sdata-theme="dark"/`.
+Red reason: `<html>` has no `data-theme` today.
+**Done when:** tests pass; `e2e/i18n.spec.ts` (html `lang`) still passes.
+**TDD exception:** none
+
+### TASK-155 — Component styles from the mockup, with reduced motion
+**Phase:** 6 · **Requirements:** REQ-74 · **Status:** done · **Revision:** 1
+**Files:** src/app/globals.css, e2e/motion.spec.ts
+**Steps:** append to `globals.css`, after the `@layer base` block:
+1. `@layer components { … }` containing, in this order:
+   a. mockup lines 84–98 (`.num` … `.prose`);
+   b. mockup lines 141–454 (app shell … owner guest table) **except line 392** (`@keyframes reveal …`);
+   c. the additions block below.
+   Transformations while copying: every `@container app (min-width: Npx)` becomes `@media (min-width: Npx)` and every
+   `@container app (max-width: Npx)` becomes `@media (max-width: Npx)`. Nothing else changes (Prettier may re-wrap
+   and re-quote). Do not copy lines 1–83 (tokens/base are TASK-153's; `.sr-only` comes from Tailwind) nor 100–139
+   (mockup controls).
+2. After the layer, unlayered: mockup line 392 (`@keyframes reveal`), then
+   `@keyframes spin { to { transform: rotate(360deg); } }`,
+   `@keyframes pulse { from { opacity: 0.4; } to { opacity: 1; } }`, then mockup lines 456–461 (reduced motion) with
+   one more rule inside that media block: `.spinner { animation: pulse 900ms ease-in-out infinite alternate; }`.
+**Additions block (verbatim, inside the layer):**
+```css
+.phone-only { display: inline; }
+@media (min-width: 480px) { .phone-only { display: none; } }
+.display, .ev-desc, .meta-list span, .ev-name, .c-name { overflow-wrap: anywhere; }
+.form-group:first-child { padding-top: 0; margin-top: 0; border-top: 0; }
+.spinner { width: 16px; height: 16px; flex: none; border-radius: 999px; border: 2px solid currentColor; border-right-color: transparent; animation: spin 700ms linear infinite; }
+.alert { display: flex; gap: 8px; align-items: flex-start; padding: 12px 16px; border-radius: 12px; font-size: 0.875rem; line-height: 1.45; color: var(--text); background: var(--danger-bg); border: 1px solid color-mix(in oklch, var(--danger) 45%, transparent); }
+.alert .i { color: var(--danger); margin-top: 2px; }
+.field-error { display: flex; gap: 6px; align-items: flex-start; font-size: 0.875rem; line-height: 1.45; color: var(--danger); }
+.field-error .i { margin-top: 2px; }
+.input[aria-invalid='true'], .select[aria-invalid='true'], .textarea[aria-invalid='true'], .stepper:has(input[aria-invalid='true']) { border-color: var(--danger); }
+.field.is-missing .select, .field.is-missing .textarea { background: var(--warning-bg); border-color: var(--warning); }
+.menu-pop .menu-item { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 40px; padding: 0 12px; border-radius: 8px; background: transparent; color: var(--text); font-size: 0.875rem; text-align: left; cursor: pointer; }
+.menu-pop .menu-item:hover { background: var(--surface-2); }
+.inline-confirm-row { display: inline-flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+```
+**Test first** (`e2e/motion.spec.ts`, new): `REQ-74: movement happens only without a reduced-motion preference` —
+```ts
+const probe = () => page.evaluate(() => {
+  const btn = document.createElement('button'); btn.className = 'btn'; document.body.append(btn);
+  const panel = document.createElement('div'); panel.className = 'confirm'; document.body.append(panel);
+  const transition = getComputedStyle(btn).transitionProperty;
+  const animation = panel.getAnimations()[0];
+  const keys = animation ? (animation.effect as KeyframeEffect).getKeyframes().flatMap((k) => Object.keys(k)) : [];
+  btn.remove(); panel.remove();
+  return { transition, keys };
+});
+```
+`page.emulateMedia({ reducedMotion: 'no-preference' })`, `page.goto('/en')`, `const moving = await probe()` →
+`moving.transition` is `'background-color, border-color, color, transform'` and `moving.keys` contains `'transform'`;
+then `page.emulateMedia({ reducedMotion: 'reduce' })`, `const still = await probe()` → `still.transition` does not
+contain `'transform'`, `still.keys` contains `'opacity'` and not `'transform'`.
+Red reason: no `.btn` / `.confirm` rules exist yet (`transition` is `all`, no animation).
+**Done when:** test passes; `npm run build` and `npm run format:check` pass.
+**TDD exception:** none
+
+### TASK-156 — Phase 6 message keys
+**Phase:** 6 · **Requirements:** REQ-52 · **Status:** done · **Revision:** 2
+**Files:** messages/en.json, messages/fr.json, messages/pt-BR.json
+**Steps:** add every key of C11 "New keys" with its three translations. Do **not** apply the C11 "Changed values"
+(their tasks do, together with the tests that read them). Do not add, move or edit `rsvp.formRejected` (already
+present since Phase 5) nor any other existing key.
+**Test first:** — (the existing REQ-52 parity and non-empty tests must still pass)
+**Done when:** `npm run test:unit` passes (including `src/components/rsvp-form.test.tsx`, which reads
+`rsvp.formRejected`); `git diff` of the three catalogs shows only added lines.
+**TDD exception:** chore (catalog entries used by later tasks, lesson #9)
+- r2 — human decision DOC-Q3.1 and Phase 5 reconciliation, not a failure revision: `rsvp.formRejected` exists and
+  must stay untouched; the returning-guest values moved to C11 "Changed values" (TASK-176).
+
+### TASK-157 — Button primitive
+**Phase:** 6 · **Requirements:** REQ-71 · **Status:** done · **Revision:** 1
+**Files:** src/components/ui/button.tsx, src/components/ui/button.test.tsx
+**Interface (C10):**
+```tsx
+export function buttonClass(variant: ButtonVariant = 'secondary', size: ButtonSize = 'md', extra?: string): string {
+  return cx('btn', `btn-${variant}`, size === 'sm' && 'btn-sm', size === 'lg' && 'btn-lg', extra);
+}
+export function Button({ variant = 'secondary', size = 'md', loading = false, disabled, className, type = 'button', children, ...rest }: ButtonProps) {
+  return (
+    <button {...rest} type={type} className={buttonClass(variant, size, className)}
+      disabled={disabled || loading} aria-busy={loading || undefined}>
+      {loading && <span className="spinner" aria-hidden="true" />}
+      {children}
+    </button>
+  );
+}
+```
+**Test first** (jsdom, `renderWithIntl`):
+- `REQ-71: buttonClass maps variant and size to the design classes` — `buttonClass()` → `'btn btn-secondary'`;
+  `buttonClass('primary', 'lg')` → `'btn btn-primary btn-lg'`; `buttonClass('ghost-danger', 'sm', 'x')` →
+  `'btn btn-ghost-danger btn-sm x'`; `buttonClass('danger')` → `'btn btn-danger'`.
+- `REQ-71: a loading button keeps its label, is disabled and busy` — `<Button loading>Save event</Button>` →
+  `getByRole('button', { name: 'Save event' })` has `aria-busy="true"`, is disabled, has `type="button"` and contains
+  `.spinner[aria-hidden="true"]`.
+- `REQ-71: Button passes type, aria-label and ref through` — `const ref = createRef<HTMLButtonElement>()`;
+  `<Button ref={ref} type="submit" aria-label="Go">x</Button>` → `ref.current` is the element, `type="submit"`,
+  `getByRole('button', { name: 'Go' })` exists.
+Stubs: `buttonClass` throws; `Button` returns `null`.
+**Done when:** tests pass.
+**TDD exception:** none
+
+### TASK-158 — Field primitives and Alert
+**Phase:** 6 · **Requirements:** REQ-68, REQ-69, REQ-70 · **Status:** done · **Revision:** 1
+**Files:** src/components/ui/field.tsx, src/components/ui/field.test.tsx
+**Interface (C10)** — markup:
+```tsx
+Field:       <div className={cx('field', missing && 'is-missing', className)}>{children}</div>
+FieldLabel:  const label = <label className="label" htmlFor={htmlFor}>{children}</label>;
+             badge ? <div className="label-row">{label}{badge}</div> : label
+FieldHint:   <p id={id} className="hint">{children}</p>
+FieldError:  <p id={id} className="field-error" role="alert"><Icon icon={CircleAlert} /><span>{children}</span></p>
+NeededBadge: <span className="micro needed"><Icon icon={CircleAlert} size={12} />{children}</span>
+Alert:       <div className="alert" role="alert"><Icon icon={CircleAlert} /><span>{children}</span></div>
+describedBy: const joined = cx(...ids); return joined === '' ? undefined : joined;
+```
+**Test first** (jsdom):
+- `REQ-69: FieldError is an alert with an icon and the message` —
+  `<FieldError id="name-error">This field is required.</FieldError>` → `getByRole('alert')` has `id="name-error"`,
+  class `field-error`, `textContent` `'This field is required.'` and one `svg[aria-hidden="true"]`.
+- `REQ-69: Alert is an alert with an icon` — `<Alert>Something went wrong.</Alert>` → `getByRole('alert')` has class
+  `alert`, `textContent` `'Something went wrong.'`, one `svg[aria-hidden="true"]`.
+- `REQ-70: NeededBadge shows the word with an alert icon` — `<NeededBadge>Needed</NeededBadge>` → `getByText('Needed')`
+  is inside `.micro.needed`, which contains `svg[aria-hidden="true"]`.
+- `REQ-68: FieldLabel labels its control and keeps the badge outside the label` —
+  `<Field missing><FieldLabel htmlFor="date" badge={<NeededBadge>Needed</NeededBadge>}>Date</FieldLabel><input id="date" /></Field>`
+  → `getByLabelText('Date')` is the input; `container.querySelector('.field.is-missing .label-row label')?.textContent`
+  is `'Date'`.
+- `REQ-69: describedBy joins ids and returns undefined when there are none` — `describedBy('a', false, undefined, 'b')`
+  → `'a b'`; `describedBy(false, null)` → `undefined`.
+Stubs return `null` (components) / throw (`describedBy`).
+**Done when:** tests pass.
+**TDD exception:** none
+
+### TASK-159 — Segmented control
+**Phase:** 6 · **Requirements:** REQ-84, REQ-70 · **Status:** done · **Revision:** 1
+**Files:** src/components/ui/segmented-control.tsx, src/components/ui/segmented-control.test.tsx
+**Interface (C10)** — markup (mockup lines 759–765, as a radio group):
+```tsx
+<div className="field">
+  <p className="label" id={labelId}>{label}</p>
+  <div className="seg" role="radiogroup" aria-labelledby={labelId}>
+    {options.map((option) => (
+      <label key={option.value} className={option.tone === 'success' ? 'going' : 'not'}>
+        <input type="radio" name={name} value={option.value} checked={value === option.value}
+          onChange={() => onChange(option.value)} />
+        <span><Icon icon={option.icon} />{option.label}</span>
+      </label>
+    ))}
+  </div>
+</div>
+```
+**Test first** (jsdom) — options
+`[{ value: 'GOING', label: 'Going', icon: Check, tone: 'success' }, { value: 'NOT_GOING', label: 'Not going', icon: X, tone: 'muted' }]`,
+`name="rsvp-status"`, `label="Your answer"`, `labelId="answer-label"`, `value="GOING"`, `onChange = vi.fn()`:
+- `REQ-84: the options form a radio group named by its visible label` —
+  `getByRole('radiogroup', { name: 'Your answer' })` contains 2 radios; `getByLabelText('Going')` is checked,
+  `getByLabelText('Not going')` is not.
+- `REQ-84: choosing an option reports its value` — click `getByLabelText('Not going')` → `onChange` called with
+  `'NOT_GOING'`.
+- `REQ-70: each option carries an icon hidden from assistive technology` — the container has 2
+  `svg[aria-hidden="true"]` (`svg.lucide-check`, `svg.lucide-x`).
+Stub returns `null`.
+**Done when:** tests pass.
+**TDD exception:** none
+
+### TASK-160 — Stepper
+**Phase:** 6 · **Requirements:** REQ-84, REQ-71 · **Status:** done · **Revision:** 1
+**Files:** src/components/ui/stepper.tsx, src/components/ui/stepper.test.tsx
+**Interface (C10)** — markup (mockup lines 768–772):
+```tsx
+<div className="stepper">
+  <button type="button" aria-label={decreaseLabel} aria-controls={id} disabled={value <= min}
+    onClick={() => onChange(Math.max(min, value - 1))}><Icon icon={Minus} size={20} /></button>
+  <input id={id} type="number" inputMode="numeric" min={min} max={max} value={value}
+    onChange={(e) => onChange(Number(e.target.value))} aria-describedby={describedBy}
+    aria-invalid={invalid ? 'true' : undefined} />
+  <button type="button" aria-label={increaseLabel} aria-controls={id} disabled={value >= max}
+    onClick={() => onChange(Math.min(max, value + 1))}><Icon icon={Plus} size={20} /></button>
+</div>
+```
+The caller renders the `<label htmlFor={id}>`.
+**Test first** (jsdom) — a harness in the test file:
+```tsx
+function Harness({ initial }: { initial: number }) {
+  const [value, setValue] = useState(initial);
+  return (<><label htmlFor="ps">People</label><Stepper id="ps" value={value} min={1} max={10} onChange={setValue}
+    decreaseLabel="One less person" increaseLabel="One more person" /></>);
+}
+```
+- `REQ-84: the buttons change the value by one` — `<Harness initial={3} />`; click "One more person" →
+  `getByLabelText('People')` value `'4'`; click "One less person" twice → `'2'`.
+- `REQ-84: the buttons are disabled at the bounds` — `<Harness initial={1} />` → "One less person" disabled, "One more
+  person" enabled; a second render with `initial={10}` → "One more person" disabled.
+- `REQ-71: both buttons have accessible names and hidden icons` — `getByRole('button', { name: 'One less person' })`
+  and `{ name: 'One more person' }` exist; every `svg` in the container has `aria-hidden="true"`.
+Stub returns `null`.
+**Done when:** tests pass.
+**TDD exception:** none
+
+### TASK-161 — Status pill
+**Phase:** 6 · **Requirements:** REQ-70 · **Status:** done · **Revision:** 1
+**Files:** src/components/ui/status-pill.tsx, src/components/ui/status-pill.test.tsx
+**Interface (C10):**
+```tsx
+const PILL_ICONS = { going: Check, declined: X, ended: Clock } as const;
+export function StatusPill({ status, children }: { status: PillStatus; children: React.ReactNode }) {
+  return <span className={`pill pill-${status}`}><Icon icon={PILL_ICONS[status]} size={12} />{children}</span>;
+}
+```
+**Test first** (jsdom): `REQ-70: every status pill has an icon and a word` — for
+`[['going', 'Going', 'lucide-check'], ['declined', 'Declined', 'lucide-x'], ['ended', 'Ended', 'lucide-clock']]`:
+render `<StatusPill status={s}>{word}</StatusPill>` → `getByText(word)` has class `pill pill-${s}` and contains
+`svg.${iconClass}[aria-hidden="true"]` (unmount between cases with `cleanup()` or render each in its own `it`).
+Stub returns `null`.
+**Done when:** tests pass.
+**TDD exception:** none
+
+### TASK-162 — Inline confirmation
+**Phase:** 6 · **Requirements:** REQ-72, REQ-67 · **Status:** done · **Revision:** 1
+**Files:** src/components/ui/inline-confirm.tsx, src/components/ui/inline-confirm.test.tsx
+**Interface (C10)** — implementation:
+```tsx
+'use client';
+export function InlineConfirm({ triggerLabel, triggerAriaLabel, question, confirmLabel, cancelLabel, onConfirm, layout = 'block' }: InlineConfirmProps) {
+  const [open, setOpen] = useState(false);
+  const [pending, setPending] = useState(false);
+  const questionId = useId();
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const keepRef = useRef<HTMLButtonElement>(null);
+  const wasOpen = useRef(false);
+
+  useEffect(() => {
+    if (open) { keepRef.current?.focus(); wasOpen.current = true; }
+    else if (wasOpen.current) { triggerRef.current?.focus(); }
+  }, [open]);
+
+  async function confirm() {
+    setPending(true);
+    try { await onConfirm(); } finally { setPending(false); }
+  }
+  const size = layout === 'row' ? 'sm' : 'md';
+  if (!open) {
+    return (
+      <Button ref={triggerRef} variant="ghost-danger" size={size} aria-label={triggerAriaLabel}
+        aria-expanded={false} onClick={() => setOpen(true)}>
+        <Icon icon={Trash2} />{triggerLabel}
+      </Button>
+    );
+  }
+  const onKeyDown = (event: React.KeyboardEvent) => { if (event.key === 'Escape') setOpen(false); };
+  const buttons = (
+    <>
+      <Button variant="danger" size={size} loading={pending} onClick={confirm}><Icon icon={Trash2} />{confirmLabel}</Button>
+      <Button ref={keepRef} variant="secondary" size={size} disabled={pending} onClick={() => setOpen(false)}>{cancelLabel}</Button>
+    </>
+  );
+  if (layout === 'row') {
+    return (
+      <div role="group" aria-labelledby={questionId} className="inline-confirm-row" onKeyDown={onKeyDown}>
+        <p id={questionId} className="sr-only">{question}</p>{buttons}
+      </div>
+    );
+  }
+  return (
+    <div role="group" aria-labelledby={questionId} className="inline-confirm" onKeyDown={onKeyDown}>
+      <p id={questionId} className="small"><Icon icon={CircleAlert} /><span>{question}</span></p>
+      <div className="btn-row">{buttons}</div>
+    </div>
+  );
+}
+```
+**Test first** (jsdom) — props `triggerLabel="Delete event"`, `question="Delete this event and all its RSVPs? This
+cannot be undone."`, `confirmLabel="Delete"`, `cancelLabel="Keep"`, `onConfirm = vi.fn()`:
+- `REQ-72: the trigger opens an inline group and nothing runs yet` — click "Delete event" →
+  `getByRole('group', { name: 'Delete this event and all its RSVPs? This cannot be undone.' })` exists;
+  `queryByRole('dialog')` is `null`; `queryByRole('button', { name: 'Delete event' })` is `null`; `onConfirm` not
+  called; `document.activeElement` is `getByRole('button', { name: 'Keep' })`.
+- `REQ-72: Keep closes it and returns focus to the trigger` — open, click "Keep" → no group;
+  `document.activeElement` is `getByRole('button', { name: 'Delete event' })`; `onConfirm` not called.
+- `REQ-67: Escape closes it and returns focus to the trigger` — open, `fireEvent.keyDown(getByRole('button', { name:
+  'Keep' }), { key: 'Escape' })` → no group; focus on "Delete event".
+- `REQ-72: confirming runs the action once and marks the button busy` — `onConfirm = vi.fn(() => new Promise<void>(() => {}))`;
+  open, click "Delete" → `onConfirm` called once; `getByRole('button', { name: 'Delete' })` has `aria-busy="true"`.
+- `REQ-72: the row layout keeps the question as the group's name without showing it` — `layout="row"`,
+  `triggerLabel="Remove"`, `triggerAriaLabel="Remove Maria"`, `question="Remove Maria from the guest list?"`,
+  `confirmLabel="Remove"`: click `getByRole('button', { name: 'Remove Maria' })` →
+  `getByRole('group', { name: 'Remove Maria from the guest list?' })` exists and
+  `getByText('Remove Maria from the guest list?')` has class `sr-only`.
+Stub returns `null`.
+**Done when:** tests pass.
+**TDD exception:** none
+
+### TASK-163 — Logo mark and favicon
+**Phase:** 6 · **Requirements:** REQ-75, REQ-76 · **Status:** done · **Revision:** 1
+**Files:** src/components/logo-mark.tsx, src/components/logo-mark.test.tsx, src/app/icon.svg, src/app/icon.test.ts,
+src/app/favicon.ico (delete), e2e/brand.spec.ts
+**Interface:**
+```tsx
+/** The app's logo mark: indigo calendar with a turquoise check (REQ-75, BR-114). Decorative next to the wordmark. */
+export function LogoMark() {
+  return (
+    <svg className="mark" width={24} height={24} viewBox="0 0 24 24" aria-hidden="true" focusable="false" data-logo-mark="">
+      <rect x="3.5" y="4.5" width="17" height="17" rx="4.5" fill="#3630B0" />
+      <rect x="7.4" y="2.2" width="2.2" height="5.4" rx="1.1" fill="#3630B0" stroke="var(--surface-2)" strokeWidth="1" />
+      <rect x="14.4" y="2.2" width="2.2" height="5.4" rx="1.1" fill="#3630B0" stroke="var(--surface-2)" strokeWidth="1" />
+      <path d="M8.2 14.2l2.7 2.6 5.1-5.9" fill="none" stroke="#3BDBD1" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+```
+`src/app/icon.svg` (Next.js metadata icon; `git rm src/app/favicon.ico`):
+```svg
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+  <rect x="3.5" y="4.5" width="17" height="17" rx="4.5" fill="#3630B0"/>
+  <rect x="7.4" y="2.2" width="2.2" height="5.4" rx="1.1" fill="#3630B0"/>
+  <rect x="14.4" y="2.2" width="2.2" height="5.4" rx="1.1" fill="#3630B0"/>
+  <path d="M8.2 14.2l2.7 2.6 5.1-5.9" fill="none" stroke="#3BDBD1" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+```
+**Test first:**
+- `logo-mark.test.tsx` (jsdom): `REQ-75: the logo mark is a decorative indigo calendar with a turquoise check` — the
+  `svg` has `aria-hidden="true"`, `data-logo-mark`, `viewBox="0 0 24 24"`, `width="24"`; its first `rect` has
+  `fill="#3630B0"`; its `path` has `stroke="#3BDBD1"`. Stub returns `null`.
+- `src/app/icon.test.ts` (node): `REQ-76: the favicon is the logo SVG and the old .ico is gone` —
+  `readFileSync(join(process.cwd(), 'src/app/icon.svg'), 'utf8')` contains `'#3630B0'`, `'#3BDBD1'` and
+  `'viewBox="0 0 24 24"'`; `existsSync(join(process.cwd(), 'src/app/favicon.ico'))` is `false`.
+- `e2e/brand.spec.ts`: `REQ-76: the page head links the SVG favicon` — `page.goto('/en')`;
+  `const icon = page.locator('link[rel="icon"][type="image/svg+xml"]')` `toHaveCount(1)`; its `href` matches
+  `/^\/icon\.svg/`; `page.request.get(href)` → status 200, body contains `#3630B0` and `#3BDBD1`;
+  `page.locator('link[rel="icon"][href*="favicon.ico"]')` `toHaveCount(0)`.
+**Done when:** tests pass.
+**TDD exception:** none
+
+### TASK-164 — Theme toggle
+**Phase:** 6 · **Requirements:** REQ-64 · **Status:** done · **Revision:** 1
+**Files:** src/components/theme-toggle.tsx, src/components/theme-toggle.test.tsx
+**Interface (C10):**
+```tsx
+'use client';
+export function ThemeToggle({ initialTheme }: ThemeToggleProps) {
+  const t = useTranslations();
+  const [theme, setTheme] = useState<Theme>(initialTheme);
+  function toggle() {
+    const next = nextTheme(theme);
+    document.documentElement.dataset.theme = next;
+    document.cookie = themeCookieString(next);
+    setTheme(next);
+  }
+  return (
+    <button type="button" className="icon-btn theme-toggle" aria-label={t('nav.darkTheme')}
+      aria-pressed={theme === 'dark'} onClick={toggle}>
+      <Icon icon={theme === 'dark' ? Moon : Sun} size={20} />
+    </button>
+  );
+}
+```
+**Test first** (jsdom, `renderWithIntl`; `afterEach`: `document.cookie = 'theme=; Path=/; Max-Age=0'` and
+`delete document.documentElement.dataset.theme`):
+- `REQ-64: in the dark theme the toggle is a pressed "Dark theme" button with a moon` —
+  `<ThemeToggle initialTheme="dark" />` → `getByRole('button', { name: 'Dark theme' })` has `aria-pressed="true"` and
+  contains `svg.lucide-moon`.
+- `REQ-64: pressing it switches to light at once and stores the choice` — click → `aria-pressed="false"`,
+  `document.documentElement.getAttribute('data-theme')` is `'light'`, `document.cookie` contains `'theme=light'`, the
+  button contains `svg.lucide-sun`; click again → `'dark'` and `document.cookie` contains `'theme=dark'`.
+Stub returns `null`.
+**Done when:** tests pass.
+**TDD exception:** none
+
+### TASK-165 — Language select with a globe and a compact phone variant
+**Phase:** 6 · **Requirements:** REQ-80, REQ-78, REQ-68 · **Status:** done · **Revision:** 2
+**Files:** src/components/locale-switcher.tsx, src/components/locale-switcher.test.tsx
+**Interface** (behavior unchanged; the accessible name stays `aria-label` "Language" exactly as today — BR-105
+exception, REQ-68; `e2e/i18n.spec.ts` keeps passing). Wrap the existing `select` and add the two icons; the `select`
+keeps its `aria-label`, gets `id="locale-select"`, and **no `<label>` element** is added:
+```tsx
+<div className="lang">
+  <Icon icon={Globe} className="i-globe" />
+  <select id="locale-select" aria-label={t('nav.language')} value={locale}
+    onChange={(event) => router.replace(pathname, { locale: event.target.value })}>
+    {/* options unchanged */}
+  </select>
+  <Icon icon={ChevronDown} className="i-chev" />
+</div>
+```
+The 40 px phone width comes from the TASK-155 CSS (`.lang select` below 480 px).
+**Test first** (jsdom; mock `@/i18n/navigation` as in convention 9 with `usePathname: () => '/e/abc'`):
+- `REQ-80: the language select is named by aria-label and has a decorative globe` —
+  `getByLabelText('Language')` is the `select` with value `'en'` and `getAttribute('aria-label')` `'Language'`;
+  `container.querySelector('label')` is `null`; the container has 2 `svg[aria-hidden="true"]`, one of them
+  `svg.lucide-globe`.
+- `REQ-80: choosing French keeps the page` — `fireEvent.change(getByLabelText('Language'), { target: { value: 'fr' } })`
+  → `nav.replace` called with `('/e/abc', { locale: 'fr' })`.
+Red reason: today the select has no icons (the svg assertions fail).
+**Done when:** tests pass; `e2e/i18n.spec.ts` passes.
+**TDD exception:** none
+- r2 — human decision DOC-Q3.3, not a failure revision: amended BR-105 names the header select by `aria-label`, so
+  the visually hidden `<label>` was dropped.
+
+### TASK-166 — Avatar initial and the current user
+**Phase:** 6 · **Requirements:** REQ-80 · **Status:** done · **Revision:** 1
+**Files:** src/lib/user-initial.ts, src/lib/user-initial.test.ts, src/lib/session.ts
+**Interface (C10):**
+```ts
+export function userInitial(name: string | null, email: string | null): string {
+  const source = (name ?? '').trim() || (email ?? '').trim();
+  return source ? Array.from(source)[0].toLocaleUpperCase() : '?';
+}
+// session.ts
+export async function getCurrentUser(): Promise<CurrentUser | null> {
+  const s = await auth();
+  if (!s?.user?.id) return null;
+  return { id: s.user.id, name: s.user.name ?? null, email: s.user.email ?? null };
+}
+```
+**Test first** (`user-initial.test.ts`): `REQ-80: the avatar initial comes from the name, then the email` —
+`userInitial('ana', null)` → `'A'`; `userInitial(null, 'zoe@example.com')` → `'Z'`; `userInitial('  élise ', null)` →
+`'É'`; `userInitial(null, null)` → `'?'`; `userInitial('', '')` → `'?'`. Stub throws. (`getCurrentUser` is glue over
+`auth()`; TASK-168's E2E covers it.)
+**Done when:** tests pass; typecheck passes.
+**TDD exception:** none
+
+### TASK-167 — Header: logo mark and theme toggle
+**Phase:** 6 · **Requirements:** REQ-64, REQ-75 · **Status:** done · **Revision:** 1
+**Files:** src/components/site-header.tsx, src/app/[locale]/layout.tsx, e2e/theme.spec.ts
+**Interface:** `SiteHeader({ locale, theme }: { locale: string; theme: Theme })`; the layout renders
+`<SiteHeader locale={locale} theme={theme} />`. Markup (mockup lines 524–531), keeping today's auth elements
+unchanged inside `.topbar-actions` for now (TASK-168 replaces them):
+```tsx
+<header className="topbar">
+  <div className="topbar-in">
+    <Link className="brand" href="/"><LogoMark />{t('nav.brand')}</Link>
+    <div className="topbar-actions">
+      <LocaleSwitcher />
+      <ThemeToggle initialTheme={theme} />
+      {/* existing signed-in / signed-out elements, unchanged */}
+    </div>
+  </div>
+</header>
+```
+**Test first** (append to `e2e/theme.spec.ts`; `signInAs` from `./helpers/auth`, `createEvent`/`createOwner` from
+`./helpers/factories`):
+- `REQ-64: every page has the theme toggle in its header` — signed out: `/en` and `/en/e/<slug>` of an event of
+  `createOwner()`; then `signInAs(context, { email: 'ana@example.com', name: 'Ana' })` and an event of that user:
+  `/en/dashboard`, `/en/events/new`, `/en/e/<own slug>`. On each: `page.getByRole('banner').getByRole('button', { name:
+  'Dark theme' })` is visible with `aria-pressed="true"`.
+- `REQ-64: switching to light applies at once and is remembered` — `/en`, click "Dark theme" → `html` has
+  `data-theme="light"`, the button `aria-pressed="false"`, `(await context.cookies()).find((c) => c.name ===
+  'theme')?.value` is `'light'`; `page.reload()` → still `light` and `aria-pressed="false"`; `page.goto` the event
+  page → `data-theme="light"`.
+- `REQ-75: every page header shows the logo mark in the home link` — same five pages as the first test:
+  `page.getByRole('banner').getByRole('link', { name: 'Event RSVP' })` has `href` `/en` and
+  `.locator('svg[data-logo-mark]')` `toHaveCount(1)` with `aria-hidden="true"`.
+**Done when:** tests pass; all earlier E2E specs pass.
+**TDD exception:** none
+
+### TASK-168 — Header: account menu and phone variant
+**Phase:** 6 · **Requirements:** REQ-80, REQ-71 · **Status:** done · **Revision:** 1
+**Files:** src/components/user-menu.tsx, src/components/user-menu.test.tsx, src/components/site-header.tsx,
+e2e/header.spec.ts
+**Interface (C10)** — `UserMenu` (mockup lines 574–576):
+```tsx
+'use client';
+export function UserMenu({ name, initial, signOutAction }: UserMenuProps) {
+  const t = useTranslations();
+  const ref = useRef<HTMLDetailsElement>(null);
+  const close = () => { if (ref.current) ref.current.open = false; };
+  return (
+    <details className="menu" ref={ref}>
+      <summary aria-label={t('nav.accountMenu')}>
+        <span className="avatar" aria-hidden="true">{initial}</span><Icon icon={ChevronDown} />
+      </summary>
+      <div className="menu-pop">
+        {name && <p className="who small muted">{t('nav.signedInAs', { name })}</p>}
+        <Link href="/dashboard" onClick={close}><Icon icon={Calendar} />{t('nav.myEvents')}</Link>
+        <form action={signOutAction}>
+          <button type="submit" className="menu-item"><Icon icon={LogOut} />{t('nav.signOut')}</button>
+        </form>
+      </div>
+    </details>
+  );
+}
+```
+In `SiteHeader` replace the auth elements (use `getCurrentUser()` instead of `getCurrentUserId()`):
+```tsx
+{user ? (
+  <UserMenu name={user.name} initial={userInitial(user.name, user.email)} signOutAction={signOutAction.bind(null, locale)} />
+) : (
+  <a className={buttonClass('secondary', 'sm')} href={signInRedirectPath(`/${locale}/dashboard`)}>
+    <span className="phone-only">{t('nav.signInShort')}</span>
+    <span className="wide-only">{t('nav.signIn')}</span>
+  </a>
+)}
+```
+The header no longer shows a separate "My events" link or "Sign out" button (they are in the menu). `main` on the
+home page still has its own links (REQ-39 tests unchanged).
+**Test first:**
+- `user-menu.test.tsx` (jsdom; mock `vi.mock('@/i18n/navigation', () => ({ Link: ({ href, children, ...rest }:
+  { href: string; children: React.ReactNode }) => <a href={href} {...rest}>{children}</a> }))`):
+  - `REQ-80: the summary is named "Account menu" and shows the initial` —
+    `<UserMenu name="Ana" initial="A" signOutAction={vi.fn()} />` → `getByLabelText('Account menu')` is a `SUMMARY`
+    whose `textContent` is `'A'`.
+  - `REQ-80: the menu offers My events and Sign out and closes after navigating` — `getByText('Signed in as Ana')`
+    exists; `getByText('My events').closest('a')` has `href="/dashboard"`; `getByText('Sign out').closest('button')`
+    has `type="submit"`; set `container.querySelector('details')!.open = true`, click "My events" → `open` is `false`.
+  - `REQ-80: without a name there is no "Signed in as" line` — `name={null}` → `queryByText(/Signed in as/)` is `null`.
+- `e2e/header.spec.ts` (new; `beforeEach(resetDatabase)`):
+  - `REQ-80: signed out, the header adapts from desktop to a 375 px phone` — `/en` at the default viewport:
+    `banner.getByRole('link', { name: 'Sign in with Google', exact: true })` visible with `href`
+    `/api/login?callbackUrl=%2Fen%2Fdashboard`; `(await page.getByLabel('Language').boundingBox())!.width` > 40;
+    `page.setViewportSize({ width: 375, height: 740 })` → `banner.getByRole('link', { name: 'Sign in', exact: true })`
+    visible and the Language select's box width is `40`.
+  - `REQ-80: a signed-in organizer reaches My events and Sign out from the account menu` —
+    `signInAs(context, { email: 'ana@example.com', name: 'Ana' })`, `/en` → `banner.getByLabel('Account menu')`
+    visible with text `'A'`; click it → `banner.getByText('Signed in as Ana')`, `banner.getByRole('link', { name:
+    'My events' })` and `banner.getByRole('button', { name: 'Sign out' })` visible.
+**Done when:** tests pass; `e2e/home.spec.ts` and `e2e/i18n.spec.ts` pass.
+**TDD exception:** none
+
+### TASK-169 — Home page
+**Phase:** 6 · **Requirements:** REQ-81, REQ-39, REQ-78 · **Status:** done · **Revision:** 1
+**Files:** src/app/[locale]/page.tsx, src/components/google-mark.tsx, src/components/invite-preview.tsx,
+src/app/[locale]/not-found.tsx, messages/en.json, messages/fr.json, messages/pt-BR.json, e2e/home.spec.ts,
+e2e/journeys.spec.ts
+**Interface:** apply C11 changed value `home.demoLink`. Page markup (mockup lines 532–562; the sparkles note of line
+544 is not included — the explanation already mentions AI):
+```tsx
+<main className="page"><div className="col-960"><div className="home">
+  <div className="home-copy">
+    <h1 className="display">{t('home.headline')}</h1>
+    <p className="prose muted">{t('home.explanation')}</p>
+    <div className="btn-row">
+      {userId ? (
+        <Link className={buttonClass('primary', 'lg')} href="/dashboard">{t('nav.myEvents')}</Link>
+      ) : (
+        <a className={buttonClass('primary', 'lg')} href={signInRedirectPath(`/${locale}/dashboard`)}><GoogleMark />{t('nav.signIn')}</a>
+      )}
+      <Link className={buttonClass('secondary', 'lg')} href={`/e/${DEMO_SLUG}`}>{t('home.demoLink')}</Link>
+    </div>
+  </div>
+  <InvitePreview />
+</div></div></main>
+```
+`GoogleMark`: `<span className="g-chip" aria-hidden="true"><svg viewBox="0 0 48 48" aria-hidden="true"
+focusable="false">…the four <path> elements of mockup line 539, verbatim…</svg></span>`.
+`InvitePreview` (server component, mockup lines 547–560 without the date line; the demo event's own content is not
+translated, BR-77):
+```tsx
+<figure className="invite-preview">
+  <div className="ip-card" aria-hidden="true">
+    <div className="ip-bar"><Icon icon={LinkIcon} size={12} /><span>/e/{DEMO_SLUG}</span></div>
+    <div className="ip-body">
+      <p className="ip-title">Community Picnic in the Park</p>
+      <p className="small ip-meta"><Icon icon={MapPin} />Riverside Park</p>
+      <p className="small ip-meta num"><Icon icon={Users} />{t('totals.peopleGoing', { count: 7 })}</p>
+      <div className="ip-seg"><span className="on"><Icon icon={Check} />{t('rsvp.going')}</span><span>{t('rsvp.notGoing')}</span></div>
+      <span className="ip-submit">{t('rsvp.submit')}</span>
+    </div>
+  </div>
+  <figcaption className="small muted">{t('home.previewCaption')}</figcaption>
+</figure>
+```
+(`import { Link as LinkIcon, … } from 'lucide-react'`.) `not-found.tsx`: wrap in
+`<main className="page"><div className="col-640">` and give the `h1` `className="h2"` (style only).
+**Test first:**
+- `e2e/home.spec.ts` — update the existing REQ-39 test: link name `'See the demo event'` (same `href`
+  `/en/e/demoPicnic`); add `REQ-81: the home page previews what a guest sees` — `/en` → `page.getByRole('figure')`
+  contains the text `'What a guest sees after tapping your link. One page, one answer.'`;
+  `page.getByRole('figure').locator('.ip-card')` has `aria-hidden="true"`; `page.locator('main .g-chip svg')` has
+  `aria-hidden="true"`.
+- `e2e/journeys.spec.ts` — REQ-40 test: click `'See the demo event'`.
+Red reason: the link text and the figure do not exist yet.
+**Done when:** tests pass (all of `home.spec.ts` and `journeys.spec.ts`).
+**TDD exception:** none
+
+### TASK-170 — Dashboard: page head and empty state
+**Phase:** 6 · **Requirements:** REQ-82, REQ-36, REQ-37 · **Status:** done · **Revision:** 1
+**Files:** src/app/[locale]/dashboard/page.tsx, src/components/create-sample-button.tsx, e2e/dashboard.spec.ts
+**Interface:** page markup (mockup lines 579–599 and 617–620; the list itself stays as today until TASK-172):
+```tsx
+const STEPS = [
+  ['dashboard.step1Title', 'dashboard.step1Text'],
+  ['dashboard.step2Title', 'dashboard.step2Text'],
+  ['dashboard.step3Title', 'dashboard.step3Text'],
+] as const;
+
+<main className="page"><div className="col-880">
+  <div className="page-head">
+    <h1 className="h2">{t('dashboard.title')}</h1>
+    {!isEmpty && (
+      <Link className={buttonClass('primary')} href="/events/new"><Icon icon={CalendarPlus} />{t('dashboard.createEvent')}</Link>
+    )}
+  </div>
+  {isEmpty ? (
+    <div className="panel empty">
+      <div><h2 className="h3">{t('dashboard.empty')}</h2><p className="muted">{t('dashboard.stepsIntro')}</p></div>
+      <ol className="steps">
+        {STEPS.map(([title, text], index) => (
+          <li key={title}><span className="step-n" aria-hidden="true">{index + 1}</span>
+            <div><p className="t">{t(title)}</p><p className="small muted">{t(text)}</p></div></li>
+        ))}
+      </ol>
+      <div>
+        <div className="btn-row">
+          <Link className={buttonClass('primary')} href="/events/new"><Icon icon={CalendarPlus} />{t('dashboard.createEvent')}</Link>
+          <CreateSampleButton create={createSampleEventAction} />
+        </div>
+        <p className="small muted mt-2">{t('dashboard.sampleHint')}</p>
+      </div>
+    </div>
+  ) : ( /* the two sections, unchanged in this task */ )}
+</div></main>
+```
+`CreateSampleButton` renders `<Button loading={pending} onClick={handleClick}>{t('dashboard.createSample')}</Button>`
+with `const [pending, setPending] = useState(false)`: `setPending(true)` before `create(...)`, `setPending(false)` when
+the result is not ok (on success it navigates).
+**Test first** (`e2e/dashboard.spec.ts`): `REQ-82: the empty dashboard explains three steps and offers both actions`
+— signed in without events, `/en/dashboard` → `page.locator('main ol.steps > li')` has count 3 and texts containing
+"Create an event", "Share one link", "Watch replies come in" in this order; `page.getByRole('link', { name: 'Create
+event' })` `toHaveCount(1)` with `href` `/en/events/new`; `page.getByRole('button', { name: 'Create sample event' })`
+visible; `page.getByText("The sample comes with five fictional guests so you can look around. Delete it when you're
+done.")` visible.
+**Done when:** test passes; the existing REQ-36 and REQ-37 dashboard tests still pass.
+**TDD exception:** none
+
+### TASK-171 — Date tile and short date-time formatters
+**Phase:** 6 · **Requirements:** REQ-82, REQ-85 · **Status:** done · **Revision:** 1
+**Files:** src/lib/format-date.ts, src/lib/format-date.test.ts
+**Interface (C10):**
+```ts
+export function dateTileParts(instant: Date, timeZone: string, locale: string): DateTileParts {
+  const part = (options: Intl.DateTimeFormatOptions) =>
+    new Intl.DateTimeFormat(locale, { ...options, timeZone }).format(instant);
+  return { month: part({ month: 'short' }).toUpperCase(), day: part({ day: 'numeric' }), weekday: part({ weekday: 'short' }) };
+}
+export function formatShortDateTime(instant: Date, timeZone: string, locale: string): string {
+  return new Intl.DateTimeFormat(locale, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone, timeZoneName: 'short' }).format(instant);
+}
+```
+**Test first** (append to `format-date.test.ts`; values computed with Node's `Intl`):
+- `REQ-82: the date tile shows month, day and weekday in the event timezone` —
+  `dateTileParts(new Date('2026-10-02T23:00:00.000Z'), 'America/New_York', 'en')` →
+  `{ month: 'OCT', day: '2', weekday: 'Fri' }`; `new Date('2026-10-03T02:00:00.000Z')` (22:00 on Oct 2 in New York)
+  → the same object; the first instant with `'fr'` → `{ month: 'OCT.', day: '2', weekday: 'ven.' }`.
+- `REQ-85: the short date-time keeps the timezone label` —
+  `formatShortDateTime(new Date('2026-09-24T14:02:00.000Z'), 'America/New_York', 'en').replace(/\s/g, ' ')` →
+  `'Sep 24, 10:02 AM EDT'` (ICU may use a narrow no-break space before "AM").
+Stubs throw.
+**Done when:** tests pass (the existing REQ-12 tests too).
+**TDD exception:** none
+
+### TASK-172 — Dashboard: event rows and the counts line
+**Phase:** 6 · **Requirements:** REQ-82, REQ-36, REQ-34 · **Status:** done · **Revision:** 1
+**Files:** src/app/[locale]/dashboard/page.tsx, messages/en.json, messages/fr.json, messages/pt-BR.json,
+e2e/dashboard.spec.ts, e2e/owner.spec.ts, e2e/journeys.spec.ts
+**Interface:** apply C11 changed value `totals.summary` (it also changes the owner page's totals line). Sections and
+rows (mockup lines 625–650, without the tabs — both lists stay visible as labelled regions):
+```tsx
+<section aria-labelledby="upcoming-heading" className="mb-8">
+  <h2 id="upcoming-heading" className="h3 mb-3">{t('dashboard.upcoming')}</h2>
+  {upcoming.length === 0 ? <p className="muted">{t('dashboard.noUpcoming')}</p> : <ul className="ev-list">{upcoming.map(renderItem)}</ul>}
+</section>
+{/* "past" section: same shape with past-heading, dashboard.past, dashboard.noPast */}
+
+function renderItem(item: DashboardItem) {
+  const tile = dateTileParts(item.startsAt, item.timezone, locale);
+  const hasReplies = item.totals.going + item.totals.declined > 0;
+  return (
+    <li key={item.slug}>
+      <Link className="ev-link" href={`/e/${item.slug}`}>
+        <span className="date-tile" aria-hidden="true">
+          <span className="m">{tile.month}</span><span className="d">{tile.day}</span><span className="w">{tile.weekday}</span>
+        </span>
+        <span className="ev-main">
+          <span className="ev-name">{item.name}</span><br />
+          <span className="small ev-meta">{formatEventDateTime(item.startsAt, item.timezone, locale)}</span>
+        </span>
+        <span className="small ev-counts">
+          {hasReplies ? (<><Icon icon={Check} size={12} /><span>{t('totals.summary', { going: item.totals.going, declined: item.totals.declined, people: item.totals.people })}</span></>)
+            : <span>{t('dashboard.noReplies')}</span>}
+        </span>
+        <Icon icon={ChevronRight} className="ev-chev" />
+      </Link>
+    </li>
+  );
+}
+```
+**Test first** (`e2e/dashboard.spec.ts`, REQ-36 list test): replace `'Going: 1 · Declined: 1 · People: 2'` with
+`'1 going · 1 declined · 2 people'` (fixture: Maria GOING 2 + Joao NOT_GOING) and add
+`pastRegion.getByText('No replies yet')` visible ("Old party" has no RSVP) and
+`upcomingRegion.locator('.date-tile')` with `aria-hidden="true"`. Then update the other totals strings of the
+"Existing tests that change" table (TASK-172 rows). Red reason: the new wording is not in the catalog yet.
+**Done when:** `e2e/dashboard.spec.ts`, `e2e/owner.spec.ts` and `e2e/journeys.spec.ts` pass; unit tests pass.
+**TDD exception:** none
+
+### TASK-173 — Event form: groups, field primitives, announced errors and saving state
+**Phase:** 6 · **Requirements:** REQ-83, REQ-69, REQ-68 · **Status:** done · **Revision:** 1
+**Files:** src/components/event-form.tsx, src/components/event-form.test.tsx, src/app/[locale]/events/new/page.tsx,
+src/app/[locale]/e/[slug]/edit/page.tsx
+**Interface:** keep state, handlers, ids, `ariaInvalid` and `ariaDescribedBy` as they are; leave the AI block
+unchanged (TASK-174). Replace the manual fields and the submit button with (mockup lines 683–718, without the
+"Cancel" link):
+```tsx
+{formError && <Alert>{t(`errors.${formError}`)}</Alert>}
+<fieldset className="form-group">
+  <legend className="h3">{t('eventForm.groupWhat')}</legend>
+  <Field>
+    <FieldLabel htmlFor="name">{t('eventForm.name')}</FieldLabel>
+    <input className="input" id="name" value={name} onChange={(e) => setName(e.target.value)}
+      aria-invalid={ariaInvalid('name')} aria-describedby={ariaDescribedBy('name')} />
+    {errorFor('name') && <FieldError id="name-error">{errorFor('name')}</FieldError>}
+    {missing.includes('name') && <FieldHint id="name-missing">{t('ai.missingHint')}</FieldHint>}
+  </Field>
+  {/* Description: same pattern, <textarea className="textarea" rows={4} …> */}
+</fieldset>
+<fieldset className="form-group">
+  <legend className="h3">{t('eventForm.groupWhen')}</legend>
+  <div className="pair">{/* Date Field (className="input" type="date"), Time Field (className="input" type="time") */}</div>
+  <Field className="mt-4">
+    <FieldLabel htmlFor="timezone">{t('eventForm.timezone')}</FieldLabel>
+    <div className="select-wrap">
+      <select className="select" id="timezone" value={timezone} onChange={(e) => setTimezone(e.target.value)}
+        aria-invalid={ariaInvalid('timezone')} aria-describedby={describedBy(ariaDescribedBy('timezone'), 'timezone-hint')}>
+        {/* options unchanged */}
+      </select>
+      <Icon icon={ChevronDown} />
+    </div>
+    <FieldHint id="timezone-hint">{t('eventForm.timezoneHint')}</FieldHint>
+    {/* timezone error / missing hint: same pattern */}
+  </Field>
+</fieldset>
+<fieldset className="form-group">
+  <legend className="h3">{t('eventForm.groupWhere')}</legend>
+  {/* Location Field: same pattern */}
+</fieldset>
+<div className="form-foot">
+  <Button type="submit" variant="primary" loading={submitting}>{t('eventForm.save')}</Button>
+</div>
+```
+Pages: new-event page → `<main className="page"><div className="col-640"><div className="page-head"><h1
+className="h2">…</h1></div><EventForm … /></div></main>`; edit page → same wrapper; its ended branch →
+`<main className="page"><div className="col-640"><div className="notice"><Icon icon={Clock} size={20} /><div><h1
+className="h3">{t('event.ended')}</h1></div></div></div></main>`.
+**Test first** (append to `event-form.test.tsx`):
+- `REQ-83: fields are grouped under What, When and Where` — `within(getByRole('group', { name: 'When' }))`
+  `.getByLabelText('Date')` exists; `getByRole('group', { name: 'What' })` contains `getByLabelText('Name')`;
+  `getByRole('group', { name: 'Where' })` contains `getByLabelText('Location (optional)')`.
+- `REQ-69: a required-field error is announced` — fill Description, Date, Time as in the existing REQ-15 test, leave
+  Name empty, click "Save event" → `(await findByRole('alert')).textContent` is `'This field is required.'`;
+  `getByLabelText('Name')` has `aria-describedby="name-error"`.
+- `REQ-83: while saving, Save event keeps its label and is busy` — `submit = vi.fn(() => new Promise(() => {}))`,
+  `fillValidFields()`, click → `await waitFor(() => expect(getByRole('button', { name: 'Save event' }).getAttribute('aria-busy')).toBe('true'))`.
+Red reason: no fieldsets; the error `<p>` has no role; the label switches to "Saving…".
+**Done when:** all `event-form.test.tsx` tests pass (the REQ-13/15/51 ones unchanged); `e2e/events.spec.ts` and
+`e2e/ai.spec.ts` pass.
+**TDD exception:** none
+
+### TASK-174 — "Fill with AI" panel states
+**Phase:** 6 · **Requirements:** REQ-83, REQ-70 · **Status:** done · **Revision:** 1
+**Files:** src/components/event-form.tsx, src/components/event-form.test.tsx
+**Interface:** new state `const [filledCount, setFilledCount] = useState<number | null>(null)`; in `handleAiFill` call
+`setFilledCount(null)` first and, after a successful non-`notAnEvent` result,
+`setFilledCount(Object.values(result.data.fields).filter((v) => v !== null).length)`. Panel (mockup lines 671–681):
+```tsx
+<div className="ai-panel">
+  <label className="label" htmlFor="ai-text"><Icon icon={Sparkles} className="text-link" />{t('ai.label')}</label>
+  <textarea className="textarea" id="ai-text" rows={3} value={aiText} placeholder={t('ai.placeholder')} onChange={(e) => setAiText(e.target.value)} />
+  <div className="ai-foot">
+    <Button onClick={handleAiFill} loading={filling}><Icon icon={Sparkles} />{t('ai.fill')}</Button>
+    <p className="small ai-status" role="status">
+      {filling ? <span>{t('ai.filling')}</span>
+        : filledCount !== null ? <span className="ok"><Icon icon={Check} />{t('ai.filled', { count: filledCount })}</span>
+        : null}
+    </p>
+  </div>
+  {aiNotice && <Alert>{aiNotice === 'notAnEvent' ? t('ai.notAnEvent') : t(`errors.${aiNotice}`)}</Alert>}
+</div>
+```
+Missing fields: each of the six `Field`s gets `missing={missing.includes('<field>')}` and its `FieldLabel` gets
+`badge={needed('<field>')}` with `const needed = (field: AiField) => (missing.includes(field) ? <NeededBadge>{t('ai.needed')}</NeededBadge> : undefined);`.
+**Test first** (append to the `REQ-51` describe of `event-form.test.tsx`, using its `filled` fixture — five non-null
+fields, `location` missing):
+- `REQ-83: a successful fill reports how many fields were filled` — after "Fill with AI" →
+  `await waitFor(() => expect(getByRole('status').textContent).toBe('Filled 5 fields · check them below'))`.
+- `REQ-70: a missing field shows "Needed" next to its label` — `getAllByText('Needed')` has length 1 and
+  `container.querySelector('.field.is-missing #location')` is not `null`.
+- `REQ-83: while filling, Fill with AI keeps its label and is busy` — `aiFill = vi.fn(() => new Promise(() => {}))` →
+  `getByRole('button', { name: 'Fill with AI' })` has `aria-busy="true"` and is disabled; `getByRole('status')`
+  text is `'Filling…'`.
+Red reason: no status line, no badge; the label switches to "Filling…".
+**Done when:** all `event-form.test.tsx` tests pass; `e2e/ai.spec.ts` passes.
+**TDD exception:** none
+
+### TASK-175 — RSVP form: answer segments, stepper, hints and 44 px targets
+**Phase:** 6 · **Requirements:** REQ-84, REQ-69, REQ-71, REQ-78, REQ-58 · **Status:** done · **Revision:** 2
+**Files:** src/components/rsvp-form.tsx, src/components/rsvp-form.test.tsx, e2e/event-page.spec.ts
+**Interface:** state, validation and submit logic unchanged; the honeypot block unchanged; the `formAlert()` helper
+(Phase 5, TASK-143 r3) and its TSDoc unchanged — it returns the `errors.<formError>` message when `formError` is set,
+else `t('rsvp.formRejected')` when `fieldErrors.form` is set, else `null`. Only the element that shows it changes: today's
+`{formAlert() && <div role="alert">{formAlert()}</div>}` becomes `{formAlert() && <Alert>{formAlert()}</Alert>}`.
+Do **not** replace it with `formError && …` (that would drop the honeypot message) and do not use
+`errors.VALIDATION_ERROR`. Markup (mockup lines 752–776):
+```tsx
+<form className="rsvp-form" onSubmit={handleSubmit} noValidate aria-labelledby="rsvp-title">
+  <h2 className="h2" id="rsvp-title">{t('rsvp.title')}</h2>
+  {formAlert() && <Alert>{formAlert()}</Alert>}
+  <Field>
+    <FieldLabel htmlFor="rsvp-name">{t('rsvp.name')}</FieldLabel>
+    <input className="input" id="rsvp-name" autoComplete="name" value={name} onChange={(e) => setName(e.target.value)}
+      aria-invalid={fieldErrors.name ? 'true' : undefined}
+      aria-describedby={describedBy('rsvp-name-hint', fieldErrors.name && 'rsvp-name-error')} />
+    <FieldHint id="rsvp-name-hint">{t('rsvp.nameHint')}</FieldHint>
+    {errorFor('name') && <FieldError id="rsvp-name-error">{errorFor('name')}</FieldError>}
+  </Field>
+  <SegmentedControl name="rsvp-status" label={t('rsvp.answer')} labelId="rsvp-answer-label" value={status} onChange={setStatus}
+    options={[
+      { value: 'GOING', label: t('rsvp.going'), icon: Check, tone: 'success' },
+      { value: 'NOT_GOING', label: t('rsvp.notGoing'), icon: X, tone: 'muted' },
+    ]} />
+  {status === 'GOING' && (
+    <Field>
+      <FieldLabel htmlFor="rsvp-party-size">{t('rsvp.partySize')}</FieldLabel>
+      <Stepper id="rsvp-party-size" value={partySize} min={1} max={10} onChange={setPartySize}
+        decreaseLabel={t('rsvp.decrease')} increaseLabel={t('rsvp.increase')}
+        describedBy={describedBy('rsvp-party-size-hint', fieldErrors.partySize && 'rsvp-party-size-error')}
+        invalid={Boolean(fieldErrors.partySize)} />
+      <FieldHint id="rsvp-party-size-hint">{t('rsvp.partySizeHint')}</FieldHint>
+      {errorFor('partySize') && <FieldError id="rsvp-party-size-error">{errorFor('partySize')}</FieldError>}
+    </Field>
+  )}
+  {/* honeypot block, unchanged */}
+  <Button type="submit" variant="primary" size="lg" loading={submitting}>{t('rsvp.submit')}</Button>
+</form>
+```
+The radios keep their visible labels "Going" / "Not going" and the number input its label — existing tests unchanged
+(all of `rsvp-form.test.tsx`, including the Phase 5 `REQ-58: a rejected honeypot shows a generic form error and
+keeps the values`; see "Existing tests that must keep passing unchanged").
+**Test first:**
+- `rsvp-form.test.tsx` (append):
+  - `REQ-69: a form-level rejection is announced with an alert icon` — `submit` resolves
+    `{ ok: false, code: 'VALIDATION_ERROR', fieldErrors: { form: 'invalidFormat' } }`; `fillGoing('Maria', 3)`, click
+    "Send RSVP" → `const alert = await findByRole('alert')`; `alert.textContent` is exactly
+    `"We couldn't send your RSVP. Please try again."`; `alert.classList.contains('alert')` is `true`;
+    `alert.querySelector('svg[aria-hidden="true"]')` is not `null`; `queryByText('Please fix the highlighted
+    fields.')` is `null`. Red reason: today's alert is a plain `div` without the `alert` class or an icon.
+  - `REQ-84: Going / Not going is a radio group named "Your answer"` — `within(getByRole('radiogroup', { name: 'Your
+    answer' })).getAllByRole('radio')` has length 2; `getByLabelText('Going')` is checked.
+  - `REQ-84: the stepper changes the party size and disappears when Not going` — click "One more person" →
+    `getByLabelText('How many people, including you?')` value `'2'`; click `getByLabelText('Not going')` →
+    `queryByRole('button', { name: 'One more person' })` is `null`.
+  - `REQ-69: an empty name is announced as an alert` — click "Send RSVP" with the name empty →
+    `(await findByRole('alert')).textContent` is `'This field is required.'`; `getByLabelText('Your name')` has
+    `aria-describedby="rsvp-name-hint rsvp-name-error"`.
+  - `REQ-84: the name hint is linked to the input` — before submitting, `getByLabelText('Your name')` has
+    `aria-describedby="rsvp-name-hint"` and `document.getElementById('rsvp-name-hint')?.textContent` is `'The
+    organizer sees this name on the guest list.'`.
+  - `REQ-78: every icon in the form is hidden from assistive technology` — `container.querySelectorAll('svg')` has
+    length > 0 and `container.querySelectorAll('svg:not([aria-hidden="true"])')` has length 0.
+- `e2e/event-page.spec.ts` (new; `beforeEach(resetDatabase)`): `REQ-71: the answer, stepper and submit controls are at
+  least 44×44 px` — an open event of `createOwner()`, `/en/e/<slug>`; for `page.getByLabel('Going', { exact: true })`,
+  `page.getByLabel('Not going', { exact: true })`, `page.getByRole('button', { name: 'One less person' })`,
+  `page.getByRole('button', { name: 'One more person' })`, `page.getByRole('button', { name: 'Send RSVP' })`:
+  `boundingBox()` width ≥ 44 and height ≥ 44.
+**Done when:** all `rsvp-form.test.tsx` tests pass (none of the existing ones edited); `e2e/rsvp.spec.ts`,
+`e2e/journeys.spec.ts` and the new spec pass.
+**TDD exception:** none
+- r2 — Phase 5 reconciliation (TASK-143 r3 merged), not a failure revision: the alert renders `formAlert()` (keeps
+  `rsvp.formRejected`) instead of `formError`; added the form-level alert test.
+
+### TASK-176 — Guest RSVP panel: confirmation, not going and ended notices
+**Phase:** 6 · **Requirements:** REQ-84, REQ-70, REQ-78, REQ-31, REQ-29 · **Status:** done · **Revision:** 2
+**Files:** src/components/guest-rsvp-panel.tsx, src/components/guest-rsvp-panel.test.tsx, messages/en.json,
+messages/fr.json, messages/pt-BR.json, e2e/rsvp.spec.ts, e2e/journeys.spec.ts
+**Interface:** apply the C11 changed values `rsvp.youreGoing` and `rsvp.cancel` (three catalogs, values copied
+exactly from C11; no other key changes). Logic unchanged except a `cancelling` state (`true` while `cancel()` runs);
+`statusLine` keeps calling `t('rsvp.youreGoing', { count: rsvp.partySize })` / `t('rsvp.youreNotGoing')`. The Not
+going notice keeps only "Change" (DOC-Q4 default, `spec.md`). Markup (mockup lines 809–821 and 852–863):
+```tsx
+// ended
+<div className="notice">
+  <Icon icon={Clock} size={20} />
+  <div>
+    <h2 className="h3">{t('event.ended')}</h2>
+    <p className="small muted">{t('event.endedHint')}</p>
+    {ownRsvp && (
+      <p className="answer-line small"><Icon icon={ownRsvp.status === 'GOING' ? Check : X} /><span>{statusLine(ownRsvp)}</span></p>
+    )}
+  </div>
+</div>
+// open event, own RSVP GOING, not editing
+<div className="confirm">
+  <div className="confirm-top" role="status">
+    <span className="check-badge" aria-hidden="true"><Icon icon={Check} /></span>
+    <div>
+      <h2 className="h2">{statusLine(ownRsvp)}</h2>
+      <p className="small">{t('rsvp.savedAs', { name: ownRsvp.name })}</p>
+    </div>
+  </div>
+  {cancelError && <Alert>{t(`errors.${cancelError}`)}</Alert>}
+  <div className="btn-row">
+    <Button onClick={() => setEditing(true)}><Icon icon={Pencil} />{t('rsvp.change')}</Button>
+    <Button variant="ghost-danger" loading={cancelling} onClick={handleCancel}>{t('rsvp.cancel')}</Button>
+  </div>
+</div>
+// open event, own RSVP NOT_GOING, not editing
+<div className="notice">
+  <Icon icon={X} size={20} />
+  <div>
+    <div role="status">
+      <h2 className="h3">{statusLine(ownRsvp)}</h2>
+      <p className="small muted">{t('rsvp.savedAs', { name: ownRsvp.name })}</p>
+    </div>
+    {cancelError && <Alert>{t(`errors.${cancelError}`)}</Alert>}
+    <div className="btn-row mt-3"><Button onClick={() => setEditing(true)}><Icon icon={Pencil} />{t('rsvp.change')}</Button></div>
+  </div>
+</div>
+```
+Accessible names after this task (DOC-Q3.1): buttons "Change" and "Cancel RSVP"; headings from `statusLine`:
+"You're going · 3 people" (Maria GOING 3), "You're going · 1 person" (party of one), "You're not going".
+**Test first** — commit 1 `test(rsvp): …` (red): in `guest-rsvp-panel.test.tsx`, `e2e/rsvp.spec.ts` and
+`e2e/journeys.spec.ts` apply exactly the TASK-176 rows of "Existing tests that change" (strings and the one test
+rename; nothing else), then append to `guest-rsvp-panel.test.tsx`:
+- `REQ-84: a going guest sees the confirmation panel with a check badge and "Saved as Maria"` — Maria GOING 3, not
+  ended → `getByRole('heading', { level: 2, name: "You're going · 3 people" })`; `getByText('Saved as Maria. You can
+  change your answer from this browser until the event starts.')`; `container.querySelector('.check-badge svg')` has
+  `aria-hidden="true"`; `getByRole('status')` contains the heading; `getByRole('button', { name: 'Cancel RSVP' })`
+  exists.
+- `REQ-84: a party of one reads "You're going · 1 person"` — `ownRsvp={{ name: 'Kim', status: 'GOING',
+  partySize: 1 }}`, not ended → `getByRole('heading', { level: 2, name: "You're going · 1 person" })` exists.
+- `REQ-70: the ended notice shows a clock icon, the closed-replies line and the own answer with an icon` — ended,
+  Maria GOING 3 → `container.querySelector('.notice svg.lucide-clock')` not `null`; `getByText('Replies are closed,
+  so answers can no longer be sent or changed.')`; `container.querySelector('.answer-line svg.lucide-check')` not
+  `null`.
+- `REQ-78: every icon in the panel is hidden from assistive technology` — Maria GOING 3, not ended → the container has
+  at least one `svg` and none without `aria-hidden="true"`.
+Red reason: the catalogs still say "You're going (3)" / "Cancel"; the status line is a plain `<p>`, no icons, no
+saved-as line. Commit 2 `feat(rsvp): …`: the catalog values and the markup above.
+**Done when:** all `guest-rsvp-panel.test.tsx` tests pass; `src/i18n/messages.test.ts` (REQ-52 parity) passes;
+`e2e/rsvp.spec.ts` and `e2e/journeys.spec.ts` pass; `grep -rn "You're going (" src e2e` finds nothing.
+**TDD exception:** none
+- r2 — human decision DOC-Q3.1, not a failure revision: "You're going · N people" and "Cancel RSVP" (C11 changed
+  values applied here, with the existing tests that read them); Not going keeps only "Change" (DOC-Q4 default).
+
+### TASK-177 — Event page layout, head and "Ended" pill (375 px)
+**Phase:** 6 · **Requirements:** REQ-73, REQ-84, REQ-85, REQ-70 · **Status:** done · **Revision:** 2
+**Files:** src/app/[locale]/e/[slug]/page.tsx, src/components/event-details.tsx, e2e/event-page.spec.ts
+**Interface:** `EventDetailsProps` gains `ended: boolean`. `EventDetails` (mockup lines 736–748 and 839):
+```tsx
+<div className="ev-head">
+  {ended && <div className="status-row"><StatusPill status="ended">{t('event.endedPill')}</StatusPill></div>}
+  <h1 className="display">{event.name}</h1>
+  <ul className="meta-list">
+    <li><Icon icon={Calendar} /><span className="num">{formatEventDateTime(event.startsAt, event.timezone, locale)}</span></li>
+    {event.location && <li><Icon icon={MapPin} /><span>{event.location}</span></li>}
+  </ul>
+  <p className="ev-desc prose whitespace-pre-wrap">{event.description}</p>
+  <div className="ev-sub">
+    <span className="going-count"><Icon icon={Users} />{t('totals.peopleGoing', { count: totals.people })}</span>
+    <a className={buttonClass('secondary')} href={`/e/${event.slug}/calendar.ics`} download><Icon icon={CalendarPlus} />{t('event.addToCalendar')}</a>
+  </div>
+</div>
+```
+Page:
+```tsx
+<main className="page"><div className="col-640">
+  <EventDetails event={view.event} totals={view.totals} locale={locale} ended={view.ended} />
+  {view.role === 'owner' && (
+    <div className="owner-tools mt-6">
+      <CopyInviteLinkButton slug={slug} />
+      <div className="owner-actions">
+        {!view.ended && (
+          <Link className={buttonClass('secondary')} href={`/e/${slug}/edit`}><Icon icon={Pencil} />{t('event.edit')}</Link>
+        )}
+        <DeleteEventButton deleteAction={deleteEventAction.bind(null, slug)} />
+      </div>
+    </div>
+  )}
+  <hr className="divider" />
+  {view.role === 'owner' && <OwnerGuestList view={view} locale={locale} />}
+  {view.role === 'guest' && ( /* GuestRsvpPanel, unchanged props */ )}
+</div></main>
+```
+**Test first** (append to `e2e/event-page.spec.ts`):
+- `REQ-73: a long event name and location never cause horizontal scrolling at 375 px` —
+  `test.use({ viewport: { width: 375, height: 740 } })` in its `describe`; event of `createOwner()` with
+  `name: 'Supercalifragilisticexpialidociousneighbourhoodgettogether2026'` and
+  `location: 'https://maps.example.com/riverside-park/north-entrance/picnic-area-7'`; `/en/e/<slug>` →
+  `await page.evaluate(() => document.documentElement.scrollWidth)` ≤ 375; fill "Your name" with "Maria", click "Send
+  RSVP", `getByText("You're going · 1 person")` visible → scroll width ≤ 375 again.
+- `REQ-84: an ended event shows the "Ended" pill with a clock icon` — event with
+  `startsAt: new Date('2020-01-01T19:00:00Z')`, `/en/e/<slug>` → `page.locator('.pill-ended')` has text `'Ended'` and
+  `page.locator('.pill-ended svg.lucide-clock')` has `aria-hidden="true"`.
+Red reason: the unstyled `h1` overflows at 375 px; no pill exists.
+**Done when:** tests pass; `e2e/share.spec.ts`, `e2e/owner.spec.ts`, `e2e/rsvp.spec.ts`, `e2e/security.spec.ts`,
+`e2e/journeys.spec.ts` pass.
+**TDD exception:** none
+- r2 — human decision DOC-Q3.1, not a failure revision: confirmation text "You're going · 1 person".
+
+### TASK-178 — Invite link field with "Copied" and a live announcement
+**Phase:** 6 · **Requirements:** REQ-79, REQ-85, REQ-70, REQ-38 · **Status:** done · **Revision:** 1
+**Files:** src/components/copy-invite-link-button.tsx, src/components/copy-invite-link-button.test.tsx
+**Interface:** `CopyInviteLinkButtonProps` gains `copiedMs?: number` (default `2000`). The URL is computed after
+mount (`const [url, setUrl] = useState('')`; `useEffect(() => setUrl(buildInviteUrl(window.location.origin, slug)),
+[slug])`); `handleClick` writes `buildInviteUrl(window.location.origin, slug)` as today, then `setCopied(true)`;
+`useEffect(() => { if (!copied) return; const id = setTimeout(() => setCopied(false), copiedMs); return () =>
+clearTimeout(id); }, [copied, copiedMs])`. Markup (mockup lines 893–903):
+```tsx
+<div className="panel">
+  <div className="field">
+    <label className="label" htmlFor="invite-link">{t('event.inviteLink')}</label>
+    <div className="copy-row">
+      <input className="input" id="invite-link" readOnly value={url} aria-describedby="invite-link-hint" />
+      <Button className={copied ? 'is-copied' : undefined} onClick={handleClick}>
+        <Icon icon={copied ? Check : Copy} />{copied ? t('event.copied') : t('event.copyLink')}
+      </Button>
+    </div>
+    <p className="hint" id="invite-link-hint">{t('event.inviteHint')}</p>
+    <p className="sr-only" aria-live="polite">{copied ? t('event.linkCopied') : ''}</p>
+  </div>
+</div>
+```
+**Test first** (append; `writeText` mocked as in the existing test):
+- `REQ-79: the confirmation is announced in a polite live region` — click "Copy invite link" →
+  `await waitFor(() => expect(container.querySelector('[aria-live="polite"]')?.textContent).toBe('Link copied'))`.
+- `REQ-85: the invite link is shown in a read-only field labelled "Invite link"` —
+  `await waitFor(() => expect((getByLabelText('Invite link') as HTMLInputElement).value).toBe(buildInviteUrl(window.location.origin, 'abc')))`;
+  the input has `readOnly === true`.
+- `REQ-70: after copying the button reads "Copied" with a check, then returns` — `copiedMs={50}`; click →
+  `await findByRole('button', { name: 'Copied' })` contains `svg.lucide-check`; then
+  `await waitFor(() => getByRole('button', { name: 'Copy invite link' }))` and the live region is empty.
+Red reason: today the message is a `role="status"` span without `aria-live`, there is no field and no "Copied".
+**Done when:** all tests in the file pass (the existing REQ-38 test unchanged).
+**TDD exception:** none
+
+### TASK-179 — Delete an event with the inline confirmation
+**Phase:** 6 · **Requirements:** REQ-72, REQ-19 · **Status:** done · **Revision:** 1
+**Files:** src/components/delete-event-button.tsx, src/components/delete-event-button.test.tsx, e2e/events.spec.ts
+**Interface:**
+```tsx
+export function DeleteEventButton({ deleteAction }: DeleteEventButtonProps) {
+  const t = useTranslations();
+  const router = useRouter();
+  async function handleConfirm() {
+    const result = await deleteAction();
+    if (result.ok) router.push('/dashboard');
+  }
+  return <InlineConfirm triggerLabel={t('event.delete')} question={t('event.deleteConfirm')}
+    confirmLabel={t('event.deleteConfirmAction')} cancelLabel={t('event.keep')} onConfirm={handleConfirm} />;
+}
+```
+**Test first:** rewrite both tests of `delete-event-button.test.tsx` (same file, same `nav` mock):
+- `REQ-19: the confirmation is inline and Keep does not delete` — `const confirmSpy = vi.spyOn(window, 'confirm')`;
+  click "Delete event" → `getByRole('group', { name: 'Delete this event and all its RSVPs? This cannot be undone.' })`
+  exists; click "Keep" → `deleteAction` not called, `confirmSpy` not called, "Delete event" is back.
+- `REQ-19: confirming deletes and goes to the dashboard` — `deleteAction` resolves `{ ok: true, data: null }`; click
+  "Delete event", then `getByRole('button', { name: 'Delete' })` → `deleteAction` called once; `nav.push` called
+  with `'/dashboard'`.
+- `e2e/events.spec.ts`, `REQ-18: the owner deletes an event`: remove the line
+  `page.once('dialog', (dialog) => dialog.accept());` and after clicking "Delete event" add
+  `await page.getByRole('button', { name: 'Delete', exact: true }).click();`.
+Red reason: today the button calls `window.confirm` and renders no group.
+**Done when:** tests pass; `e2e/events.spec.ts` and `e2e/owner.spec.ts` pass.
+**TDD exception:** none
+
+### TASK-180 — Remove an RSVP with the inline confirmation
+**Phase:** 6 · **Requirements:** REQ-72, REQ-30 · **Status:** done · **Revision:** 1
+**Files:** src/components/remove-rsvp-button.tsx, src/components/remove-rsvp-button.test.tsx,
+src/components/owner-guest-list.tsx, e2e/owner.spec.ts
+**Interface:** `RemoveRsvpButtonProps` becomes `{ name: string; removeAction: () => Promise<ActionResult<null>> }`;
+`OwnerGuestList` passes `name={row.name}`. The trigger's accessible name changes from "Remove" to "Remove <name>".
+```tsx
+return <InlineConfirm layout="row" triggerLabel={t('event.remove')} triggerAriaLabel={t('event.removeNamed', { name })}
+  question={t('event.removeConfirm', { name })} confirmLabel={t('event.remove')} cancelLabel={t('event.keep')}
+  onConfirm={async () => { await removeAction(); router.refresh(); }} />;
+```
+**Test first:**
+- `remove-rsvp-button.test.tsx` (new; jsdom; `nav` mock of convention 9):
+  `REQ-72: removing Maria asks inline first` — `removeAction = vi.fn().mockResolvedValue({ ok: true, data: null })`,
+  `<RemoveRsvpButton name="Maria" removeAction={removeAction} />`; click `getByRole('button', { name: 'Remove Maria' })`
+  → `getByRole('group', { name: 'Remove Maria from the guest list?' })` exists and `removeAction` not called; click
+  `getByRole('button', { name: 'Remove' })` → `removeAction` called once and then `nav.refresh` called once.
+- `e2e/owner.spec.ts`: in `REQ-30: the owner removes an RSVP`, after the existing click on Maria's row "Remove" add
+  `await page.getByRole('row', { name: /Maria/ }).getByRole('button', { name: 'Remove', exact: true }).click();`; in
+  `REQ-34: after the event ended…`, after `page.getByRole('button', { name: 'Remove' }).click()` add
+  `await page.getByRole('button', { name: 'Remove', exact: true }).click();`.
+Red reason: today the first click removes immediately and the button is named "Remove".
+**Done when:** tests pass; all of `e2e/owner.spec.ts` passes.
+**TDD exception:** none
+
+### TASK-181 — Owner guest list: pills, short dates and stacked rows
+**Phase:** 6 · **Requirements:** REQ-85, REQ-70, REQ-34 · **Status:** done · **Revision:** 1
+**Files:** src/components/owner-guest-list.tsx, e2e/owner.spec.ts
+**Interface** (mockup lines 920–935):
+```tsx
+<section aria-labelledby="guest-list-heading">
+  <div className="guest-head">
+    <h2 className="h2" id="guest-list-heading">{t('event.guestList')}</h2>
+    <p className="small totals">{t('totals.summary', { going: view.totals.going, declined: view.totals.declined, people: view.totals.people })}</p>
+  </div>
+  {view.rsvps.length === 0 ? <p className="muted">{t('event.noRsvps')}</p> : (
+    <table className="guests">
+      <thead><tr>
+        <th scope="col">{t('event.colName')}</th><th scope="col">{t('event.colResponse')}</th>
+        <th scope="col" className="c-people">{t('event.colPeople')}</th><th scope="col">{t('event.colUpdated')}</th>
+        <th scope="col"><span className="sr-only">{t('event.actions')}</span></th>
+      </tr></thead>
+      <tbody>
+        {view.rsvps.map((row) => (
+          <tr key={row.id}>
+            <td className="c-name">{row.name}</td>
+            <td className="c-resp">{row.status === 'GOING'
+              ? <StatusPill status="going">{t('rsvp.going')}</StatusPill>
+              : <StatusPill status="declined">{t('event.declined')}</StatusPill>}</td>
+            <td className={cx('c-people', row.partySize === 0 && 'is-zero')}>
+              <span className="num">{row.partySize}</span><span className="ph"> {t('event.peopleSuffix', { count: row.partySize })}</span></td>
+            <td className="c-upd"><span className="ph">{t('event.updatedPrefix')} </span>{formatShortDateTime(row.updatedAt, view.event.timezone, locale)}</td>
+            <td className="c-rm"><RemoveRsvpButton name={row.name} removeAction={removeRsvpAction.bind(null, view.event.slug, row.id)} /></td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  )}
+</section>
+```
+**Test first** (`e2e/owner.spec.ts`): change João's row expectation in `REQ-34: the owner sees every RSVP with totals`
+from `'Not going'` to `'Declined'`, and add:
+- `REQ-85: each response is a pill with an icon` — Maria GOING 3, João NOT_GOING →
+  `page.getByRole('row', { name: /João/ }).locator('.pill-declined svg[aria-hidden="true"]')` `toHaveCount(1)`;
+  `page.getByRole('row', { name: /Maria/ }).locator('.pill-going')` has text `'Going'`.
+- `REQ-85: at 375 px the guest list stacks without horizontal scrolling` — same fixture,
+  `page.setViewportSize({ width: 375, height: 740 })` before `goto` → `(await page.locator('table thead').boundingBox())!.width`
+  ≤ 1 and `document.documentElement.scrollWidth` ≤ 375.
+Red reason: the response is plain text "Not going" and the table does not stack.
+**Done when:** all of `e2e/owner.spec.ts`, `e2e/dashboard.spec.ts` (sample event list) and `e2e/journeys.spec.ts` pass.
+**TDD exception:** none
+
+### TASK-182 — Keyboard and focus verification
+**Phase:** 6 · **Requirements:** REQ-66, REQ-67 · **Status:** done · **Revision:** 2
+**Files:** e2e/helpers/keyboard.ts, e2e/a11y.spec.ts
+**Interface:**
+```ts
+/** Presses Tab until the focused element matches `selector`; throws after 40 presses. */
+export async function tabTo(page: Page, selector: string): Promise<void>;
+/** Presses Tab through the page (max 60 presses, stops when focus returns to <body>) and returns each focus ring. */
+export async function focusRings(page: Page): Promise<Array<{ element: string; style: string; width: string }>>;
+```
+`focusRings` reads, after each Tab, `document.activeElement`; for an element matching `.seg input` it reads the
+computed style of `nextElementSibling` instead; it records `outerHTML.slice(0, 80)`, `outlineStyle`, `outlineWidth`.
+**Test first (characterization test — the behavior comes from TASK-153 … TASK-181)**, in `e2e/a11y.spec.ts`:
+- `REQ-67: a guest answers with the keyboard only` — open event of `createOwner()`, `/en/e/<slug>`;
+  `tabTo(page, '#rsvp-name')`, `page.keyboard.type('Kim')`; `tabTo(page, 'input[name="rsvp-status"]')`;
+  `press('ArrowRight')` → `getByLabel('Not going', { exact: true })` checked; `press('ArrowLeft')` →
+  `getByLabel('Going', { exact: true })` checked; `tabTo(page, 'button[aria-label="One more person"]')`,
+  `press('Enter')` → the party size input has value `'2'`; `tabTo(page, 'button[type="submit"]')`, `press('Enter')`
+  → `getByText("You're going · 2 people")` visible.
+- `REQ-67: the owner deletes an event with the keyboard only` — signed-in owner, event without RSVPs;
+  `tabTo(page, 'button[aria-expanded="false"]')` (the "Delete event" trigger), `press('Enter')` → the "Keep" button
+  is focused; `press('Shift+Tab')` → `getByRole('button', { name: 'Delete', exact: true })` focused;
+  `press('Enter')` → URL `/en/dashboard`.
+- `REQ-67: the theme toggle and the account menu work from the keyboard` — signed in, `/en`;
+  `tabTo(page, 'button.theme-toggle')`, `press('Enter')` → `html` `data-theme="light"`; `tabTo(page, 'summary')`,
+  `press('Enter')` → `getByRole('banner').getByRole('link', { name: 'My events' })` visible.
+- `REQ-66: every focusable control shows a 2 px solid focus ring` — for the guest page (signed out), the owner page
+  (signed in, one RSVP "Maria") and `/en/events/new` (signed in): `const rings = await focusRings(page)` →
+  `rings.length` > 5 and `rings.filter((r) => r.style !== 'solid' || r.width !== '2px')` equals `[]`.
+**Done when:** tests pass (fix CSS/markup, not tests — Phase 6 rule 7).
+**TDD exception:** none (characterization test, convention 13)
+- r2 — human decision DOC-Q3.1, not a failure revision: confirmation text "You're going · 2 people".
+
+### TASK-183 — Labels, hidden icons and target sizes verification
+**Phase:** 6 · **Requirements:** REQ-68, REQ-71, REQ-78 · **Status:** done · **Revision:** 1
+**Files:** e2e/a11y.spec.ts
+**Test first (characterization test)** — page set: `/en` (signed out), the guest page of an open event (form), the
+same page after RSVPing "Maria" (confirmation), the owner page with one RSVP, `/en/dashboard` with one event,
+`/en/events/new`:
+- `REQ-68: every form input in main has a visible label` — on the guest form, the owner page and `/en/events/new`:
+  `page.evaluate` over `main input:not([type="hidden"]), main select, main textarea`, skipping elements inside
+  `[aria-hidden="true"]`; an element is an offender when `el.labels?.[0]` is missing, has a bounding box ≤ 1 px in
+  width or height, or has the class `sr-only`; the offender list (ids) equals `[]`.
+- `REQ-78: no svg is exposed to assistive technology` — on every page of the set:
+  `[...document.querySelectorAll('svg')].filter((s) => !s.closest('[aria-hidden="true"]')).length` is `0`.
+- `REQ-71: every interactive control is at least 24×24 px` — on every page of the set except the confirmation:
+  elements matching `a[href], button, input:not([type="hidden"]), select, textarea, summary`, skipping
+  `[tabindex="-1"]`, elements inside `[aria-hidden="true"]` and elements with a zero-size box; offenders have
+  `Math.round(width) < 24 || Math.round(height) < 24`; the list (`tag text WxH`) equals `[]`.
+**Done when:** tests pass (fix CSS/markup, not tests).
+**TDD exception:** none (characterization test, convention 13)
+
+### TASK-184 — French layout verification
+**Phase:** 6 · **Requirements:** REQ-77 · **Status:** done · **Revision:** 2
+**Files:** e2e/i18n-layout.spec.ts
+**Test first (characterization test):** `REQ-77: French pages have no clipped text and no horizontal scrolling` — for
+each width in `[375, 1280]` (`page.setViewportSize({ width, height: 800 })`): `/fr` signed out; `/fr/e/<slug>` of
+an open event as a guest (form), then after filling "Votre nom" with "Maria" and clicking "Envoyer la réponse" →
+"Vous venez · 1 personne" visible (confirmation); signed in as the owner of an event with RSVPs Maria GOING 3 and João
+NOT_GOING: `/fr/e/<slug>` (owner), `/fr/dashboard`, `/fr/events/new`. On each, `page.evaluate` returns problems:
+`"page scrolls horizontally"` when `document.documentElement.scrollWidth > document.documentElement.clientWidth`,
+plus one entry per element matching `.btn, .pill, .seg span, .label, .brand` (not inside `[aria-hidden="true"]`,
+with at least one client rect) whose `scrollWidth > clientWidth + 1` or `scrollHeight > clientHeight + 1`
+(`className: "text"`); the list equals `[]` for every page and width.
+**Done when:** test passes (fix CSS, e.g. allow wrapping; never shorten copy or change the test).
+**TDD exception:** none (characterization test, convention 13)
+- r2 — human decision DOC-Q3.1, not a failure revision: confirmation text "Vous venez · 1 personne".
+
 ### TASK-148 — README
-**Phase:** 5 · **Requirements:** — · **Status:** todo · **Revision:** 1
+**Phase:** 6 · **Requirements:** — · **Status:** done · **Revision:** 2
 **Files:** README.md
 **Steps:** replace the work-in-progress README with these sections, in this order (facts only; link, do not copy):
 1. **Live demo** — production URL placeholder `<!-- release agent fills this -->` and the demo event link `/e/demoPicnic`.
 2. **60-second walkthrough** — 5 numbered steps: open demo → RSVP → sign in → "Fill with AI" → share link and watch the list.
 3. **Features** — Core (events, RSVP, guest list) and Bonus (Google SSO with per-event roles, AI fill, i18n EN/FR/PT-BR,
-   .ics, sample event, demo) with one line each.
+   .ics, sample event, demo, dark/light theme with WCAG 2.2 AA checks) with one line each.
 4. **Architecture** — the layered folders (`src/domain`, `src/services`, `src/repositories`, `src/lib`, `src/app`) in
    one table; links to the three SVG diagrams in `docs/diagrams/`.
-5. **Business rules and specification** — links to `docs/business-rules.md`, `docs/spec.md`, `docs/plan.md`.
+5. **Business rules and specification** — links to `docs/business-rules.md`, `docs/spec.md`, `docs/plan.md`, and
+   the design sources `docs/PRODUCT.md` and `docs/DESIGN.md`.
 6. **Run locally** — Node 22, `docker compose up -d`, copy `.env.example` to `.env.local` and fill it,
    `npx dotenv -e .env.local -- prisma migrate dev`, `npx dotenv -e .env.local -- prisma db seed`, `npm run dev`.
 7. **Tests** — the commands of C9 (`test:unit`, `test:int`, `test:e2e`, `trace`) and what each level covers.
@@ -3486,3 +5156,5 @@ signed out): `/e/<slug>` → RSVP "Maria", Going, 3; organizer reloads → table
 **Test first:** —
 **Done when:** `npm run trace` passes; all links resolve to existing files.
 **TDD exception:** docs
+- r2 — A2 (human decision, not a failure revision): moved from Phase 5 to the end of Phase 6; Features and section 5
+  also mention the theme/accessibility work and the design sources.

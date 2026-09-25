@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { describe, expect, test, vi } from 'vitest';
 import { renderWithIntl } from '@/test/render';
 import { detectBrowserTimeZone } from '@/lib/browser-timezone';
@@ -55,6 +55,44 @@ describe('EventForm', () => {
 
     const alert = await screen.findByRole('alert');
     expect(alert.textContent).toBe('Something went wrong. Please try again.');
+  });
+});
+
+describe('EventForm groups, announced errors and saving state (REQ-83, REQ-69)', () => {
+  test('REQ-83: fields are grouped under What, When and Where', () => {
+    renderWithIntl(<EventForm submit={vi.fn()} />);
+
+    expect(within(screen.getByRole('group', { name: 'When' })).getByLabelText('Date')).toBeTruthy();
+    expect(within(screen.getByRole('group', { name: 'What' })).getByLabelText('Name')).toBeTruthy();
+    expect(
+      within(screen.getByRole('group', { name: 'Where' })).getByLabelText('Location (optional)'),
+    ).toBeTruthy();
+  });
+
+  test('REQ-69: a required-field error is announced', async () => {
+    renderWithIntl(<EventForm submit={vi.fn()} />);
+    fireEvent.change(screen.getByLabelText('Description'), { target: { value: 'Pasta night' } });
+    fireEvent.change(screen.getByLabelText('Date'), { target: { value: '2099-01-01' } });
+    fireEvent.change(screen.getByLabelText('Time'), { target: { value: '10:00' } });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Save event' }));
+
+    expect((await screen.findByRole('alert')).textContent).toBe('This field is required.');
+    expect(screen.getByLabelText('Name').getAttribute('aria-describedby')).toBe('name-error');
+  });
+
+  test('REQ-83: while saving, Save event keeps its label and is busy', async () => {
+    const submit = vi.fn(() => new Promise<never>(() => {}));
+    renderWithIntl(<EventForm submit={submit} />);
+    fillValidFields();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Save event' }));
+
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Save event' }).getAttribute('aria-busy')).toBe(
+        'true',
+      ),
+    );
   });
 });
 
@@ -131,6 +169,41 @@ describe('EventForm — Fill with AI (REQ-51)', () => {
     expect(container.querySelector('#name-missing')).toBeNull();
     expect(screen.getByLabelText('Name').getAttribute('aria-invalid')).toBeNull();
     expect(aiFill).toHaveBeenCalledWith("Team dinner next Friday 7pm at Mario's", 'UTC');
+  });
+
+  test('REQ-83: a successful fill reports how many fields were filled', async () => {
+    const aiFill = vi.fn().mockResolvedValue({ ok: true, data: filled });
+    const { container } = renderWithIntl(<EventForm submit={vi.fn()} aiFill={aiFill} />);
+
+    describeAndFill(container);
+
+    await waitFor(() =>
+      expect(screen.getByRole('status').textContent).toBe('Filled 5 fields · check them below'),
+    );
+  });
+
+  test('REQ-70: a missing field shows "Needed" next to its label', async () => {
+    const aiFill = vi.fn().mockResolvedValue({ ok: true, data: filled });
+    const { container } = renderWithIntl(<EventForm submit={vi.fn()} aiFill={aiFill} />);
+
+    describeAndFill(container);
+
+    await waitFor(() => expect(screen.getAllByText('Needed')).toHaveLength(1));
+    expect(container.querySelector('.field.is-missing #location')).not.toBeNull();
+  });
+
+  test('REQ-83: while filling, Fill with AI keeps its label and is busy', async () => {
+    const aiFill = vi.fn(() => new Promise<never>(() => {}));
+    const { container } = renderWithIntl(<EventForm submit={vi.fn()} aiFill={aiFill} />);
+
+    describeAndFill(container);
+
+    await waitFor(() => {
+      const button = screen.getByRole('button', { name: 'Fill with AI' }) as HTMLButtonElement;
+      expect(button.getAttribute('aria-busy')).toBe('true');
+      expect(button.disabled).toBe(true);
+    });
+    expect(screen.getByRole('status').textContent).toBe('Filling…');
   });
 
   test('REQ-51: an AI failure shows the fallback message and keeps the typed values', async () => {

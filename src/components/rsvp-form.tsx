@@ -1,12 +1,24 @@
 'use client';
 
 import { useState, type FormEvent } from 'react';
+import { Check, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from '@/i18n/navigation';
 import { ValidationError, type ErrorCode, type FieldErrors } from '@/domain/errors';
 import { rsvpInputSchema } from '@/domain/schemas';
 import type { RsvpStatus, OwnRsvp } from '@/domain/types';
 import type { ActionResult } from '@/lib/action-result';
+import {
+  Alert,
+  describedBy,
+  Field,
+  FieldError,
+  FieldHint,
+  FieldLabel,
+} from '@/components/ui/field';
+import { Button } from '@/components/ui/button';
+import { SegmentedControl } from '@/components/ui/segmented-control';
+import { Stepper } from '@/components/ui/stepper';
 
 /** Values collected by {@link RsvpForm}. */
 export interface RsvpFormValues {
@@ -80,60 +92,61 @@ export function RsvpForm({ initial, submit, onDone }: RsvpFormProps) {
   }
 
   return (
-    <form onSubmit={handleSubmit} noValidate>
-      <h2>{t('rsvp.title')}</h2>
-      {formAlert() && <div role="alert">{formAlert()}</div>}
+    <form className="rsvp-form" onSubmit={handleSubmit} noValidate aria-labelledby="rsvp-title">
+      <h2 className="h2" id="rsvp-title">
+        {t('rsvp.title')}
+      </h2>
+      {formAlert() && <Alert>{formAlert()}</Alert>}
 
-      <div>
-        <label htmlFor="rsvp-name">{t('rsvp.name')}</label>
+      <Field>
+        <FieldLabel htmlFor="rsvp-name">{t('rsvp.name')}</FieldLabel>
         <input
+          className="input"
           id="rsvp-name"
+          autoComplete="name"
           value={name}
           onChange={(e) => setName(e.target.value)}
           aria-invalid={fieldErrors.name ? 'true' : undefined}
-          aria-describedby={fieldErrors.name ? 'rsvp-name-error' : undefined}
+          aria-describedby={describedBy('rsvp-name-hint', fieldErrors.name && 'rsvp-name-error')}
         />
-        {errorFor('name') && <p id="rsvp-name-error">{errorFor('name')}</p>}
-      </div>
+        <FieldHint id="rsvp-name-hint">{t('rsvp.nameHint')}</FieldHint>
+        {errorFor('name') && <FieldError id="rsvp-name-error">{errorFor('name')}</FieldError>}
+      </Field>
 
-      <div role="radiogroup">
-        <label>
-          <input
-            type="radio"
-            name="rsvp-status"
-            value="GOING"
-            checked={status === 'GOING'}
-            onChange={() => setStatus('GOING')}
-          />
-          {t('rsvp.going')}
-        </label>
-        <label>
-          <input
-            type="radio"
-            name="rsvp-status"
-            value="NOT_GOING"
-            checked={status === 'NOT_GOING'}
-            onChange={() => setStatus('NOT_GOING')}
-          />
-          {t('rsvp.notGoing')}
-        </label>
-      </div>
+      <SegmentedControl
+        name="rsvp-status"
+        label={t('rsvp.answer')}
+        labelId="rsvp-answer-label"
+        value={status}
+        onChange={setStatus}
+        options={[
+          { value: 'GOING', label: t('rsvp.going'), icon: Check, tone: 'success' },
+          { value: 'NOT_GOING', label: t('rsvp.notGoing'), icon: X, tone: 'muted' },
+        ]}
+      />
 
       {status === 'GOING' && (
-        <div>
-          <label htmlFor="rsvp-party-size">{t('rsvp.partySize')}</label>
-          <input
+        <Field>
+          <FieldLabel htmlFor="rsvp-party-size">{t('rsvp.partySize')}</FieldLabel>
+          <Stepper
             id="rsvp-party-size"
-            type="number"
+            value={partySize}
             min={1}
             max={10}
-            value={partySize}
-            onChange={(e) => setPartySize(Number(e.target.value))}
-            aria-invalid={fieldErrors.partySize ? 'true' : undefined}
-            aria-describedby={fieldErrors.partySize ? 'rsvp-party-size-error' : undefined}
+            onChange={setPartySize}
+            decreaseLabel={t('rsvp.decrease')}
+            increaseLabel={t('rsvp.increase')}
+            describedBy={describedBy(
+              'rsvp-party-size-hint',
+              fieldErrors.partySize && 'rsvp-party-size-error',
+            )}
+            invalid={Boolean(fieldErrors.partySize)}
           />
-          {errorFor('partySize') && <p id="rsvp-party-size-error">{errorFor('partySize')}</p>}
-        </div>
+          <FieldHint id="rsvp-party-size-hint">{t('rsvp.partySizeHint')}</FieldHint>
+          {errorFor('partySize') && (
+            <FieldError id="rsvp-party-size-error">{errorFor('partySize')}</FieldError>
+          )}
+        </Field>
       )}
 
       <div aria-hidden="true" className="absolute -left-[9999px]">
@@ -149,9 +162,9 @@ export function RsvpForm({ initial, submit, onDone }: RsvpFormProps) {
         />
       </div>
 
-      <button type="submit" disabled={submitting}>
+      <Button type="submit" variant="primary" size="lg" loading={submitting}>
         {t('rsvp.submit')}
-      </button>
+      </Button>
     </form>
   );
 }
