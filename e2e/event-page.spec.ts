@@ -28,3 +28,46 @@ test.describe('REQ-71: RSVP form targets are large enough', () => {
     }
   });
 });
+
+test.describe('REQ-73: the guest event page works at 375 px', () => {
+  test.use({ viewport: { width: 375, height: 740 } });
+
+  test('REQ-73: a long event name and location never cause horizontal scrolling at 375 px', async ({
+    page,
+  }) => {
+    const owner = await createOwner();
+    const event = await createEvent(owner.id, {
+      name: 'Supercalifragilisticexpialidociousneighbourhoodgettogether2026',
+      location: 'https://maps.example.com/riverside-park/north-entrance/picnic-area-7',
+    });
+
+    await page.goto(`/en/e/${event.slug}`);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
+      375,
+    );
+
+    await page.getByLabel('Your name').fill('Maria');
+    await page.getByRole('button', { name: 'Send RSVP' }).click();
+    await expect(page.getByText("You're going · 1 person")).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
+      375,
+    );
+  });
+});
+
+test.describe('REQ-84: the "Ended" pill', () => {
+  test('REQ-84: an ended event shows the "Ended" pill with a clock icon', async ({ page }) => {
+    const owner = await createOwner();
+    const event = await createEvent(owner.id, {
+      startsAt: new Date('2020-01-01T19:00:00Z'),
+    });
+
+    await page.goto(`/en/e/${event.slug}`);
+
+    await expect(page.locator('.pill-ended')).toHaveText('Ended');
+    await expect(page.locator('.pill-ended svg.lucide-clock')).toHaveAttribute(
+      'aria-hidden',
+      'true',
+    );
+  });
+});
