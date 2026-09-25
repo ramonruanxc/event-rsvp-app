@@ -79,6 +79,33 @@ test.describe('REQ-36: the organizer dashboard', () => {
     await expect(page.getByText('You have no events yet.')).toBeVisible();
     await expect(page.getByRole('link', { name: 'Create event' })).toBeVisible();
   });
+
+  test('REQ-82: the empty dashboard explains three steps and offers both actions', async ({
+    page,
+    context,
+  }) => {
+    await signInAs(context, { email: 'steps@example.com', name: 'Steps' });
+
+    await page.goto('/en/dashboard');
+
+    const steps = page.locator('main ol.steps > li');
+    await expect(steps).toHaveCount(3);
+    await expect(steps.nth(0)).toContainText('Create an event');
+    await expect(steps.nth(1)).toContainText('Share one link');
+    await expect(steps.nth(2)).toContainText('Watch replies come in');
+
+    await expect(page.getByRole('link', { name: 'Create event' })).toHaveCount(1);
+    await expect(page.getByRole('link', { name: 'Create event' })).toHaveAttribute(
+      'href',
+      '/en/events/new',
+    );
+    await expect(page.getByRole('button', { name: 'Create sample event' })).toBeVisible();
+    await expect(
+      page.getByText(
+        "The sample comes with five fictional guests so you can look around. Delete it when you're done.",
+      ),
+    ).toBeVisible();
+  });
 });
 
 test.describe('REQ-37: create sample event', () => {
