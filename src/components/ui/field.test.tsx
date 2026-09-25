@@ -5,7 +5,9 @@ import { Alert, describedBy, Field, FieldError, FieldLabel, NeededBadge } from '
 
 describe('field primitives', () => {
   it('REQ-69: FieldError is an alert with an icon and the message', () => {
-    const { getByRole } = renderWithIntl(<FieldError id="name-error">This field is required.</FieldError>);
+    const { getByRole } = renderWithIntl(
+      <FieldError id="name-error">This field is required.</FieldError>,
+    );
     const alert = getByRole('alert');
     expect(alert.id).toBe('name-error');
     expect(alert.className).toBe('field-error');
