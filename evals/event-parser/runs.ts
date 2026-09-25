@@ -38,11 +38,28 @@ export function aggregateRuns(evalCase: EvalCase, runs: RunResult[]): CaseRuns {
 }
 
 /** Wraps a model client and remembers the last error it threw, handed over once by `takeError` (REQ-101). */
-export function recordingClient(_client: AiModelClient): {
+export function recordingClient(client: AiModelClient): {
   client: AiModelClient;
   takeError: () => unknown;
 } {
-  throw new Error('not implemented');
+  let lastError: unknown;
+  return {
+    client: {
+      async complete(request) {
+        try {
+          return await client.complete(request);
+        } catch (error) {
+          lastError = error;
+          throw error;
+        }
+      },
+    },
+    takeError: () => {
+      const error = lastError;
+      lastError = undefined;
+      return error;
+    },
+  };
 }
 
 /** What runCase needs: the parser call, the recorded client error and a millisecond clock. */
@@ -54,9 +71,26 @@ export interface RunCaseDeps {
 
 /** Runs one case `runs` times, timing, classifying and scoring each run (REQ-100, REQ-101). */
 export async function runCase(
-  _evalCase: EvalCase,
-  _runs: number,
-  _deps: RunCaseDeps,
+  evalCase: EvalCase,
+  runs: number,
+  deps: RunCaseDeps,
 ): Promise<CaseRuns> {
-  throw new Error('not implemented');
+  const results: RunResult[] = [];
+  for (let i = 0; i < runs; i += 1) {
+    const start = deps.clock();
+    let outcome: ParseEventResult | { error: string };
+    try {
+      outcome = await deps.parse({
+        text: evalCase.input.text,
+        formTimezone: evalCase.input.timezone,
+        now: new Date(evalCase.input.now),
+      });
+    } catch (error) {
+      outcome = { error: error instanceof DomainError ? error.code : String(error) };
+    }
+    const latencyMs = deps.clock() - start;
+    const status = classifyRun({ outcome, latencyMs, clientError: deps.takeClientError() });
+    results.push({ status, latencyMs, result: scoreCase(evalCase, outcome) });
+  }
+  return aggregateRuns(evalCase, results);
 }
