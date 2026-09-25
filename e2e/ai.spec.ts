@@ -44,7 +44,9 @@ test.describe('REQ-51: Fill with AI', () => {
     await page.getByRole('button', { name: 'Fill with AI' }).click();
 
     await expect(
-      page.getByText("Couldn't fill automatically — please fill the form."),
+      page.getByText(
+        'The AI service is unavailable right now — try again later, or fill the form below.',
+      ),
     ).toBeVisible();
 
     await page.getByLabel('Name', { exact: true }).fill('Board games');
@@ -73,9 +75,11 @@ test.describe('REQ-88: AI provider failover', () => {
     await expect(page.getByLabel('Time', { exact: true })).toHaveValue('19:00');
     await expect(page.getByLabel('Timezone', { exact: true })).toHaveValue('America/New_York');
 
-    await expect(page.getByText("Couldn't fill automatically — please fill the form.")).toHaveCount(
-      0,
-    );
+    await expect(
+      page.getByText(
+        'The AI service is unavailable right now — try again later, or fill the form below.',
+      ),
+    ).toHaveCount(0);
     expect(await db.event.count()).toBe(0);
   });
 });

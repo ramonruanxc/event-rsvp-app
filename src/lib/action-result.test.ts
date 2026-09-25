@@ -40,6 +40,8 @@ describe('toActionError', () => {
       'RATE_LIMITED',
       'AI_LIMIT_REACHED',
       'AI_UNAVAILABLE',
+      'AI_TIMEOUT',
+      'AI_NOT_CONFIGURED',
       'UNAUTHENTICATED',
       'INTERNAL_ERROR',
       'INVALID_CREDENTIALS',
@@ -47,8 +49,8 @@ describe('toActionError', () => {
       'GOOGLE_ACCOUNT_EXISTS',
     ];
     for (const code of codes) {
-      expect(typeof en.errors[code]).toBe('string');
-      expect((en.errors[code] as string).length).toBeGreaterThan(0);
+      expect(typeof (en.errors as Record<string, string>)[code]).toBe('string');
+      expect((en.errors as Record<string, string>)[code].length).toBeGreaterThan(0);
     }
   });
 });

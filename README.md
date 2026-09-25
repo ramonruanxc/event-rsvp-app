@@ -84,7 +84,7 @@ works with just the steps above except "Continue with Google" and "Fill with AI"
 ## Tests
 
 Unit tests need no database; integration and E2E need only the database container (`docker compose up -d db`).
-Current counts: 470 unit tests, 27 integration tests, and 83 end-to-end journeys across a11y and all three
+Current counts: 484 unit tests, 27 integration tests, and 83 end-to-end journeys across a11y and all three
 locales — all passing in CI (Node 22). `npm run trace` checks that every requirement marked "done" in
 [docs/spec.md](docs/spec.md) is cited by at least one passing test.
 

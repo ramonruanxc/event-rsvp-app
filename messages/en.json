@@ -58,7 +58,9 @@
     "groupWhat": "What",
     "groupWhen": "When",
     "groupWhere": "Where",
-    "timezoneHint": "Guests see the date and time in this timezone."
+    "timezoneHint": "Guests see the date and time in this timezone.",
+    "openDatePicker": "Open calendar",
+    "openTimePicker": "Open time picker"
   },
   "ai": {
     "label": "Describe your event",
@@ -164,7 +166,9 @@
     "DUPLICATE_NAME": "This name is already on the list. Use a different name or ask the organizer.",
     "RATE_LIMITED": "Too many submissions — please try again in a few minutes.",
     "AI_LIMIT_REACHED": "Daily AI limit reached — fill the form manually.",
-    "AI_UNAVAILABLE": "Couldn't fill automatically — please fill the form.",
+    "AI_UNAVAILABLE": "The AI service is unavailable right now — try again later, or fill the form below.",
+    "AI_TIMEOUT": "The AI took too long to answer — try again, or fill the form below.",
+    "AI_NOT_CONFIGURED": "AI fill isn't set up on this server — fill the form below.",
     "UNAUTHENTICATED": "Please sign in to continue.",
     "INTERNAL_ERROR": "Something went wrong. Please try again.",
     "INVALID_CREDENTIALS": "Email or password is incorrect.",

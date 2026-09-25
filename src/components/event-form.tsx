@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
-import { Check, ChevronDown, Sparkles } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
+import { CalendarDays, Check, ChevronDown, Clock, Sparkles } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from '@/i18n/navigation';
 import { ValidationError, type ErrorCode, type FieldErrors } from '@/domain/errors';
@@ -32,6 +32,27 @@ export interface EventFormProps {
 }
 
 /**
+ * Opens the native picker of a date or time input (REQ-131). `showPicker` is missing in older
+ * browsers and throws without user activation or when the picker is already open; both cases are
+ * ignored, so the field still accepts typing.
+ */
+function openPicker(input: HTMLInputElement | null): void {
+  if (!input || typeof input.showPicker !== 'function') return;
+  try {
+    input.showPicker();
+  } catch {
+    // Unsupported here, refused, or already open: typing still works.
+  }
+}
+
+/** Focuses a date or time input, then opens its picker (the icon buttons, REQ-131). */
+function focusAndOpenPicker(input: HTMLInputElement | null): void {
+  if (!input) return;
+  input.focus();
+  openPicker(input);
+}
+
+/**
  * Create/edit event form (REQ-15): validates client-side with `eventInputSchema` before
  * delegating persistence to `submit`, and renders any error the server returns. When `aiFill`
  * is given, also renders the "Fill with AI" panel (REQ-51).
@@ -53,6 +74,8 @@ export function EventForm({ initialValues, submit, aiFill }: EventFormProps) {
   const [missing, setMissing] = useState<AiField[]>([]);
   const [aiNotice, setAiNotice] = useState<ErrorCode | 'notAnEvent' | null>(null);
   const [filledCount, setFilledCount] = useState<number | null>(null);
+  const dateRef = useRef<HTMLInputElement>(null);
+  const timeRef = useRef<HTMLInputElement>(null);
 
   // Only the browser knows its own timezone; deferred to an effect so the server-rendered
   // markup (which cannot know it) matches the first client render (REQ-13).
@@ -232,15 +255,27 @@ export function EventForm({ initialValues, submit, aiFill }: EventFormProps) {
             <FieldLabel htmlFor="date" badge={needed('date')}>
               {t('eventForm.date')}
             </FieldLabel>
-            <input
-              className="input"
-              id="date"
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              aria-invalid={ariaInvalid('date')}
-              aria-describedby={ariaDescribedBy('date')}
-            />
+            <div className="picker-wrap">
+              <input
+                ref={dateRef}
+                className="input"
+                id="date"
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                onClick={(e) => openPicker(e.currentTarget)}
+                aria-invalid={ariaInvalid('date')}
+                aria-describedby={ariaDescribedBy('date')}
+              />
+              <button
+                type="button"
+                className="icon-btn picker-btn"
+                aria-label={t('eventForm.openDatePicker')}
+                onClick={() => focusAndOpenPicker(dateRef.current)}
+              >
+                <Icon icon={CalendarDays} />
+              </button>
+            </div>
             {errorFor('date') && <FieldError id="date-error">{errorFor('date')}</FieldError>}
             {missing.includes('date') && (
               <FieldHint id="date-missing">{t('ai.missingHint')}</FieldHint>
@@ -250,15 +285,27 @@ export function EventForm({ initialValues, submit, aiFill }: EventFormProps) {
             <FieldLabel htmlFor="time" badge={needed('time')}>
               {t('eventForm.time')}
             </FieldLabel>
-            <input
-              className="input"
-              id="time"
-              type="time"
-              value={time}
-              onChange={(e) => setTime(e.target.value)}
-              aria-invalid={ariaInvalid('time')}
-              aria-describedby={ariaDescribedBy('time')}
-            />
+            <div className="picker-wrap">
+              <input
+                ref={timeRef}
+                className="input"
+                id="time"
+                type="time"
+                value={time}
+                onChange={(e) => setTime(e.target.value)}
+                onClick={(e) => openPicker(e.currentTarget)}
+                aria-invalid={ariaInvalid('time')}
+                aria-describedby={ariaDescribedBy('time')}
+              />
+              <button
+                type="button"
+                className="icon-btn picker-btn"
+                aria-label={t('eventForm.openTimePicker')}
+                onClick={() => focusAndOpenPicker(timeRef.current)}
+              >
+                <Icon icon={Clock} />
+              </button>
+            </div>
             {errorFor('time') && <FieldError id="time-error">{errorFor('time')}</FieldError>}
             {missing.includes('time') && (
               <FieldHint id="time-missing">{t('ai.missingHint')}</FieldHint>

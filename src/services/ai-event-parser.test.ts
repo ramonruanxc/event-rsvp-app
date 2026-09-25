@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { AiUnavailableError } from '@/domain/errors';
+import { AiNotConfiguredError, AiTimeoutError, AiUnavailableError } from '@/domain/errors';
 import { InvalidModelOutputError, ProviderUnavailableError } from '@/lib/ai/errors';
 import { SYSTEM_PROMPT } from '@/lib/ai/prompt';
 import type { AiModelClient, AiProvider, AiProviderName, ParseEventResult } from '@/lib/ai/types';
@@ -104,7 +104,7 @@ describe('AiEventParser', () => {
       system: SYSTEM_PROMPT,
       user: expect.stringContaining('<event_text>'),
       model: 'claude-haiku-4-5',
-      timeoutMs: 10_000,
+      timeoutMs: 20_000,
     });
   });
 
@@ -119,17 +119,23 @@ describe('AiEventParser', () => {
     ).rejects.toBeInstanceOf(AiUnavailableError);
   });
 
-  it('REQ-47: no answer within 10 seconds becomes AiUnavailableError', async () => {
+  it('REQ-133: no answer within 20 seconds ends the fill, and not before', async () => {
     vi.useFakeTimers();
     const complete = vi.fn().mockReturnValue(new Promise(() => {}));
     const parser = new AiEventParser({
       providers: [{ name: 'anthropic', client: { complete }, model: 'claude-haiku-4-5' }],
     });
+    let settled = false;
+    const result = parser
+      .parse({ text: 'Dinner', formTimezone: null, now: new Date() })
+      .finally(() => {
+        settled = true;
+      });
+    const assertion = expect(result).rejects.toBeInstanceOf(AiTimeoutError);
 
-    const assertion = expect(
-      parser.parse({ text: 'Dinner', formTimezone: null, now: new Date() }),
-    ).rejects.toBeInstanceOf(AiUnavailableError);
-    await vi.advanceTimersByTimeAsync(10_000);
+    await vi.advanceTimersByTimeAsync(19_999);
+    expect(settled).toBe(false);
+    await vi.advanceTimersByTimeAsync(1);
     await assertion;
     vi.useRealTimers();
   });
@@ -260,13 +266,13 @@ describe('AiEventParser — providers', () => {
     });
 
     await expect(parser.parse(REQUEST)).resolves.toEqual(EXPECTED);
-    expect(anthropic).toHaveBeenCalledWith(expect.objectContaining({ timeoutMs: 10_000 }));
-    expect(openrouter).toHaveBeenCalledWith(expect.objectContaining({ timeoutMs: 7_000 }));
+    expect(anthropic).toHaveBeenCalledWith(expect.objectContaining({ timeoutMs: 20_000 }));
+    expect(openrouter).toHaveBeenCalledWith(expect.objectContaining({ timeoutMs: 17_000 }));
   });
 
   it('REQ-88: no provider is tried with less than one second left', async () => {
     const anthropic1 = vi.fn(async () => {
-      t = 9_001;
+      t = 19_001;
       throw new ProviderUnavailableError('server');
     });
     const openrouter1 = vi.fn().mockResolvedValue(RAW);
@@ -277,12 +283,12 @@ describe('AiEventParser — providers', () => {
       ],
       clock,
     });
-    await expect(parser1.parse(REQUEST)).rejects.toBeInstanceOf(AiUnavailableError);
+    await expect(parser1.parse(REQUEST)).rejects.toBeInstanceOf(AiTimeoutError);
     expect(openrouter1).not.toHaveBeenCalled();
 
     t = 0;
     const anthropic2 = vi.fn(async () => {
-      t = 9_000;
+      t = 19_000;
       throw new ProviderUnavailableError('server');
     });
     const openrouter2 = vi.fn().mockResolvedValue(RAW);
@@ -305,8 +311,8 @@ describe('AiEventParser — providers', () => {
       providers: [provider('anthropic', anthropic, 'm1'), provider('openrouter', openrouter, 'm2')],
     });
 
-    const assertion = expect(parser.parse(REQUEST)).rejects.toBeInstanceOf(AiUnavailableError);
-    await vi.advanceTimersByTimeAsync(10_000);
+    const assertion = expect(parser.parse(REQUEST)).rejects.toBeInstanceOf(AiTimeoutError);
+    await vi.advanceTimersByTimeAsync(20_000);
     await assertion;
     expect(openrouter).not.toHaveBeenCalled();
     vi.useRealTimers();
@@ -392,5 +398,77 @@ describe('AiEventParser — same result whichever provider answered', () => {
 
     await expect(openrouterOnly.parse(REQUEST)).rejects.toBeInstanceOf(AiUnavailableError);
     await expect(anthropicOnly.parse(REQUEST)).rejects.toBeInstanceOf(AiUnavailableError);
+  });
+});
+
+describe('AiEventParser — why a fill failed (REQ-132)', () => {
+  const twoProviders = (
+    first: AiModelClient['complete'],
+    second: AiModelClient['complete'],
+    clock?: () => number,
+  ) =>
+    new AiEventParser({
+      providers: [provider('anthropic', first, 'm1'), provider('openrouter', second, 'm2')],
+      clock,
+    });
+
+  it('REQ-132: no configured provider is AiNotConfiguredError', async () => {
+    await expect(new AiEventParser({ providers: [] }).parse(REQUEST)).rejects.toBeInstanceOf(
+      AiNotConfiguredError,
+    );
+  });
+
+  it('REQ-132: one provider that times out is AiTimeoutError; one that is down is AiUnavailableError', async () => {
+    const slow = new AiEventParser({
+      providers: [
+        provider(
+          'openrouter',
+          vi.fn().mockRejectedValue(new ProviderUnavailableError('timeout')),
+          'm',
+        ),
+      ],
+    });
+    const down = new AiEventParser({
+      providers: [
+        provider(
+          'openrouter',
+          vi.fn().mockRejectedValue(new ProviderUnavailableError('server')),
+          'm',
+        ),
+      ],
+    });
+
+    await expect(slow.parse(REQUEST)).rejects.toBeInstanceOf(AiTimeoutError);
+    await expect(down.parse(REQUEST)).rejects.toBeInstanceOf(AiUnavailableError);
+  });
+
+  it('REQ-132: after failover the last attempt decides', async () => {
+    const timeoutThenDown = twoProviders(
+      vi.fn().mockRejectedValue(new ProviderUnavailableError('timeout')),
+      vi.fn().mockRejectedValue(new ProviderUnavailableError('server')),
+    );
+    const downThenTimeout = twoProviders(
+      vi.fn().mockRejectedValue(new ProviderUnavailableError('server')),
+      vi.fn().mockRejectedValue(new ProviderUnavailableError('timeout')),
+    );
+
+    await expect(timeoutThenDown.parse(REQUEST)).rejects.toBeInstanceOf(AiUnavailableError);
+    await expect(downThenTimeout.parse(REQUEST)).rejects.toBeInstanceOf(AiTimeoutError);
+  });
+
+  it('REQ-132: a provider left untried because the budget ran out is AiTimeoutError', async () => {
+    let t = 0;
+    const second = vi.fn().mockResolvedValue(RAW);
+    const parser = twoProviders(
+      vi.fn(async () => {
+        t = 19_001;
+        throw new ProviderUnavailableError('server');
+      }),
+      second,
+      () => t,
+    );
+
+    await expect(parser.parse(REQUEST)).rejects.toBeInstanceOf(AiTimeoutError);
+    expect(second).not.toHaveBeenCalled();
   });
 });

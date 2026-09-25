@@ -157,6 +157,18 @@ notifications are out of scope).
 the current moment.
 **Source:** Human decision 2026-09-24 (open question 5)
 
+#### BR-171 — Date and time fields can be filled with the browser's native picker
+**Rule:** The organizer can set the event's date (BR-15) and time (BR-15) either by typing into the field or by
+opening the browser's native date/time picker; both entry methods produce a usable field value.
+**Rationale:** REQ-66's accessibility fix (Phase 6) hides the native calendar/clock icon that Chromium draws inside
+the date and time inputs, because it created an untabbable, ring-less focus stop (BR-103). Hiding that icon also
+removed the only way to open the picker, leaving typing as the sole entry method — a regression against full
+keyboard/pointer operability (BR-104) that went undetected because no test exercised opening a picker (incident 26).
+This rule states the requirement the fix must still satisfy: the picker stays reachable by some other, accessible
+control.
+**Source:** design brief §2 "Events" (BR-15); incident 26, `docs/pipeline/failures.md` #26
+**Added:** 2026-09-25 — Phase 11 (REQ-131), backfilled at doc-sync per incident 26.
+
 ---
 
 ### RSVPs
@@ -414,12 +426,38 @@ form with every field flagged as missing and no explanation.
 **Source:** design brief §2 "AI feature — natural-language event creation"
 
 #### BR-64 — AI request timeout
-**Rule:** The AI fill request times out after 10 seconds.
+**Rule:** The AI fill request times out after 20 seconds.
 **Source:** design brief §2 "AI feature — natural-language event creation"
+**Amended:** 2026-09-25 — Phase 11 human decision: raised from 10 seconds to 20 seconds, to give the model more room
+to answer before the organizer sees a timeout message (BR-172). The eval's p95 < 8 s latency gate is unchanged: it
+already passes well under the old 10 s budget, so the wider budget only reduces false-positive timeouts and does
+not relax the performance bar.
 
-#### BR-65 — Fallback message on AI timeout or error
-**Rule:** If the AI fill request times out or errors, the UI displays "Couldn't fill automatically — please fill the form."
+#### BR-65 — Fallback message on AI provider/service unavailability
+**Rule:** When the AI fill request fails for a reason other than a timeout (BR-172), no key configured (BR-137), the
+daily limit (BR-89), or non-event input (BR-96) — that is, a network error, an HTTP 5xx response, an HTTP 429
+(rate limit) response, an HTTP 401 or 403 (authentication/authorization) response, an insufficient-credit error, or
+model output that fails schema validation (BR-70, BR-122) — the UI displays "The AI service is unavailable right
+now — try again later, or fill the form below."
+**Rationale:** These causes share one property the organizer can act on: retrying later may succeed, since the
+problem is on the provider/service side, not with the organizer's input or the server's configuration.
 **Source:** design brief §2 "AI feature — natural-language event creation"
+**Amended:** 2026-09-25 — Phase 11 human decision: previously this rule was "Fallback message on AI timeout or
+error", showing one generic message ("Couldn't fill automatically — please fill the form.", internally
+`AI_UNAVAILABLE`) for three different causes (no key configured, timeout, and every other unavailable case). The
+human decided on one message per cause: this rule keeps the provider/service-unavailable cause with its own new
+wording; the timeout cause moved to new BR-172; the no-key cause is BR-137 (amended), which now has its own wording
+instead of pointing back to this rule.
+
+#### BR-172 — Fallback message on AI timeout
+**Rule:** When the AI fill request does not receive a model answer within the request budget (BR-64), the UI
+displays "The AI took too long to answer — try again, or fill the form below."
+**Rationale:** Distinguishes a slow-but-possibly-working provider, worth retrying immediately, from a
+provider/service failure (BR-65) or a missing server configuration (BR-137), each of which reads differently to the
+organizer and may call for a different next step.
+**Source:** Phase 11 human decision (2026-09-25), see `docs/pipeline/failures.md`.
+**Added:** 2026-09-25 — Phase 11 human decision: split out of the former BR-65 ("Fallback message on AI timeout or
+error"), which showed the same generic message for timeout, no-key, and every other unavailable cause.
 
 #### BR-66 — Manual form always available
 **Rule:** The event-creation form can always be filled and submitted manually, independent of AI availability.
@@ -468,7 +506,7 @@ the AI fill action proceeds to the next provider in the configured order.
 **Rule:** When an attempted provider fails with a network error, an HTTP 5xx response, an HTTP 429 (rate limit)
 response, an HTTP 401 (invalid or revoked key) response, an HTTP 403 (unauthorized key) response, a timeout, or an
 insufficient-credit error, the AI fill action tries the next configured provider, provided the retry still fits
-within the same 10-second request budget (BR-64). Other 4xx responses — HTTP 400 (except the insufficient-credit
+within the same request budget (BR-64). Other 4xx responses — HTTP 400 (except the insufficient-credit
 case), 404, and 422 — do not trigger failover.
 **Rationale:** These failure types indicate the provider itself is unavailable rather than a problem with the
 request, so another provider can reasonably serve the same request. A misconfigured or revoked key makes that
@@ -479,6 +517,10 @@ there is no second provider to fail over to.
 **Amended:** 2026-09-24 — human decision (Phase 7 approval)
 **Amended:** 2026-09-25 — human decision (OpenRouter default, Anthropic optional): noted that failover requires
 more than one configured provider, since the default configuration now has only one.
+**Amended:** 2026-09-25 — Phase 11 human decision: the request budget referenced here follows BR-64 (amended),
+raised from 10 to 20 seconds; if every configured provider is exhausted (or the shared budget runs out) without a
+successful answer, the organizer sees the timeout message (BR-172) if the budget was the limiting factor, or the
+provider/service-unavailable message (BR-65, amended) otherwise.
 
 #### BR-122 — Invalid model output is not retried on another provider
 **Rule:** When a provider's output fails schema validation (BR-70), the AI fill action does not retry the request
@@ -780,9 +822,13 @@ email/password is now an alternative that does not depend on Google credentials.
 
 #### BR-137 — AI fill falls back when no AI provider key is configured
 **Rule:** Without a `.env.local` file supplying any AI provider key, every configured provider is skipped for lack
-of a key (BR-120) and "Fill with AI" ends in the same fallback as an AI error (BR-65): the UI shows "Couldn't fill
-automatically — please fill the form."
+of a key (BR-120) and "Fill with AI" displays "AI fill isn't set up on this server — fill the form below." instead
+of attempting any provider.
 **Source:** design brief §6 amendment A5
+**Amended:** 2026-09-25 — Phase 11 human decision: previously this case ended in the same generic fallback as the
+former BR-65 ("Couldn't fill automatically — please fill the form."). It now has its own wording, distinct from the
+timeout message (BR-172) and the provider/service-unavailable message (BR-65, amended), since a missing key is a
+server configuration issue the organizer cannot fix by retrying — unlike the other two causes.
 
 #### BR-138 — `.env.local` values are used when present
 **Rule:** When a `.env.local` file is present, the app uses the environment variables it defines (e.g.
@@ -1002,6 +1048,17 @@ BR above.
 ## Open questions
 
 **Open** — none.
+
+**Resolved — Phase 11** — decided by the human (Ramon) on 2026-09-25, incident 26 and the AI-fill error-message
+feedback:
+
+1. Date/time picker unreachable after the REQ-66 accessibility fix → BR-171 (new): the browser's native picker
+   stays reachable (icon button + click-to-open), alongside typing.
+2. One generic AI-unavailable message covered three different causes → split into one message per cause: BR-65
+   (amended, provider/service unavailable), BR-172 (new, timeout), BR-137 (amended, no provider key configured).
+   BR-89 (daily limit) and BR-96 (non-event text) were already distinct and are unchanged.
+3. AI request timeout → BR-64 (amended): 10 seconds to 20 seconds. BR-121 (amended): its failover budget now
+   points to BR-64's 20-second value instead of repeating the number.
 
 **Resolved — DOC-Q5 and DOC-Q6** — human pre-authorized the analyst's recommendation (2026-09-25):
 

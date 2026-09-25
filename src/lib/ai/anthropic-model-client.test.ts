@@ -23,12 +23,12 @@ const parse = vi.fn().mockResolvedValue({
 const client = { messages: { parse } } as unknown as Anthropic;
 
 describe('createAnthropicModelClient', () => {
-  it('REQ-47: calls the API with a 10 second timeout and no retries', async () => {
+  it('REQ-133: calls the API with a 20 second timeout and no retries', async () => {
     const model = createAnthropicModelClient(client);
 
     await model.complete({ system: 'sys', user: 'user', model: 'claude-haiku-4-5' });
 
-    expect(parse.mock.calls[0][1]).toEqual({ timeout: 10_000, maxRetries: 0 });
+    expect(parse.mock.calls[0][1]).toEqual({ timeout: 20_000, maxRetries: 0 });
   });
 
   it('REQ-43: requests structured output and returns the parsed object', async () => {

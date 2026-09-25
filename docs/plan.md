@@ -21,8 +21,9 @@
 | 8 | `phase-8/eval-hardening` | Harder AI evaluation + reasoning control (A4): `OPENROUTER_REASONING_EFFORT` (default `low`) sent as `reasoning: { effort }`; 3 runs per case (every answered run must pass); availability and p95 latency (< 8 s) reported apart from correctness; description-invention check; every category ≥ 80%; hidden hold-out split (⅓); +30 hard cases; real run on four models; code default model follows the new gate. **Outcome:** no model passes; delivered as a measurement (human decision, option A): default stays `anthropic/claude-sonnet-5`, production sets `OPENROUTER_REASONING_EFFORT=omit` (HUMAN-07) | REQ-99–REQ-107 (+ amended REQ-91, REQ-92, REQ-93, REQ-94) | 19 + 1 human (TASK-220–TASK-238, HUMAN-07) |
 | 9 | `phase-9/containerize` | One-command local run (A5): `docker compose up --build` starts Postgres and the app, which migrates, seeds and serves on `APP_PORT` (default 3000). `.env.local` is optional (`AUTH_SECRET` is generated when it is absent). Node 22 image with the full build, and no secret in the image. `docker compose up -d db` for development and tests. A non-required CI smoke job. README | REQ-108–REQ-113 | 8 (TASK-239–TASK-246), no human task |
 | 10 | `phase-10/password-auth` | Email and password sign-in alongside Google (A6): register, sign in (one generic error, failed attempts limited per email and IP), set or change a password on a new Account page; Google links to an existing email only when verified, clears the unverified password and shows a notice; JWT sessions; scrypt from `node:crypto`; en/fr/pt-BR, WCAG 2.2 AA; README | REQ-114–REQ-130 (+ amended REQ-01, REQ-02, REQ-39, REQ-80, REQ-81) | 23 (TASK-247–TASK-269), no human task |
+| 11 | `phase-11/date-time-picker` | Fix incident 26: the date and time pickers open again (click on the field, or a labelled icon button) while REQ-66's hidden Chromium indicator stays hidden. AI budget 10 s → 20 s, and a failed AI fill says why: not set up, too slow, or unavailable | REQ-131–REQ-133 (+ amended REQ-47, REQ-51, REQ-87, REQ-88, REQ-95, REQ-101) | 3 (TASK-270–TASK-272), no human task |
 
-Totals: 130 requirements (118 product + 12 tooling), 236 agent tasks, 6 human tasks.
+Totals: 133 requirements (121 product + 12 tooling), 239 agent tasks, 6 human tasks.
 
 **Adjustments to the suggested phases (with reasons):**
 - *All Prisma repositories move to Phase 1* (including the RSVP repository and its unique-constraint test REQ-27):
@@ -12645,3 +12646,567 @@ Commit `docs: email and password sign-in in the README`.
 **Done when:** `npm run format:check` passes; every changed line is at most 120 characters, except table rows (the
 existing rows are longer too); `git diff main -- README.md` touches only the sections listed above.
 **TDD exception:** docs
+
+---
+
+## Phase 11 — Date and time pickers reachable again (`phase-11/date-time-picker`, incident 26)
+
+Goal: the organizer can pick the event date and time from the browser's picker again, not only type them
+(REQ-131). REQ-66 hid Chromium's `::-webkit-calendar-picker-indicator` to remove an untabbable, ring-less focus stop,
+and nothing then opened the picker. That CSS stays. The picker now opens on a click on the field
+(`HTMLInputElement.showPicker()`) and from a labelled icon button inside each field, which has the normal focus ring.
+The phase then grew (human decision): the AI request budget goes from 10 s to 20 s (REQ-133), and a failed AI fill
+tells the organizer why: no key on the server, too slow, or the AI service is unavailable (REQ-132).
+
+Order: TASK-270 → TASK-271 → TASK-272. No human task, no new dependency (`lucide-react` is already installed), no
+migration, no new environment variable.
+
+**Phase 11 notes** (the rules are BR-171, BR-172 and the amended BR-64, BR-65, BR-121, BR-137):
+1. **Button names avoid the word "date".** Playwright's `getByLabel('Date')` (used in `e2e/events.spec.ts`) is a
+   case-insensitive substring match that also reads `aria-label`, so a button named "Open date picker" would make it
+   match two elements. Hence "Open calendar". `getByLabel('Time', { exact: true })` is already exact.
+2. **Focus, then open.** The button focuses the input first, so where `showPicker` is missing or refused the organizer
+   can still type straight away.
+3. **Local E2E port.** Run the E2E suite with `E2E_PORT=3100`: port 3000 is used by an unrelated app on this machine.
+4. **Which AI error wins after failover (REQ-132).** The last attempt decides: if it timed out → `AI_TIMEOUT`, any
+   other outage → `AI_UNAVAILABLE`. If the budget has less than 1 s left before a provider could be tried, the budget
+   was the limit → `AI_TIMEOUT`. A non-outage failure (HTTP 400/404/422, invalid output) is `AI_UNAVAILABLE` at once,
+   as before. No key → `AI_NOT_CONFIGURED` before any call.
+5. **Budget first, then the split.** TASK-271 changes only the numbers (the timeout is still `AiUnavailableError`);
+   TASK-272 then changes the error classes of the timeout tests TASK-271 touched.
+6. **No slow E2E.** The E2E mocks answer at once; no E2E waits 20 s for a timeout. Timeouts are tested with fake
+   timers or fake clocks in unit tests.
+
+### TASK-270 — Open the native date and time pickers from the field and from an icon button
+**Phase:** 11 · **Requirements:** REQ-131 · **Status:** done · **Revision:** 1
+**Files:** src/components/event-form.tsx, src/components/event-form.test.tsx, src/app/globals.css,
+messages/en.json, messages/fr.json, messages/pt-BR.json
+**Interface:** no exported symbol changes. Two module-level helpers in `src/components/event-form.tsx`:
+`function openPicker(input: HTMLInputElement | null): void` and
+`function focusAndOpenPicker(input: HTMLInputElement | null): void`.
+
+**Test first** — in `src/components/event-form.test.tsx`, change the vitest import to
+`import { afterEach, describe, expect, test, vi } from 'vitest';` and append this block at the end of the file:
+```tsx
+describe('EventForm date and time pickers (REQ-131)', () => {
+  /** Installs a mock `showPicker` on every input (jsdom has none) and returns it. */
+  function mockShowPicker(impl: () => void = () => {}) {
+    const showPicker = vi.fn(impl);
+    Object.defineProperty(HTMLInputElement.prototype, 'showPicker', {
+      configurable: true,
+      writable: true,
+      value: showPicker,
+    });
+    return showPicker;
+  }
+
+  afterEach(() => {
+    Reflect.deleteProperty(HTMLInputElement.prototype, 'showPicker');
+  });
+
+  test('REQ-131: clicking the date field opens its picker', () => {
+    const showPicker = mockShowPicker();
+    renderWithIntl(<EventForm submit={vi.fn()} />);
+    const dateInput = screen.getByLabelText('Date');
+
+    fireEvent.click(dateInput);
+
+    expect(showPicker).toHaveBeenCalledTimes(1);
+    expect(showPicker.mock.contexts[0]).toBe(dateInput);
+  });
+
+  test('REQ-131: clicking the time field opens its picker', () => {
+    const showPicker = mockShowPicker();
+    renderWithIntl(<EventForm submit={vi.fn()} />);
+    const timeInput = screen.getByLabelText('Time');
+
+    fireEvent.click(timeInput);
+
+    expect(showPicker).toHaveBeenCalledTimes(1);
+    expect(showPicker.mock.contexts[0]).toBe(timeInput);
+  });
+
+  test('REQ-131: the calendar button focuses the date field and opens its picker', () => {
+    const showPicker = mockShowPicker();
+    renderWithIntl(<EventForm submit={vi.fn()} />);
+    const dateInput = screen.getByLabelText('Date');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open calendar' }));
+
+    expect(document.activeElement).toBe(dateInput);
+    expect(showPicker).toHaveBeenCalledTimes(1);
+    expect(showPicker.mock.contexts[0]).toBe(dateInput);
+  });
+
+  test('REQ-131: the clock button focuses the time field and opens its picker', () => {
+    const showPicker = mockShowPicker();
+    renderWithIntl(<EventForm submit={vi.fn()} />);
+    const timeInput = screen.getByLabelText('Time');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open time picker' }));
+
+    expect(document.activeElement).toBe(timeInput);
+    expect(showPicker).toHaveBeenCalledTimes(1);
+    expect(showPicker.mock.contexts[0]).toBe(timeInput);
+  });
+
+  test('REQ-131: a showPicker that throws breaks nothing', () => {
+    const showPicker = mockShowPicker(() => {
+      throw new DOMException('The picker is already open.', 'InvalidStateError');
+    });
+    renderWithIntl(<EventForm submit={vi.fn()} />);
+    const dateInput = screen.getByLabelText('Date') as HTMLInputElement;
+
+    fireEvent.click(dateInput);
+    fireEvent.click(screen.getByRole('button', { name: 'Open calendar' }));
+    fireEvent.change(dateInput, { target: { value: '2099-01-01' } });
+
+    expect(showPicker).toHaveBeenCalledTimes(2);
+    expect(document.activeElement).toBe(dateInput);
+    expect(dateInput.value).toBe('2099-01-01');
+  });
+
+  test('REQ-131: without showPicker the button still focuses its field', () => {
+    renderWithIntl(<EventForm submit={vi.fn()} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open time picker' }));
+
+    expect(document.activeElement).toBe(screen.getByLabelText('Time'));
+  });
+
+  test('REQ-131: both picker buttons are translated plain buttons in the When group', () => {
+    renderWithIntl(<EventForm submit={vi.fn()} />);
+    const when = within(screen.getByRole('group', { name: 'When' }));
+    const calendar = when.getByRole('button', { name: 'Open calendar' });
+    const clock = when.getByRole('button', { name: 'Open time picker' });
+
+    expect(calendar.getAttribute('type')).toBe('button');
+    expect(clock.getAttribute('type')).toBe('button');
+    expect(when.getAllByRole('button')).toHaveLength(2);
+  });
+});
+```
+Run `npx vitest run --project unit src/components/event-form.test.tsx`: all seven new tests fail (the first two on
+`toHaveBeenCalledTimes(1)`, the others because no button named "Open calendar" / "Open time picker" exists); every
+older test in the file still passes. No stub is needed (no new export). Commit
+`test(event-form): date and time pickers open from the field and an icon button`.
+
+**Implementation:**
+1. `messages/en.json`, inside `"eventForm"`, after `"timezoneHint"` (add a comma to that line):
+   `"openDatePicker": "Open calendar",` and `"openTimePicker": "Open time picker"`.
+   `messages/fr.json`: `"openDatePicker": "Ouvrir le calendrier",` `"openTimePicker": "Ouvrir le sélecteur d'heure"`.
+   `messages/pt-BR.json`: `"openDatePicker": "Abrir calendário",` `"openTimePicker": "Abrir seletor de horário"`.
+   Do not use the word "date" in the English date name (Phase 11 note 1).
+2. `src/components/event-form.tsx`:
+   - imports: `import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';` and
+     `import { CalendarDays, Check, ChevronDown, Clock, Sparkles } from 'lucide-react';`
+   - after the `EventFormProps` interface, before `export function EventForm`, add:
+     ```ts
+     /**
+      * Opens the native picker of a date or time input (REQ-131). `showPicker` is missing in older
+      * browsers and throws without user activation or when the picker is already open; both cases are
+      * ignored, so the field still accepts typing.
+      */
+     function openPicker(input: HTMLInputElement | null): void {
+       if (!input || typeof input.showPicker !== 'function') return;
+       try {
+         input.showPicker();
+       } catch {
+         // Unsupported here, refused, or already open: typing still works.
+       }
+     }
+
+     /** Focuses a date or time input, then opens its picker (the icon buttons, REQ-131). */
+     function focusAndOpenPicker(input: HTMLInputElement | null): void {
+       if (!input) return;
+       input.focus();
+       openPicker(input);
+     }
+     ```
+   - after `const [filledCount, setFilledCount] = useState<number | null>(null);` add
+     `const dateRef = useRef<HTMLInputElement>(null);` and `const timeRef = useRef<HTMLInputElement>(null);`
+   - replace the date `<input … id="date" … />` element (keep every existing attribute) with:
+     ```tsx
+     <div className="picker-wrap">
+       <input
+         ref={dateRef}
+         className="input"
+         id="date"
+         type="date"
+         value={date}
+         onChange={(e) => setDate(e.target.value)}
+         onClick={(e) => openPicker(e.currentTarget)}
+         aria-invalid={ariaInvalid('date')}
+         aria-describedby={ariaDescribedBy('date')}
+       />
+       <button
+         type="button"
+         className="icon-btn picker-btn"
+         aria-label={t('eventForm.openDatePicker')}
+         onClick={() => focusAndOpenPicker(dateRef.current)}
+       >
+         <Icon icon={CalendarDays} />
+       </button>
+     </div>
+     ```
+   - do the same for the time `<input … id="time" … />`: `ref={timeRef}`, `type="time"`, `value={time}`, `setTime`,
+     `ariaInvalid('time')`, `ariaDescribedBy('time')`, button `aria-label={t('eventForm.openTimePicker')}`,
+     `onClick={() => focusAndOpenPicker(timeRef.current)}`, icon `Clock`.
+   - the `FieldLabel`, `FieldError` and `FieldHint` siblings stay exactly where they are (outside `.picker-wrap`).
+3. `src/app/globals.css`:
+   - in the REQ-66 BEND comment above `input[type='date']::-webkit-clear-button`, append the sentence
+     `The picker stays reachable by clicking the field or its icon button (REQ-131).` Do not change the rule itself.
+   - in `@layer components`, directly after the `.select-wrap .i { … }` block, add:
+     ```css
+     /* Date/time field with its picker button inside the right edge (REQ-131). */
+     .picker-wrap {
+       position: relative;
+     }
+     .picker-wrap .input {
+       padding-right: 44px;
+     }
+     .picker-btn {
+       position: absolute;
+       top: 4px;
+       right: 4px;
+       width: 32px;
+       height: 32px;
+     }
+     ```
+     It comes after `.icon-btn` in the same layer, so its 32 px size wins; the focus ring is the global
+     `:focus-visible` rule (2 px `--link`, 2 px offset).
+4. Run `npx prettier --write` on the changed files (the snippets above are not at their final indentation), then the
+   unit file again: all tests pass. Commit `fix(event-form): open the date and time pickers again`.
+
+**Verification** (before the task is done):
+- `npm run test:unit`, `npm run lint`, `npm run typecheck`, `npm run format:check`, `npm run trace`
+- `docker compose up -d db`, then with `E2E_PORT=3100` set in the shell (port 3000 belongs to another app; do not edit
+  any file for it):
+  `E2E_PORT=3100 npm run test:e2e -- e2e/a11y.spec.ts e2e/events.spec.ts e2e/ai.spec.ts e2e/i18n-layout.spec.ts`.
+  All pass unchanged; do not edit these specs. If one fails, return the failure; do not adapt the test.
+**Done when:** the seven REQ-131 tests pass, every existing unit and E2E test listed above passes unchanged, and lint,
+typecheck, format and trace pass.
+**TDD exception:** none
+
+### TASK-271 — The AI request budget is 20 seconds
+**Phase:** 11 · **Requirements:** REQ-133 · **Status:** done · **Revision:** 1
+**Files:** src/lib/ai/types.ts, src/services/ai-event-parser.test.ts, src/lib/ai/anthropic-model-client.test.ts,
+evals/event-parser/runs.test.ts
+**Interface:** `export const AI_TIMEOUT_MS = 20_000;` (was `10_000`). `MIN_ATTEMPT_MS` stays `1_000`. No other change.
+
+**Test first** — edit exactly these tests; do not change their assertions otherwise:
+1. `src/services/ai-event-parser.test.ts`
+   - `REQ-45: sends the system prompt, the delimited text and the model`: `timeoutMs: 10_000` → `timeoutMs: 20_000`
+   - replace the whole test `REQ-47: no answer within 10 seconds becomes AiUnavailableError` with:
+     ```ts
+     it('REQ-133: no answer within 20 seconds ends the fill, and not before', async () => {
+       vi.useFakeTimers();
+       const complete = vi.fn().mockReturnValue(new Promise(() => {}));
+       const parser = new AiEventParser({
+         providers: [{ name: 'anthropic', client: { complete }, model: 'claude-haiku-4-5' }],
+       });
+       let settled = false;
+       const result = parser
+         .parse({ text: 'Dinner', formTimezone: null, now: new Date() })
+         .finally(() => {
+           settled = true;
+         });
+       const assertion = expect(result).rejects.toBeInstanceOf(AiUnavailableError);
+
+       await vi.advanceTimersByTimeAsync(19_999);
+       expect(settled).toBe(false);
+       await vi.advanceTimersByTimeAsync(1);
+       await assertion;
+       vi.useRealTimers();
+     });
+     ```
+   - `REQ-88: the next provider only gets the time left in the budget`: `timeoutMs: 10_000` → `timeoutMs: 20_000`
+     and `timeoutMs: 7_000` → `timeoutMs: 17_000`
+   - `REQ-88: no provider is tried with less than one second left`: `t = 9_001;` → `t = 19_001;` and
+     `t = 9_000;` → `t = 19_000;`
+   - `REQ-88: a provider that never answers uses the whole budget`: `advanceTimersByTimeAsync(10_000)` →
+     `advanceTimersByTimeAsync(20_000)`
+2. `src/lib/ai/anthropic-model-client.test.ts`: rename `REQ-47: calls the API with a 10 second timeout and no retries`
+   to `REQ-133: calls the API with a 20 second timeout and no retries` and expect
+   `{ timeout: 20_000, maxRetries: 0 }`.
+3. `evals/event-parser/runs.test.ts`
+   - `REQ-101: a result is ok; a failure is classified by latency, then by the client error`: in the table,
+     `latencyMs: 10_000` → `20_000`, `latencyMs: 10_450` → `20_450`, `latencyMs: 9_999` → `19_999`
+   - `REQ-101: runCase classifies a slow failure as timeout and a fast outage as outage, and does not score them`:
+     `clockOf(0, 10_000, 10_000, 12_000, 12_000, 12_300)` → `clockOf(0, 20_000, 20_000, 22_000, 22_000, 22_300)` and
+     `['timeout', 10_000]` → `['timeout', 20_000]`
+   - `REQ-100: runCase fails a case whose runs all time out`: `clockOf(0, 10_000, 10_000, 20_000)` →
+     `clockOf(0, 20_000, 20_000, 40_000)`
+
+Run `npx vitest run --project unit src/services/ai-event-parser.test.ts src/lib/ai/anthropic-model-client.test.ts
+evals/event-parser/runs.test.ts`: the REQ-45, REQ-133 (both), REQ-88 "time left" and "less than one second" tests
+and the REQ-101 table test fail. Commit `test(ai): the AI request budget is 20 seconds`.
+
+**Implementation:** in `src/lib/ai/types.ts` set `export const AI_TIMEOUT_MS = 20_000;` and keep its comment
+(`/** Hard limit for one "Fill with AI" model call (BR-64). */`). The clients, the parser and the eval already read
+the constant. Run the three files again: all pass. Commit `feat(ai): raise the AI request budget to 20 seconds`.
+**Done when:** `npm run test:unit`, `npm run lint`, `npm run typecheck`, `npm run format:check` and `npm run trace`
+pass; `git grep -n "10_000" src evals` shows no AI budget value. The remaining `10_000`s are unrelated and stay:
+`src/lib/with-timeout.test.ts` (its own timer) and the run latencies in `evals/event-parser/report.test.ts` and
+`evals/event-parser/score.test.ts` (already-classified runs).
+**TDD exception:** none
+**Review fix (PR #18, CODE finding, not a SPEC revision — the Revision counter above is unchanged per the pipeline
+rule that only SPEC failures bump it):** the reviewer found that raising `AI_TIMEOUT_MS` alone does not guarantee the
+budget is honoured — the route that runs the AI action had no `maxDuration`, so the hosting platform's own function
+timeout could end the request first. Fixed by setting `export const maxDuration = 30` in
+`src/app/[locale]/events/new/page.tsx`, with a test asserting it stays above the AI budget. Whether 30 s is actually
+honoured depends on the Vercel project's compute mode (Fluid Compute vs. the legacy Hobby 10 s cap); this is
+unverifiable from the repository and is checked on the platform after deploy. See `docs/pipeline/failures.md` #27.
+
+### TASK-272 — A failed AI fill says why: not set up, too slow, or unavailable
+**Phase:** 11 · **Requirements:** REQ-132 · **Status:** done · **Revision:** 1
+**Files:** src/domain/errors.ts, src/services/ai-event-parser.ts, src/services/ai-event-parser.test.ts,
+src/lib/ai/providers-config.test.ts, src/lib/action-result.test.ts, src/components/event-form.test.tsx,
+evals/event-parser/runs.ts, evals/event-parser/runs.test.ts, messages/en.json, messages/fr.json, messages/pt-BR.json,
+e2e/ai.spec.ts
+**Interface** (`src/domain/errors.ts`):
+- `ErrorCode` gains `| 'AI_TIMEOUT' | 'AI_NOT_CONFIGURED'` (right after `| 'AI_UNAVAILABLE'`)
+- new classes, right after `AiUnavailableError`:
+  ```ts
+  /** Raised when no AI provider answered within the request budget (REQ-132, BR-172). */
+  export class AiTimeoutError extends DomainError {
+    readonly code = 'AI_TIMEOUT' as const;
+    constructor() {
+      super('AI_TIMEOUT');
+    }
+  }
+  /** Raised when no AI provider is configured, so none was attempted (REQ-132, BR-137). */
+  export class AiNotConfiguredError extends DomainError {
+    readonly code = 'AI_NOT_CONFIGURED' as const;
+    constructor() {
+      super('AI_NOT_CONFIGURED');
+    }
+  }
+  ```
+- `AiUnavailableError`'s comment becomes `/** Raised when the AI provider is down or its output is unusable (not a
+  timeout, REQ-132, BR-65). */`
+- `AiEventParser.parse` keeps its signature. `toActionError`, the action and `event-form.tsx` do not change (they
+  already map any `DomainError` to `{ ok: false, code }` and show `errors.<code>`).
+
+**Test first** — the codes and classes above are part of the test commit (plan rule 12: the tests must fail on
+assertions, not on missing imports).
+1. `src/services/ai-event-parser.test.ts`
+   - import line: `import { AiNotConfiguredError, AiTimeoutError, AiUnavailableError } from '@/domain/errors';`
+   - `REQ-133: no answer within 20 seconds ends the fill, and not before`: `AiUnavailableError` → `AiTimeoutError`
+   - `REQ-88: no provider is tried with less than one second left`: the `parser1` assertion
+     `.rejects.toBeInstanceOf(AiUnavailableError)` → `.rejects.toBeInstanceOf(AiTimeoutError)`
+   - `REQ-88: a provider that never answers uses the whole budget`: `AiUnavailableError` → `AiTimeoutError`
+   - append at the end of the file:
+     ```ts
+     describe('AiEventParser — why a fill failed (REQ-132)', () => {
+       const twoProviders = (
+         first: AiModelClient['complete'],
+         second: AiModelClient['complete'],
+         clock?: () => number,
+       ) =>
+         new AiEventParser({
+           providers: [provider('anthropic', first, 'm1'), provider('openrouter', second, 'm2')],
+           clock,
+         });
+
+       it('REQ-132: no configured provider is AiNotConfiguredError', async () => {
+         await expect(new AiEventParser({ providers: [] }).parse(REQUEST)).rejects.toBeInstanceOf(
+           AiNotConfiguredError,
+         );
+       });
+
+       it('REQ-132: one provider that times out is AiTimeoutError; one that is down is AiUnavailableError', async () => {
+         const slow = new AiEventParser({
+           providers: [
+             provider('openrouter', vi.fn().mockRejectedValue(new ProviderUnavailableError('timeout')), 'm'),
+           ],
+         });
+         const down = new AiEventParser({
+           providers: [
+             provider('openrouter', vi.fn().mockRejectedValue(new ProviderUnavailableError('server')), 'm'),
+           ],
+         });
+
+         await expect(slow.parse(REQUEST)).rejects.toBeInstanceOf(AiTimeoutError);
+         await expect(down.parse(REQUEST)).rejects.toBeInstanceOf(AiUnavailableError);
+       });
+
+       it('REQ-132: after failover the last attempt decides', async () => {
+         const timeoutThenDown = twoProviders(
+           vi.fn().mockRejectedValue(new ProviderUnavailableError('timeout')),
+           vi.fn().mockRejectedValue(new ProviderUnavailableError('server')),
+         );
+         const downThenTimeout = twoProviders(
+           vi.fn().mockRejectedValue(new ProviderUnavailableError('server')),
+           vi.fn().mockRejectedValue(new ProviderUnavailableError('timeout')),
+         );
+
+         await expect(timeoutThenDown.parse(REQUEST)).rejects.toBeInstanceOf(AiUnavailableError);
+         await expect(downThenTimeout.parse(REQUEST)).rejects.toBeInstanceOf(AiTimeoutError);
+       });
+
+       it('REQ-132: a provider left untried because the budget ran out is AiTimeoutError', async () => {
+         let t = 0;
+         const second = vi.fn().mockResolvedValue(RAW);
+         const parser = twoProviders(
+           vi.fn(async () => {
+             t = 19_001;
+             throw new ProviderUnavailableError('server');
+           }),
+           second,
+           () => t,
+         );
+
+         await expect(parser.parse(REQUEST)).rejects.toBeInstanceOf(AiTimeoutError);
+         expect(second).not.toHaveBeenCalled();
+       });
+     });
+     ```
+2. `src/lib/ai/providers-config.test.ts`: import `AiNotConfiguredError` next to `AiUnavailableError`; in
+   `REQ-87: a listed provider without a key is skipped and its client is never created`, the
+   `new AiEventParser({ providers: [] })` assertion expects `AiNotConfiguredError` (the other `AiUnavailableError`
+   assertion in the file, in `REQ-88: with the default configuration there is no failover`, stays).
+3. `src/lib/action-result.test.ts`, `REQ-59: every error code has an English message`: add `'AI_TIMEOUT'` and
+   `'AI_NOT_CONFIGURED'` to `codes`, right after `'AI_UNAVAILABLE'`, and change the two reads `en.errors[code]` in
+   the loop to `(en.errors as Record<string, string>)[code]` (the second loses its `as string`). Without the cast
+   `npm run typecheck` fails until the messages exist, because the JSON import is typed.
+4. `src/components/event-form.test.tsx`, inside `describe('EventForm — Fill with AI (REQ-51)', …)`:
+   - `REQ-51: an AI failure shows the fallback message and keeps the typed values`: the expected text becomes
+     `'The AI service is unavailable right now — try again later, or fill the form below.'`
+   - right after that test, add:
+     ```tsx
+     test('REQ-132: each AI failure shows its own message and keeps Fill with AI', async () => {
+       const cases: [string, string][] = [
+         ['AI_NOT_CONFIGURED', "AI fill isn't set up on this server — fill the form below."],
+         ['AI_TIMEOUT', 'The AI took too long to answer — try again, or fill the form below.'],
+         [
+           'AI_UNAVAILABLE',
+           'The AI service is unavailable right now — try again later, or fill the form below.',
+         ],
+       ];
+       for (const [code, message] of cases) {
+         const aiFill = vi.fn().mockResolvedValue({ ok: false, code });
+         const { container, unmount } = renderWithIntl(
+           <EventForm submit={vi.fn()} aiFill={aiFill} />,
+         );
+         describeAndFill(container);
+
+         expect((await screen.findByRole('alert')).textContent).toBe(message);
+         expect(screen.getByRole('button', { name: 'Fill with AI' })).toBeTruthy();
+         unmount();
+       }
+     });
+     ```
+     (a loop, not `test.each`: the traceability check only reads titles written as `test('REQ-…`)
+5. `evals/event-parser/runs.test.ts`, inside `describe('classifyRun (REQ-101)', …)`, add:
+   ```ts
+   it('REQ-132: an AI_TIMEOUT failure is a timeout whatever its latency', () => {
+     expect(
+       classifyRun({ outcome: { error: 'AI_TIMEOUT' }, latencyMs: 1_500, clientError: undefined }),
+     ).toBe('timeout');
+   });
+   ```
+6. `e2e/ai.spec.ts`: both occurrences of `"Couldn't fill automatically — please fill the form."` (in
+   `REQ-51: an AI failure shows the fallback message and the manual form still works` and in
+   `REQ-88: when Anthropic is down, OpenRouter fills the form`) become
+   `'The AI service is unavailable right now — try again later, or fill the form below.'`. Nothing else changes.
+
+Run `npx vitest run --project unit src/services/ai-event-parser.test.ts src/lib/ai/providers-config.test.ts
+src/lib/action-result.test.ts src/components/event-form.test.tsx evals/event-parser/runs.test.ts`: the four new
+parser tests, the three edited parser tests, the REQ-87 test, the REQ-59 test, the REQ-51 fallback test, the new
+REQ-132 form test and the new REQ-132 eval test fail. Commit `test(ai): a failed AI fill says why it failed`.
+
+**Implementation:**
+1. `src/services/ai-event-parser.ts` — the whole file becomes:
+   ```ts
+   import { AiNotConfiguredError, AiTimeoutError, AiUnavailableError } from '@/domain/errors';
+   import { ProviderUnavailableError } from '@/lib/ai/errors';
+   import { normalizeAiOutput } from '@/lib/ai/output';
+   import { buildUserMessage, SYSTEM_PROMPT } from '@/lib/ai/prompt';
+   import { AI_TIMEOUT_MS, MIN_ATTEMPT_MS } from '@/lib/ai/types';
+   import type { AiProvider, EventTextParser, ParseEventResult } from '@/lib/ai/types';
+   import { TimeoutError, withTimeout } from '@/lib/with-timeout';
+
+   /** True when an attempt ran out of time: the budget timer, a client abort or HTTP 408 (REQ-132). */
+   function isTimeout(error: unknown): boolean {
+     return (
+       error instanceof TimeoutError ||
+       (error instanceof ProviderUnavailableError && error.reason === 'timeout')
+     );
+   }
+
+   /** Parses organizer text into event fields using the configured providers, with a hard timeout (REQ-45, REQ-47). */
+   export class AiEventParser implements EventTextParser {
+     constructor(private readonly deps: { providers: readonly AiProvider[]; clock?: () => number }) {}
+
+     /**
+      * Tries the providers in order within AI_TIMEOUT_MS and normalizes the first answer. When none answers
+      * (REQ-132): no provider → AiNotConfiguredError; budget spent or last attempt timed out → AiTimeoutError;
+      * anything else → AiUnavailableError.
+      */
+     async parse(request: {
+       text: string;
+       formTimezone: string | null;
+       now: Date;
+     }): Promise<ParseEventResult> {
+       const { text, formTimezone, now } = request;
+       if (this.deps.providers.length === 0) throw new AiNotConfiguredError(); // no key configured (BR-137)
+       const user = buildUserMessage({ text, now, timezone: formTimezone });
+       const clock = this.deps.clock ?? (() => Date.now());
+       const deadline = clock() + AI_TIMEOUT_MS;
+       let lastAttemptTimedOut = false;
+
+       for (const provider of this.deps.providers) {
+         const remaining = deadline - clock();
+         if (remaining < MIN_ATTEMPT_MS) throw new AiTimeoutError(); // the budget ran out first (BR-121, BR-172)
+         let raw: unknown;
+         try {
+           raw = await withTimeout(
+             provider.client.complete({
+               system: SYSTEM_PROMPT,
+               user,
+               model: provider.model,
+               timeoutMs: remaining,
+             }),
+             remaining,
+           );
+         } catch (error) {
+           if (error instanceof ProviderUnavailableError || error instanceof TimeoutError) {
+             lastAttemptTimedOut = isTimeout(error); // outage: try the next provider (BR-121)
+             continue;
+           }
+           throw new AiUnavailableError(); // anything else is never retried (BR-122)
+         }
+         return normalizeAiOutput(raw, formTimezone); // schema failure → AiUnavailableError, no retry (BR-122)
+       }
+       throw lastAttemptTimedOut ? new AiTimeoutError() : new AiUnavailableError(); // the last attempt decides
+     }
+   }
+   ```
+2. `messages/*.json`, section `"errors"`: replace the `AI_UNAVAILABLE` value and add two keys right after it, with
+   the texts of REQ-132's table:
+   - en: `"AI_UNAVAILABLE": "The AI service is unavailable right now — try again later, or fill the form below."`,
+     `"AI_TIMEOUT": "The AI took too long to answer — try again, or fill the form below."`,
+     `"AI_NOT_CONFIGURED": "AI fill isn't set up on this server — fill the form below."`
+   - fr: `"AI_UNAVAILABLE": "Le service d'IA est indisponible pour le moment — réessayez plus tard ou remplissez le
+     formulaire ci-dessous."`, `"AI_TIMEOUT": "L'IA a mis trop de temps à répondre — réessayez ou remplissez le
+     formulaire ci-dessous."`, `"AI_NOT_CONFIGURED": "Le remplissage par IA n'est pas configuré sur ce serveur —
+     remplissez le formulaire ci-dessous."` (each value on one line in the JSON)
+   - pt-BR: `"AI_UNAVAILABLE": "O serviço de IA está indisponível no momento — tente mais tarde ou preencha o
+     formulário abaixo."`, `"AI_TIMEOUT": "A IA demorou demais para responder — tente de novo ou preencha o formulário
+     abaixo."`, `"AI_NOT_CONFIGURED": "O preenchimento com IA não está configurado neste servidor — preencha o
+     formulário abaixo."` (each value on one line)
+   Use straight apostrophes (`'`) and the em dash `—`, as in the existing messages.
+3. `evals/event-parser/runs.ts`, `classifyRun`: right after `if (!('error' in run.outcome)) return 'ok';` add
+   `if (run.outcome.error === 'AI_TIMEOUT') return 'timeout'; // the parser ran out of budget (REQ-132)` and change
+   its comment to `/** Status of one run (REQ-101): a result → ok; AI_TIMEOUT, ≥ AI_TIMEOUT_MS or a client timeout →
+   timeout; other outage → outage; else invalid. */`
+4. `npx prettier --write` on the changed files, run the unit files again: all pass. Commit
+   `feat(ai): tell the organizer why an AI fill failed`.
+
+**Verification:** `npm run test:unit`, `npm run lint`, `npm run typecheck`, `npm run format:check`, `npm run trace`;
+then `docker compose up -d db` and `E2E_PORT=3100 npm run test:e2e -- e2e/ai.spec.ts` (port 3000 belongs to another
+app; set the port in the shell only).
+**Done when:** every test above passes, including the three `e2e/ai.spec.ts` tests; lint, typecheck, format and
+trace pass.
+**TDD exception:** none

@@ -24,16 +24,16 @@ describe('classifyRun (REQ-101)', () => {
   it('REQ-101: a result is ok; a failure is classified by latency, then by the client error', () => {
     const table: [Parameters<typeof classifyRun>[0], RunStatus][] = [
       [{ outcome: resultOn('2026-10-02'), latencyMs: 1_200, clientError: undefined }, 'ok'],
-      [{ outcome: FAILED, latencyMs: 10_000, clientError: undefined }, 'timeout'],
+      [{ outcome: FAILED, latencyMs: 20_000, clientError: undefined }, 'timeout'],
       [
         {
           outcome: FAILED,
-          latencyMs: 10_450,
+          latencyMs: 20_450,
           clientError: new InvalidModelOutputError('model content is not JSON'),
         },
         'timeout',
       ],
-      [{ outcome: FAILED, latencyMs: 9_999, clientError: undefined }, 'invalid'],
+      [{ outcome: FAILED, latencyMs: 19_999, clientError: undefined }, 'invalid'],
       [
         { outcome: FAILED, latencyMs: 800, clientError: new ProviderUnavailableError('timeout') },
         'timeout',
@@ -64,6 +64,12 @@ describe('classifyRun (REQ-101)', () => {
       ],
     ];
     for (const [run, status] of table) expect(classifyRun(run), `${run.latencyMs} ms`).toBe(status);
+  });
+
+  it('REQ-132: an AI_TIMEOUT failure is a timeout whatever its latency', () => {
+    expect(
+      classifyRun({ outcome: { error: 'AI_TIMEOUT' }, latencyMs: 1_500, clientError: undefined }),
+    ).toBe('timeout');
   });
 });
 
@@ -185,11 +191,11 @@ describe('runCase (REQ-100, REQ-101)', () => {
     const out = await runCase(CASE, 3, {
       parse,
       takeClientError,
-      clock: clockOf(0, 10_000, 10_000, 12_000, 12_000, 12_300),
+      clock: clockOf(0, 20_000, 20_000, 22_000, 22_000, 22_300),
     });
 
     expect(out.runs.map((r) => [r.status, r.latencyMs])).toEqual([
-      ['timeout', 10_000],
+      ['timeout', 20_000],
       ['ok', 2_000],
       ['outage', 300],
     ]);
@@ -223,7 +229,7 @@ describe('runCase (REQ-100, REQ-101)', () => {
     const out = await runCase(CASE, 2, {
       parse,
       takeClientError,
-      clock: clockOf(0, 10_000, 10_000, 20_000),
+      clock: clockOf(0, 20_000, 20_000, 40_000),
     });
 
     expect(out.runs.map((r) => r.status)).toEqual(['timeout', 'timeout']);

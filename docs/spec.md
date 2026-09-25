@@ -114,7 +114,9 @@ to `{ ok: false, code }` and the UI shows the translated message for the code (`
 | `DUPLICATE_NAME` | `DuplicateNameError` | Name already on the list and not the caller's own RSVP | "This name is already on the list. Use a different name or ask the organizer." |
 | `RATE_LIMITED` | `RateLimitedError` | RSVP submissions from this IP exceeded 10 per 10 minutes; from Phase 10 also failed sign-ins over the limits of REQ-119 (the sign-in and register forms show `auth.tooManyAttempts` instead of this text) | "Too many submissions — please try again in a few minutes." |
 | `AI_LIMIT_REACHED` | `AiLimitReachedError` | User exceeded 20 "Fill with AI" calls in the current UTC day | "Daily AI limit reached — fill the form manually." |
-| `AI_UNAVAILABLE` | `AiUnavailableError` | AI call timed out, errored, or returned unusable output | "Couldn't fill automatically — please fill the form." |
+| `AI_UNAVAILABLE` | `AiUnavailableError` | AI provider outage or unusable output, not a timeout (REQ-132, BR-65) | "The AI service is unavailable right now — try again later, or fill the form below." |
+| `AI_TIMEOUT` | `AiTimeoutError` | No model answer within the 20 s budget (REQ-132, REQ-133, BR-172) | "The AI took too long to answer — try again, or fill the form below." |
+| `AI_NOT_CONFIGURED` | `AiNotConfiguredError` | No AI provider has a key, so none is attempted (REQ-132, BR-137) | "AI fill isn't set up on this server — fill the form below." |
 | `UNAUTHENTICATED` | `UnauthenticatedError` | Action requires a signed-in organizer | "Please sign in to continue." |
 | `INVALID_CREDENTIALS` | `InvalidCredentialsError` | Email/password sign-in failed: unknown email, wrong password, or an account without a password. Never says which (BR-155) | "Email or password is incorrect." |
 | `EMAIL_TAKEN` | `EmailTakenError` | Registration email already belongs to an account that has a password | "An account with this email already exists. Sign in instead." |
@@ -836,6 +838,8 @@ updated in TASK-266.
 - `AiEventParser.parse(...)` rejects with `AiUnavailableError` once 10 000 ms have elapsed (not before 9 999 ms)
 - A fake client that throws `new Error("boom")` → `AiUnavailableError`
 - The Anthropic client is called with request options `{ timeout: 10_000, maxRetries: 0 }`
+- **Amended (Phase 11):** the budget is 20 000 ms (REQ-133) and a timeout rejects with `AiTimeoutError` (REQ-132);
+  a non-outage client error is still `AiUnavailableError`
 **Test level:** unit
 
 ### REQ-48 — AI daily limit: 20 calls per user per UTC day
@@ -881,8 +885,9 @@ updated in TASK-266.
   missing: ["name","description","date","time","timezone","location"], timezoneFromText: false, notAnEvent: true } }`
   → an element with `role="alert"` shows "Couldn't find event details in that text." (message key `ai.notAnEvent`),
   Name still holds "Old name", no input has `aria-invalid="true"` and no "Not found in your text" hint is shown
-- Component: action resolves `{ ok: false, code: "AI_UNAVAILABLE" }` → shows "Couldn't fill automatically — please
-  fill the form." and all inputs stay editable with their previous values
+- Component: action resolves `{ ok: false, code: "AI_UNAVAILABLE" }` → shows "The AI service is unavailable right now
+  — try again later, or fill the form below." (Phase 11, REQ-132; was "Couldn't fill automatically — please fill the
+  form.") and all inputs stay editable with their previous values
 - Component: action resolves `{ ok: false, code: "AI_LIMIT_REACHED" }` → shows "Daily AI limit reached — fill the form
   manually."; the "Fill with AI" button stays visible
 - E2E (mock Anthropic server): typing "Team dinner next Friday 7pm at Mario's" and clicking "Fill with AI" fills Name
@@ -1085,6 +1090,8 @@ the default already applied in this spec (REQ-31, REQ-84, TASK-176).
 - Every focusable control shows, when focused from the keyboard, `outline: 2px solid var(--link)` (offset 2 px;
   −2 px inside the stepper and the dashboard event rows). The segmented control's radio inputs are transparent; its
   ring is drawn on the visible segment (`input:focus-visible + span`)
+- The date and time inputs hide Chromium's picker indicator and clear button (an untabbable, ring-less stop); the
+  picker stays reachable through REQ-131
 - E2E: the first Tab on `/en` focuses an element whose computed `outline-style` is `solid` and `outline-width` `2px`
 - E2E: tabbing through the guest event page, the owner event page and the new-event page, every focused element
   (for segment radios: its next sibling `span`) has `outline-style: solid` and `outline-width: 2px`
@@ -1361,9 +1368,10 @@ Terms used below:
 - **Provider list** — the ordered `AiProvider[]` (`{ name, client, model }`) given to `AiEventParser`.
 - **Outage** — a failure the client reports as `ProviderUnavailableError(reason)`; `reason` is one of `network`,
   `server`, `rate-limit`, `timeout`, `credit`, `auth`. Only an outage lets the next provider be tried (BR-121).
-- **Budget** — the 10 000 ms of BR-64 (`AI_TIMEOUT_MS`), counted from the start of `AiEventParser.parse` and shared by
-  every attempt of that call. A further provider is tried only if at least `MIN_ATTEMPT_MS` = 1 000 ms are left: this
-  is what "the retry still fits within the same 10-second budget" (BR-121) means in this system.
+- **Budget** — the 20 000 ms of BR-64 (`AI_TIMEOUT_MS`; 10 000 ms before Phase 11, REQ-133), counted from the start
+  of `AiEventParser.parse` and shared by every attempt of that call. A further provider is tried only if at least
+  `MIN_ATTEMPT_MS` = 1 000 ms are left: this is what "the retry still fits within the same budget" (BR-121) means in
+  this system. The numbers in REQ-88 below are the pre-Phase 11 ones; REQ-133 gives the current ones.
 
 ### REQ-86 — AI providers are tried in the order set by `AI_PROVIDERS`
 **Rules:** BR-119
@@ -1397,9 +1405,9 @@ Terms used below:
   missing or `'   '`, when the provider list is built, then it is only `{ name: 'openrouter', model:
   'anthropic/claude-sonnet-5' }`; the Anthropic factory is never called (the listed provider is skipped, not
   attempted)
-- `buildAiProviders({}, factories)` (default list, no key) → `[]`; `AiEventParser` with `[]` rejects with
-  `AiUnavailableError` without any model call, so the organizer sees "Couldn't fill automatically — please fill the
-  form." (BR-65, BR-66)
+- `buildAiProviders({}, factories)` (default list, no key) → `[]`; `AiEventParser` with `[]` rejects without any
+  model call. **Amended (Phase 11, REQ-132):** it rejects with `AiNotConfiguredError`, so the organizer sees "AI fill
+  isn't set up on this server — fill the form below." (BR-137)
 - Models: OpenRouter uses `OPENROUTER_MODEL` (default `anthropic/claude-sonnet-5`); Anthropic, when listed, uses
   `AI_MODEL` (default `claude-sonnet-5`); a blank value means the default. The defaults are the model chosen by the
   evaluation (`docs/evals/README.md`, REQ-93; TASK-218): production needs no model variable. Given
@@ -1446,6 +1454,9 @@ Terms used below:
 - A first provider that never answers uses the whole budget: `AiUnavailableError` at 10 000 ms and the second
   provider is not called
 - Every provider failing with an outage → `AiUnavailableError` → "Couldn't fill automatically — please fill the form."
+- **Amended (Phase 11):** budget numbers are REQ-133's (20 000 / 17 000 / 19 000 / 19 001 ms); a first provider that
+  never answers, and a second provider left untried because the budget ran out, end as `AiTimeoutError`; which error
+  ends a failover is defined by REQ-132; the unavailable message is REQ-132's
 - E2E (mocks; `.env.test` sets `AI_PROVIDERS=anthropic,openrouter` explicitly, because the default has a single
   provider and could not fail over): the text `[[anthropic-down]] Team dinner next Friday 7pm at Mario's` → the Anthropic mock answers 529,
   the OpenRouter mock answers, and the form shows Name "Team dinner", Location "Mario's", Date "2030-10-04", Time
@@ -1499,8 +1510,9 @@ Terms used below:
   OpenRouter provider answered after an Anthropic outage (one prompt, one schema, one `normalizeAiOutput`)
 - `{ isEvent: false, … }` from OpenRouter → the REQ-45 non-event result (`notAnEvent: true`, all fields `null`, all six
   in `missing`), so the UI shows "Couldn't find event details in that text."
-- Failures from any provider end as `AI_UNAVAILABLE` with the same message; `ParseEventResult` carries no provider
-  name, so the UI cannot differ by provider; the AI path still never saves the event (REQ-50)
+- Failures from any provider end as `AI_UNAVAILABLE` with the same message (Phase 11: the same failure cause gives
+  the same code whichever provider failed, REQ-132); `ParseEventResult` carries no provider name, so the UI cannot
+  differ by provider; the AI path still never saves the event (REQ-50)
 - E2E: the failover fill of REQ-88 shows exactly the values of the Anthropic fill of REQ-51
 **Test level:** unit (characterization) + e2e
 
@@ -2097,6 +2109,82 @@ behavior was checked in the installed sources (`next-auth` 5.0.0-beta.32, `@auth
 **Test level:** e2e (a `describe` block around REQ-116's journey). The container path is not re-tested (Phase 10 note
 16)
 
+### REQ-131 — The event date and time can be picked, not only typed
+**Rules:** BR-171, BR-15, BR-104, BR-103
+**Status:** done
+**Acceptance criteria:**
+- REQ-66's CSS stays: Chromium's `::-webkit-calendar-picker-indicator` and `::-webkit-clear-button` of the date and
+  time inputs remain hidden (no ring-less tab stop)
+- Given the new-event (or edit-event) form in a browser that has `HTMLInputElement.prototype.showPicker`, when the
+  organizer clicks the "Date" field, then `showPicker()` is called on that `#date` input; clicking the "Time" field
+  calls it on the `#time` input
+- Each field has an icon button inside its right edge: "Open calendar" (lucide `CalendarDays`) for Date and
+  "Open time picker" (lucide `Clock`) for Time. `type="button"` (it never submits the form), the icon is hidden from
+  assistive technology (REQ-78), 32×32 px (REQ-71), and the global 2 px `--link` focus ring (REQ-66, DESIGN.md)
+- Activating the button (click, or Enter / Space from the keyboard) focuses its input, then calls `showPicker()` on it
+- If `showPicker` is missing, the button still focuses the field and nothing else happens; if `showPicker()` throws
+  (e.g. `NotAllowedError` without user activation, `InvalidStateError` when already open), the error is swallowed:
+  nothing is shown and the field still accepts typed values
+- Accessible names, message keys `eventForm.openDatePicker` / `eventForm.openTimePicker`:
+  en "Open calendar" / "Open time picker"; fr "Ouvrir le calendrier" / "Ouvrir le sélecteur d'heure";
+  pt-BR "Abrir calendário" / "Abrir seletor de horário". The English date name must not contain "date": the E2E
+  suite finds the date field with `getByLabel('Date')`, a case-insensitive substring match
+- Unchanged: the inputs keep `id`, `aria-invalid` and `aria-describedby` (error and AI "missing" hints, REQ-51,
+  REQ-70), their visible labels (REQ-68), and REQ-66 / REQ-67 / REQ-71 / REQ-78 E2E checks on `/en/events/new` pass
+**Test level:** unit (component, `showPicker` mocked on the prototype) + the existing E2E accessibility suite as a
+regression check. Opening the native picker itself is not asserted (Playwright cannot see it)
+
+### REQ-132 — A failed AI fill says why: not set up, too slow, or unavailable
+**Rules:** BR-172, BR-65, BR-137, BR-121
+**Status:** done
+**Acceptance criteria:**
+- Three codes replace the single `AI_UNAVAILABLE` outcome (error table in "Conventions"): `AI_NOT_CONFIGURED`
+  (`AiNotConfiguredError`), `AI_TIMEOUT` (`AiTimeoutError`), `AI_UNAVAILABLE` (`AiUnavailableError`, narrowed). Each
+  class extends `DomainError`; none extends another, so `toActionError` (REQ-59) maps each to `{ ok: false, code }`
+  with no change to the action
+- `AiEventParser.parse` decides with the first rule that applies:
+  1. the provider list is empty (no key configured, BR-120) → `AiNotConfiguredError`, no model call (BR-137)
+  2. an attempt fails with anything other than an outage (`ProviderUnavailableError`) or a `TimeoutError`, or the
+     answer fails the schema → `AiUnavailableError` at once, no next provider (BR-122, unchanged)
+  3. before an attempt, less than `MIN_ATTEMPT_MS` (1 000 ms) of the budget is left → `AiTimeoutError`: the budget
+     ran out before every provider could be tried (BR-121 "the budget was the limiting factor")
+  4. every provider was tried and none answered → the **last attempt** decides: it timed out (`TimeoutError` from
+     `withTimeout`, or `ProviderUnavailableError` with `reason: 'timeout'`: client abort or HTTP 408) →
+     `AiTimeoutError`; any other outage (`network`, `server`, `rate-limit`, `credit`, `auth`) → `AiUnavailableError`
+- Examples (fake clients, budget of REQ-133): one provider that times out → `AI_TIMEOUT`; one provider down with
+  HTTP 500 → `AI_UNAVAILABLE`; first times out (408), second down (`server`) → `AI_UNAVAILABLE`; first down
+  (`server`), second times out → `AI_TIMEOUT`; first down at t = 19 001 ms → second not called, `AI_TIMEOUT`; both
+  down (`credit`, `rate-limit`) → `AI_UNAVAILABLE`; schema-invalid answer → `AI_UNAVAILABLE`; `providers: []` →
+  `AI_NOT_CONFIGURED`
+- Messages (`errors.<CODE>`), shown in the Fill with AI panel with `role="alert"`; typed values are kept and "Fill
+  with AI" stays visible (REQ-51):
+  | Code | en | fr | pt-BR |
+  |---|---|---|---|
+  | `AI_NOT_CONFIGURED` | AI fill isn't set up on this server — fill the form below. | Le remplissage par IA n'est pas configuré sur ce serveur — remplissez le formulaire ci-dessous. | O preenchimento com IA não está configurado neste servidor — preencha o formulário abaixo. |
+  | `AI_TIMEOUT` | The AI took too long to answer — try again, or fill the form below. | L'IA a mis trop de temps à répondre — réessayez ou remplissez le formulaire ci-dessous. | A IA demorou demais para responder — tente de novo ou preencha o formulário abaixo. |
+  | `AI_UNAVAILABLE` | The AI service is unavailable right now — try again later, or fill the form below. | Le service d'IA est indisponible pour le moment — réessayez plus tard ou remplissez le formulaire ci-dessous. | O serviço de IA está indisponível no momento — tente mais tarde ou preencha o formulário abaixo. |
+- The daily AI quota (REQ-48) is still consumed before the parser runs, also when no provider is configured
+  (accepted: unchanged order; a server without a key has no AI cost to protect)
+- Eval (REQ-101): `classifyRun` returns `timeout` for an outcome `{ error: 'AI_TIMEOUT' }` whatever its latency
+- E2E: `[[mock-error]] party` (both mocks answer HTTP 500) → the `AI_UNAVAILABLE` text above; the REQ-88 failover E2E
+  checks that this text is absent. No E2E waits for a timeout (the mocks answer at once)
+**Test level:** unit (domain errors, parser, component, eval) + e2e (existing AI specs, new text)
+
+### REQ-133 — The AI request budget is 20 seconds
+**Rules:** BR-64, BR-121
+**Status:** done
+**Acceptance criteria:**
+- `AI_TIMEOUT_MS` = `20_000` (`src/lib/ai/types.ts`); `MIN_ATTEMPT_MS` stays `1_000`
+- A single provider that never answers: with fake timers, `parse` has not settled after 19 999 ms and rejects at
+  20 000 ms (with `AiTimeoutError` once REQ-132 is in; `AiUnavailableError` before)
+- Failover budget: the first provider is called with `timeoutMs: 20_000`; an outage at t = 3 000 ms → the second is
+  called with `timeoutMs: 17_000`; at t = 19 000 → `1_000`; at t = 19 001 → the second is not called
+- The Anthropic client's default request options are `{ timeout: 20_000, maxRetries: 0 }`; the OpenRouter client
+  aborts after `timeoutMs ?? 20_000` (it already reads `AI_TIMEOUT_MS`)
+- Eval: `classifyRun` counts `latencyMs >= 20 000` as `timeout` (19 999 without an outage is `invalid`); the p95
+  latency gate stays `< 8 000 ms` (REQ-103)
+**Test level:** unit
+
 ---
 
 ## Tooling requirements
@@ -2221,7 +2309,8 @@ These requirements are code in the repository and are TDD'd like product code. T
 - Latency of a run = milliseconds from just before `parse` is called to its settlement, measured by the runner with
   `performance.now()`; every run has one, whether it answered or not
 - `classifyRun({ outcome, latencyMs, clientError })` → the first rule that applies: (1) `outcome` is a result → `ok`;
-  (2) `latencyMs >= 10 000` (`AI_TIMEOUT_MS`) → `timeout`; (3) `clientError` is a `ProviderUnavailableError` with
+  (2) `latencyMs >= AI_TIMEOUT_MS` (10 000; 20 000 from Phase 11, REQ-133) → `timeout`; Phase 11 adds before it
+  (1b) `outcome.error === 'AI_TIMEOUT'` → `timeout` (REQ-132); (3) `clientError` is a `ProviderUnavailableError` with
   reason `timeout` → `timeout`; (4) any other `ProviderUnavailableError` → `outage`; (5) otherwise → `invalid`
   (unusable output, or a non-outage error such as HTTP 400/404). `clientError` is the last error the model client
   threw during that run (recorded by `recordingClient`, C13), `undefined` when it threw none
@@ -2231,7 +2320,7 @@ These requirements are code in the repository and are TDD'd like product code. T
   (0 when there is no run). Examples: `[] → 0`, `[5] → 5`, `1…20 → 19`, `1…100 → 95`, `[3000, 1000, 2000] → 3000`;
   with 180 runs (60 cases × 3) the 171st smallest latency
 - p95 latency `< 8 000 ms` is a gate check (REQ-103). Availability is reported, not gated on its own: a timeout lasts
-  at least 10 s, so more than 5% of timed-out runs fails the p95 check
+  at least the budget (20 s from Phase 11), so more than 5% of timed-out runs fails the p95 check
 - Unavailable runs of tuning cases are listed with their status and latency (REQ-105); they never appear as field
   failures
 **Test level:** unit
@@ -2418,7 +2507,7 @@ These requirements are code in the repository and are TDD'd like product code. T
 | BR-12 | REQ-16 (no notifier dependency); non-functional: no email capability exists in the system |
 | BR-13 | REQ-14 (no end-time field), REQ-41 |
 | BR-14 | REQ-11, REQ-14 |
-| BR-15 | REQ-07, REQ-14 |
+| BR-15 | REQ-07, REQ-14, REQ-131 |
 | BR-16 | REQ-08, REQ-14 |
 | BR-17 | REQ-09, REQ-14 |
 | BR-18 | REQ-09, REQ-14 |
@@ -2467,8 +2556,8 @@ These requirements are code in the repository and are TDD'd like product code. T
 | BR-61 | REQ-46, REQ-51 |
 | BR-62 | REQ-44 |
 | BR-63 | REQ-44 (+ eval category `multilingual`, REQ-92) |
-| BR-64 | REQ-47, REQ-88, REQ-99 |
-| BR-65 | REQ-47, REQ-51 |
+| BR-64 | REQ-47, REQ-88, REQ-99, REQ-133 |
+| BR-65 | REQ-47, REQ-51, REQ-132 |
 | BR-66 | REQ-15, REQ-51 |
 | BR-67 | REQ-49 |
 | BR-68 | REQ-48, REQ-55, REQ-96 |
@@ -2506,8 +2595,8 @@ These requirements are code in the repository and are TDD'd like product code. T
 | BR-100 | REQ-63 |
 | BR-101 | REQ-65 |
 | BR-102 | REQ-65 |
-| BR-103 | REQ-66 |
-| BR-104 | REQ-67 |
+| BR-103 | REQ-66, REQ-131 |
+| BR-104 | REQ-67, REQ-131 |
 | BR-105 | REQ-68 |
 | BR-106 | REQ-69 |
 | BR-107 | REQ-70 |
@@ -2524,7 +2613,7 @@ These requirements are code in the repository and are TDD'd like product code. T
 | BR-118 | REQ-79 |
 | BR-119 | REQ-86 |
 | BR-120 | REQ-87 |
-| BR-121 | REQ-88, REQ-94 |
+| BR-121 | REQ-88, REQ-94, REQ-132, REQ-133 |
 | BR-122 | REQ-89 |
 | BR-123 | REQ-95 |
 | BR-124 | REQ-96 |
@@ -2540,7 +2629,7 @@ These requirements are code in the repository and are TDD'd like product code. T
 | BR-134 | REQ-109 |
 | BR-135 | REQ-113 (event page and `.ics` in the stack without `.env.local`), REQ-109 (secret for Auth.js and the RSVP IP hash); RSVP submission: REQ-23 |
 | BR-136 | REQ-01, REQ-130 (email/password does not depend on it); non-functional: without `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` Google rejects the sign-in; stated in the README (TASK-246, TASK-269) |
-| BR-137 | REQ-87 (a provider without a key is skipped), REQ-47 (fallback message) |
+| BR-137 | REQ-87 (a provider without a key is skipped), REQ-132 (its own message) |
 | BR-138 | REQ-109 (a supplied `AUTH_SECRET` is kept), REQ-112 (`env_file` `.env.local`) |
 | BR-139 | REQ-111 |
 | BR-140 | REQ-111 |
@@ -2574,11 +2663,15 @@ These requirements are code in the repository and are TDD'd like product code. T
 | BR-168 | REQ-124 |
 | BR-169 | REQ-129 |
 | BR-170 | REQ-130; the container path itself is not re-tested (REQ-109 already proves the generated secret) |
+| BR-171 | REQ-131 |
+| BR-172 | REQ-132 |
 
-170 business rules, 170 covered (BR-12 additionally non-functional; BR-126 partly non-functional for the Anthropic
+172 business rules, 172 covered (BR-12 additionally non-functional; BR-126 partly non-functional for the Anthropic
 key; BR-136 and BR-143 partly non-functional). BR-145 … BR-170 added by amendment A6 (REQ-114 … REQ-130), which also
 amends BR-01, BR-52, BR-95 and BR-136 (REQ-01, REQ-02, REQ-39, REQ-80, REQ-81 amended).
 BR-97 … BR-118 added by amendment A2 (REQ-62 … REQ-85). BR-119 …
 BR-126 added by amendment A3 (REQ-86 … REQ-89, REQ-94 … REQ-98). Amendment A4 adds no business rule: REQ-99 (BR-64)
 and tooling REQ-100 … REQ-107. BR-127 … BR-144 added by amendment A5 (REQ-108 … REQ-113).
+BR-171 and BR-172 added in Phase 11 (REQ-131, REQ-132), which also amends BR-64, BR-65, BR-121 and BR-137 (REQ-132,
+REQ-133; REQ-47, REQ-51, REQ-87, REQ-88, REQ-95 and REQ-101 amended).
 Tooling: REQ-90, REQ-91, REQ-92, REQ-93, REQ-100 … REQ-107.

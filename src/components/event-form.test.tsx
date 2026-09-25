@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
-import { describe, expect, test, vi } from 'vitest';
+import { afterEach, describe, expect, test, vi } from 'vitest';
 import { renderWithIntl } from '@/test/render';
 import { detectBrowserTimeZone } from '@/lib/browser-timezone';
 import type { ParseEventResult } from '@/lib/ai/types';
@@ -214,8 +214,30 @@ describe('EventForm — Fill with AI (REQ-51)', () => {
     describeAndFill(container);
 
     const alert = await screen.findByRole('alert');
-    expect(alert.textContent).toBe("Couldn't fill automatically — please fill the form.");
+    expect(alert.textContent).toBe(
+      'The AI service is unavailable right now — try again later, or fill the form below.',
+    );
     expect((screen.getByLabelText('Name') as HTMLInputElement).value).toBe('Old name');
+  });
+
+  test('REQ-132: each AI failure shows its own message and keeps Fill with AI', async () => {
+    const cases: [string, string][] = [
+      ['AI_NOT_CONFIGURED', "AI fill isn't set up on this server — fill the form below."],
+      ['AI_TIMEOUT', 'The AI took too long to answer — try again, or fill the form below.'],
+      [
+        'AI_UNAVAILABLE',
+        'The AI service is unavailable right now — try again later, or fill the form below.',
+      ],
+    ];
+    for (const [code, message] of cases) {
+      const aiFill = vi.fn().mockResolvedValue({ ok: false, code });
+      const { container, unmount } = renderWithIntl(<EventForm submit={vi.fn()} aiFill={aiFill} />);
+      describeAndFill(container);
+
+      expect((await screen.findByRole('alert')).textContent).toBe(message);
+      expect(screen.getByRole('button', { name: 'Fill with AI' })).toBeTruthy();
+      unmount();
+    }
   });
 
   test('REQ-51: the daily limit message keeps the Fill with AI button visible', async () => {
@@ -273,5 +295,103 @@ describe('EventForm — Fill with AI (REQ-51)', () => {
     expect((screen.getByLabelText('Name') as HTMLInputElement).value).toBe('Old name');
     expect(container.querySelectorAll('[aria-invalid="true"]').length).toBe(0);
     expect(screen.queryByText('Not found in your text — please fill it.')).toBeNull();
+  });
+});
+
+describe('EventForm date and time pickers (REQ-131)', () => {
+  /** Installs a mock `showPicker` on every input (jsdom has none) and returns it. */
+  function mockShowPicker(impl: () => void = () => {}) {
+    const showPicker = vi.fn(impl);
+    Object.defineProperty(HTMLInputElement.prototype, 'showPicker', {
+      configurable: true,
+      writable: true,
+      value: showPicker,
+    });
+    return showPicker;
+  }
+
+  afterEach(() => {
+    Reflect.deleteProperty(HTMLInputElement.prototype, 'showPicker');
+  });
+
+  test('REQ-131: clicking the date field opens its picker', () => {
+    const showPicker = mockShowPicker();
+    renderWithIntl(<EventForm submit={vi.fn()} />);
+    const dateInput = screen.getByLabelText('Date');
+
+    fireEvent.click(dateInput);
+
+    expect(showPicker).toHaveBeenCalledTimes(1);
+    expect(showPicker.mock.contexts[0]).toBe(dateInput);
+  });
+
+  test('REQ-131: clicking the time field opens its picker', () => {
+    const showPicker = mockShowPicker();
+    renderWithIntl(<EventForm submit={vi.fn()} />);
+    const timeInput = screen.getByLabelText('Time');
+
+    fireEvent.click(timeInput);
+
+    expect(showPicker).toHaveBeenCalledTimes(1);
+    expect(showPicker.mock.contexts[0]).toBe(timeInput);
+  });
+
+  test('REQ-131: the calendar button focuses the date field and opens its picker', () => {
+    const showPicker = mockShowPicker();
+    renderWithIntl(<EventForm submit={vi.fn()} />);
+    const dateInput = screen.getByLabelText('Date');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open calendar' }));
+
+    expect(document.activeElement).toBe(dateInput);
+    expect(showPicker).toHaveBeenCalledTimes(1);
+    expect(showPicker.mock.contexts[0]).toBe(dateInput);
+  });
+
+  test('REQ-131: the clock button focuses the time field and opens its picker', () => {
+    const showPicker = mockShowPicker();
+    renderWithIntl(<EventForm submit={vi.fn()} />);
+    const timeInput = screen.getByLabelText('Time');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open time picker' }));
+
+    expect(document.activeElement).toBe(timeInput);
+    expect(showPicker).toHaveBeenCalledTimes(1);
+    expect(showPicker.mock.contexts[0]).toBe(timeInput);
+  });
+
+  test('REQ-131: a showPicker that throws breaks nothing', () => {
+    const showPicker = mockShowPicker(() => {
+      throw new DOMException('The picker is already open.', 'InvalidStateError');
+    });
+    renderWithIntl(<EventForm submit={vi.fn()} />);
+    const dateInput = screen.getByLabelText('Date') as HTMLInputElement;
+
+    fireEvent.click(dateInput);
+    fireEvent.click(screen.getByRole('button', { name: 'Open calendar' }));
+    fireEvent.change(dateInput, { target: { value: '2099-01-01' } });
+
+    expect(showPicker).toHaveBeenCalledTimes(2);
+    expect(document.activeElement).toBe(dateInput);
+    expect(dateInput.value).toBe('2099-01-01');
+  });
+
+  test('REQ-131: without showPicker the button still focuses its field', () => {
+    renderWithIntl(<EventForm submit={vi.fn()} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open time picker' }));
+
+    expect(document.activeElement).toBe(screen.getByLabelText('Time'));
+  });
+
+  test('REQ-131: both picker buttons are translated plain buttons in the When group', () => {
+    renderWithIntl(<EventForm submit={vi.fn()} />);
+    const when = within(screen.getByRole('group', { name: 'When' }));
+    const calendar = when.getByRole('button', { name: 'Open calendar' });
+    const clock = when.getByRole('button', { name: 'Open time picker' });
+
+    expect(calendar.getAttribute('type')).toBe('button');
+    expect(clock.getAttribute('type')).toBe('button');
+    expect(when.getAllByRole('button')).toHaveLength(2);
   });
 });
