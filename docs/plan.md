@@ -17,9 +17,9 @@
 | 4 | `phase-4/ai-fill` | AI event creation, rate limiter, eval runner and cases (eval run moved to TASK-217) | REQ-43–REQ-51, REQ-55, REQ-91, REQ-92 | 23 + 1 human (TASK-131 moved) |
 | 5 | `phase-5/hardening` | RSVP rate limit, honeypot, headers, XSS check, journeys | REQ-56, REQ-58, REQ-60, REQ-61 | 8 |
 | 6 | `phase-6/ui-ux` | UI/UX redesign (A2): tokens and themes, primitives, header and logo, every screen, accessibility checks, README | REQ-62–REQ-85 (+ amended REQ-19, REQ-30, REQ-34, REQ-36, REQ-38, REQ-39) | 36 (TASK-150–TASK-184 + TASK-148) |
-| 7 | `phase-7/openrouter` | OpenRouter as the default AI provider, Anthropic optional (A3): provider list (default `openrouter`) and failover in one 10 s budget, OpenRouter client, OpenAI-compatible E2E mock, key hygiene, eval `--provider` (default `openrouter`), key-provisioning script, OpenRouter eval run on 3 models (absorbs TASK-131) | REQ-86–REQ-89, REQ-93–REQ-98 | 28 + 1 human (TASK-190–TASK-217, HUMAN-06) |
+| 7 | `phase-7/openrouter` | OpenRouter as the default AI provider, Anthropic optional (A3): provider list (default `openrouter`) and failover in one 10 s budget, OpenRouter client, OpenAI-compatible E2E mock, key hygiene, eval `--provider` (default `openrouter`), key-provisioning script, OpenRouter eval run on 3 models (absorbs TASK-131), code default model follows the eval (`anthropic/claude-sonnet-5`) | REQ-86–REQ-89, REQ-93–REQ-98 | 29 + 1 human (TASK-190–TASK-218, HUMAN-06) |
 
-Totals: 98 requirements (94 product + 4 tooling), 185 agent tasks, 6 human tasks.
+Totals: 98 requirements (94 product + 4 tooling), 186 agent tasks, 6 human tasks.
 
 **Adjustments to the suggested phases (with reasons):**
 - *All Prisma repositories move to Phase 1* (including the RSVP repository and its unique-constraint test REQ-27):
@@ -704,7 +704,7 @@ export type ProviderEnv = Readonly<Record<string, string | undefined>>;
 export const DEFAULT_AI_PROVIDERS: readonly AiProviderName[]; // ['openrouter'] (BR-119 amended 2026-09-25)
 export const PROVIDER_KEY_ENV: Record<AiProviderName, string>; // ANTHROPIC_API_KEY, OPENROUTER_API_KEY
 export const PROVIDER_MODEL_ENV: Record<AiProviderName, string>; // AI_MODEL, OPENROUTER_MODEL
-export const DEFAULT_MODELS: Record<AiProviderName, string>; // claude-haiku-4-5, anthropic/claude-haiku-4.5
+export const DEFAULT_MODELS: Record<AiProviderName, string>; // claude-sonnet-5, anthropic/claude-sonnet-5 (TASK-218; chosen by the eval)
 export function parseAiProviders(value: string | undefined): AiProviderName[];
 export function buildAiProviders(env: ProviderEnv, factories: Record<AiProviderName, () => AiModelClient>): AiProvider[];
 
@@ -3547,8 +3547,8 @@ the app works (the SDK is only created on the first AI call, TASK-119).
 3. Put the key in `.env.local` as `ANTHROPIC_API_KEY=…` (never commit it) and in Vercel → Settings → Environment
    Variables (Production) as `ANTHROPIC_API_KEY`. Redeploy.
 4. Tell the orchestrator the key is in place (do not paste it in the chat).
-5. After TASK-217: if `docs/evals/README.md` chose an `AI_MODEL` other than `claude-haiku-4-5` (the container's default),
-   set `AI_MODEL` to it in Vercel (Production) and redeploy; otherwise nothing to do.
+5. After TASK-217: if `docs/evals/README.md` chose an `AI_MODEL` other than the code default (`claude-sonnet-5` since
+   TASK-218), set `AI_MODEL` to it in Vercel (Production) and redeploy; otherwise nothing to do.
 
 **Optional since 2026-09-25** (BR-119 amended): OpenRouter is the default and only provider after Phase 7. From the
 Phase 7 deploy on, `ANTHROPIC_API_KEY` alone does nothing: Anthropic is used only if `AI_PROVIDERS` also lists it
@@ -5301,7 +5301,7 @@ never retries invalid output, and behaves the same for the organizer whichever p
 endpoint with a strict JSON-schema `response_format`. The eval runner gains `--provider` (default `openrouter`); a local script provisions the
 OpenRouter key with a spend limit. No UI change.
 
-Order: TASK-190 → TASK-217 in document order, then HUMAN-06. Only TASK-217 calls a real API.
+Order: TASK-190 → TASK-218 in document order, then HUMAN-06. Only TASK-217 calls a real API.
 
 **Phase 7 rules (read once, in addition to "How to execute a task"):**
 1. **No new dependency.** OpenRouter is called with the global `fetch` (Node 22) and its responses are parsed with zod 4
@@ -5964,6 +5964,8 @@ export function parseAiProviders(value: string | undefined): AiProviderName[] {
 **Changelog:**
 - Rev 2 — human decision (OpenRouter default), not a failure revision: `DEFAULT_AI_PROVIDERS` is `['openrouter']`
   (BR-119 amended 2026-09-25); tests assert the new default and both explicit orders.
+- Note (not a revision) — after the real eval, TASK-218 changes `DEFAULT_MODELS` to
+  `{ anthropic: 'claude-sonnet-5', openrouter: 'anthropic/claude-sonnet-5' }`; this task stays as executed.
 
 ### TASK-203 — Provider list from the environment; providers without a key are skipped
 **Phase:** 7 · **Requirements:** REQ-86, REQ-87, REQ-88 · **Status:** todo · **Revision:** 2
@@ -6019,6 +6021,8 @@ export function buildAiProviders(env: ProviderEnv, factories: Record<AiProviderN
 **Changelog:**
 - Rev 2 — human decision (OpenRouter default), not a failure revision: default list is OpenRouter only (with both
   keys too), tests that need Anthropic list it in `AI_PROVIDERS`, new REQ-88 "no failover by default" test.
+- Note (not a revision) — after the real eval, TASK-218 changes the default models expected by these tests to
+  `claude-sonnet-5` / `anthropic/claude-sonnet-5`; this task stays as executed.
 
 ### TASK-204 — Same result whichever provider answered
 **Phase:** 7 · **Requirements:** REQ-95 · **Status:** todo · **Revision:** 1
@@ -6750,13 +6754,14 @@ is unchanged — only a script was added).
 **TDD exception:** none (the entry point and the `package.json` script go in the `feat:` commit)
 
 ### TASK-216 — README and AI diagram mention the second provider
-**Phase:** 7 · **Requirements:** — · **Status:** todo · **Revision:** 4
+**Phase:** 7 · **Requirements:** — · **Status:** todo · **Revision:** 5
 **Files:** README.md, docs/diagrams/ai-event-parsing.mmd, docs/diagrams/ai-event-parsing.svg
 **Steps:**
 1. README, section "Run locally": after the step that copies `.env.example`, add one bullet: "AI: set
    `OPENROUTER_API_KEY` in `.env.local` (`npm run openrouter:key` creates the OpenRouter key with a USD 3 spend limit
    from the system variable `OPENROUTER_MANAGMENT_KEY` and writes it there). OpenRouter is the default and only
-   provider (`AI_PROVIDERS` defaults to `openrouter`; `OPENROUTER_MODEL` defaults to `anthropic/claude-haiku-4.5`).
+   provider (`AI_PROVIDERS` defaults to `openrouter`; `OPENROUTER_MODEL` defaults to `anthropic/claude-sonnet-5`, the
+   model chosen by the evaluation in `docs/evals/README.md`).
    Anthropic is optional: to use it, set `ANTHROPIC_API_KEY` and list it in `AI_PROVIDERS`, e.g.
    `AI_PROVIDERS=openrouter,anthropic` — providers are tried in the listed order and failover needs more than one.
    A listed provider without a key is skipped; with no key "Fill with AI" shows its fallback message and the manual
@@ -6786,6 +6791,8 @@ is unchanged — only a script was added).
   default and only provider, Anthropic as optional (BR-119, BR-121 amended 2026-09-25).
 - Rev 4 — human decision (OpenRouter default, eval), not a failure revision: the "AI evaluation" commands show
   `--provider` defaulting to `openrouter` and Anthropic via `--provider anthropic`.
+- Rev 5 — orchestrator decision after the TASK-217 eval, not a failure revision: the default model in step 1 is
+  `anthropic/claude-sonnet-5`. Docs only, no re-run: TASK-218 changes that README line.
 
 ### TASK-217 — Evaluate the 30 cases through OpenRouter
 **Phase:** 7 · **Requirements:** REQ-93, REQ-92, REQ-91 · **Status:** todo · **Revision:** 3
@@ -6855,9 +6862,104 @@ docs/evals/<date>-openrouter-anthropic-claude-sonnet-5.md, docs/evals/README.md
   absorbs the former TASK-131 (moved from Phase 4 on 2026-09-24) including the `AI_MODEL` choice.
 - Rev 3 — human decision (OpenRouter default), not a failure revision: the production choice is `OPENROUTER_MODEL`
   (with the exact Vercel sentence); the `AI_MODEL` recommendation only applies if an operator enables Anthropic.
+- Note (not a revision) — the eval chose `anthropic/claude-sonnet-5`; TASK-218 makes it the code default and
+  replaces the step 7 Vercel sentence and the step 6 usage line in `docs/evals/README.md`. "Code default" in this
+  task means the default before TASK-218 (`anthropic/claude-haiku-4.5`).
+
+### TASK-218 — Code default models follow the eval
+**Phase:** 7 · **Requirements:** REQ-87, REQ-86, REQ-93 · **Status:** todo · **Revision:** 1
+**Why:** orchestrator decision after the real eval (TASK-217, `docs/evals/README.md`), not a failure revision. Only
+`anthropic/claude-sonnet-5` passes the gate (100% / 100% / 100%); `anthropic/claude-haiku-4.5` fails must-not-invent
+(75%) and `openai/gpt-4o-mini` fails must-not-invent (50%) and prompt-injection (67%). The code defaults were still the
+Haiku ids, so production would run a model that failed the gate unless `OPENROUTER_MODEL` were set in Vercel. The code
+defaults now follow the eval, so production is correct with no model variable (reversible: set `OPENROUTER_MODEL` /
+`AI_MODEL` to override).
+**Files:** src/lib/ai/providers-config.test.ts, src/lib/ai/providers-config.ts, .env.example, README.md,
+docs/evals/README.md
+**Do not change:** `.env.test` (its `OPENROUTER_MODEL=anthropic/claude-haiku-4.5` and `AI_MODEL=claude-haiku-4-5` are
+set explicitly for the E2E mocks and stay), any other test file (they pass the model explicitly), the eval reports
+`docs/evals/2026-09-25-*.md`, `.env.local` (Phase 7 rule 3: never open it).
+**Interface:** C12 `DEFAULT_MODELS` (value change only; type unchanged):
+```ts
+/** Model used when the provider's model variable is unset or blank (chosen by docs/evals/README.md). */
+export const DEFAULT_MODELS: Record<AiProviderName, string> = {
+  anthropic: 'claude-sonnet-5',
+  openrouter: 'anthropic/claude-sonnet-5',
+};
+```
+**Test first** — edit `src/lib/ai/providers-config.test.ts` only as listed; keep every test title unchanged:
+1. Import: `import { buildAiProviders, DEFAULT_AI_PROVIDERS, DEFAULT_MODELS, parseAiProviders } from './providers-config';`
+2. `REQ-86: without AI_PROVIDERS only OpenRouter is used, even when both keys are set` — expected
+   `model: 'anthropic/claude-haiku-4.5'` → `model: 'anthropic/claude-sonnet-5'`.
+3. `REQ-86: with both keys the providers follow AI_PROVIDERS with their default models` — expected
+   `model: 'claude-haiku-4-5'` → `model: 'claude-sonnet-5'` and `model: 'anthropic/claude-haiku-4.5'` →
+   `model: 'anthropic/claude-sonnet-5'`.
+4. `REQ-87: a listed provider without a key is skipped and its client is never created` — both expected
+   `model: 'anthropic/claude-haiku-4.5'` → `model: 'anthropic/claude-sonnet-5'`.
+5. `REQ-87: model variables override the defaults and blank means default` —
+   - override env: `AI_MODEL: 'claude-sonnet-5'` → `AI_MODEL: 'claude-haiku-4-5'` (an override must differ from the new
+     default); expected `['claude-sonnet-5', 'openai/gpt-4o-mini']` → `['claude-haiku-4-5', 'openai/gpt-4o-mini']`;
+     `OPENROUTER_MODEL: 'openai/gpt-4o-mini'` unchanged;
+   - blank env: expected `['claude-haiku-4-5', 'anthropic/claude-haiku-4.5']` →
+     `['claude-sonnet-5', 'anthropic/claude-sonnet-5']`;
+   - add as the last statement of this test:
+     `expect(DEFAULT_MODELS).toEqual({ anthropic: 'claude-sonnet-5', openrouter: 'anthropic/claude-sonnet-5' });`
+6. No other line of the file changes (the REQ-88 test does not assert a model).
+**Red:** against the current `DEFAULT_MODELS` (Haiku ids) tests 2–5 fail on the `model` / `DEFAULT_MODELS`
+assertions (e.g. `expected … 'anthropic/claude-haiku-4.5' … to deeply equal … 'anthropic/claude-sonnet-5'`), not on an
+import or type error. If any of them passes, stop and return `SPEC_FAILURE`. Commit: `test(ai): default models follow
+the eval`.
+**Implementation:** in `src/lib/ai/providers-config.ts` replace the `DEFAULT_MODELS` TSDoc line and object with the
+Interface block above; nothing else in the file changes. Commit: `feat(ai): default models follow the eval`.
+**Docs** (one commit `docs: default model is the evaluated one`, after the `feat` commit):
+1. `.env.example` — replace the line `AI_MODEL=claude-haiku-4-5` by the two lines
+   ```
+   # Model when Anthropic is listed: empty = code default claude-sonnet-5 (chosen by docs/evals/README.md)
+   AI_MODEL=
+   ```
+   and the line `OPENROUTER_MODEL=anthropic/claude-haiku-4.5` by the two lines
+   ```
+   # Model: empty = code default anthropic/claude-sonnet-5 (chosen by docs/evals/README.md); set only to override
+   OPENROUTER_MODEL=
+   ```
+   No other line changes (`ANTHROPIC_API_KEY=` and `OPENROUTER_API_KEY=` stay empty: `scripts/secrets-hygiene.test.ts`).
+   An empty value means the code default (REQ-87 "blank means default").
+2. `README.md`, section "Run locally", the AI bullet — replace `` `OPENROUTER_MODEL` defaults to
+   `anthropic/claude-haiku-4.5`). `` (it is wrapped over two lines) by `` `OPENROUTER_MODEL` defaults to
+   `anthropic/claude-sonnet-5`, the model chosen by the [evaluation](docs/evals/README.md)). `` — rewrap the bullet
+   at ≤ 120 characters per line; no other README change.
+3. `docs/evals/README.md` — keep the title, the section heading, the table and the line
+   `Estimated cost of one round (3 models × 30 cases): ≈ USD 0.14.` unchanged. Replace everything after that line
+   (the "Key usage after the three runs: not measured …" paragraph and the "**Production models:**" paragraph) by
+   exactly:
+   ```
+   Key usage after the three runs: USD 0.1283 used, USD 2.8717 remaining of the USD 3 limit (measured by the
+   orchestrator after the three runs).
+
+   **Production models:** the production `OPENROUTER_MODEL` (OpenRouter is the default and only production provider) is
+   the cheapest model that passes the gate. `openai/gpt-4o-mini` fails the gate (must-not-invent 50%, prompt-injection
+   67%). `anthropic/claude-haiku-4.5` fails the gate (must-not-invent 75%). `anthropic/claude-sonnet-5` passes the gate
+   (100% overall, must-not-invent 100%, prompt-injection 100%), so it is the production choice.
+
+   No Vercel variable needed: the code default is the model chosen by this evaluation (`anthropic/claude-sonnet-5`); set `OPENROUTER_MODEL` only to override.
+
+   For Anthropic (former TASK-131), which only applies if an operator enables it with `AI_PROVIDERS`: the code default
+   `AI_MODEL` is `claude-sonnet-5`, since `anthropic/claude-haiku-4.5` fails the gate but `anthropic/claude-sonnet-5`
+   passes; set `AI_MODEL` only to override.
+   ```
+   (the "No Vercel variable needed" sentence stays on one line so it can be found with `grep`).
+**Done when:** `npx vitest run --project unit src/lib/ai/providers-config.test.ts` passes; `npm run test:unit`,
+`npm run typecheck`, `npm run lint` and `npm run trace` pass; `git grep -n "claude-haiku-4" -- src/lib/ai/providers-config.ts .env.example README.md`
+prints only the README line of the eval command `npm run eval -- --provider anthropic --model claude-haiku-4-5`;
+`grep -c "No Vercel variable needed" docs/evals/README.md` prints `1`; `grep -c "not measured" docs/evals/README.md`
+prints `0`; `git log --format=%s` shows the `test(ai): …` commit before the `feat(ai): …` commit.
+**TDD exception:** none (the `.env.example` / README / eval README commit is docs)
+**Changelog:**
+- Rev 1 — orchestrator decision after the TASK-217 eval (human away; reversible via env), not a failure revision:
+  code defaults `claude-sonnet-5` / `anthropic/claude-sonnet-5`; measured key usage USD 0.1283 of 3.
 
 ### HUMAN-06 — OpenRouter key in Vercel
-**Phase:** 7 · **Owner:** human · **When:** steps 1–2 done; step 3 after TASK-217; step 4 after the Phase 7 merge.
+**Phase:** 7 · **Owner:** human · **When:** steps 1–2 done; step 3 after TASK-218; step 4 after the Phase 7 merge.
 **Status:** steps 1–2 (`OPENROUTER_API_KEY` in Vercel) **done (human, 2026-09-25)**; steps 3–4 todo.
 **Not needed for CI:** unit and integration tests use fakes, E2E uses the mock server with `test-key`; never add a key
 to GitHub secrets or to a workflow.
@@ -6866,14 +6968,16 @@ to GitHub secrets or to a workflow.
    (the file is ignored by git: `.env*.local`).~~ Done (human, 2026-09-25).
 2. ~~Vercel → Settings → Environment Variables (Production): add `OPENROUTER_API_KEY` with the value from
    `.env.vercel.local`; then delete `.env.vercel.local`.~~ Done (human, 2026-09-25).
-3. `AI_PROVIDERS` needs **no** Vercel variable: its default is `openrouter` (BR-119 amended 2026-09-25), which is what
-   production uses. `OPENROUTER_MODEL` is needed **only** if TASK-217 (`docs/evals/README.md`, "Production models")
-   picked a model different from the code default `anthropic/claude-haiku-4.5`; then add `OPENROUTER_MODEL` with that
-   id. Otherwise add nothing. Anthropic is optional and not part of this task: an operator who wants it sets
-   `ANTHROPIC_API_KEY` and `AI_PROVIDERS` (e.g. `openrouter,anthropic`), plus `AI_MODEL` if TASK-217 recommended a
-   model other than `claude-haiku-4-5` (HUMAN-05).
+3. Add **no** other Vercel variable. `AI_PROVIDERS` defaults to `openrouter` (BR-119 amended 2026-09-25), which is what
+   production uses. `OPENROUTER_MODEL` is **not** needed: its code default is `anthropic/claude-sonnet-5`, the model
+   chosen by TASK-217 (`docs/evals/README.md`, "Production models") and made the default by TASK-218; set it only to
+   override that choice. Anthropic is optional and not part of this task: an operator who wants it sets
+   `ANTHROPIC_API_KEY` and `AI_PROVIDERS` (e.g. `openrouter,anthropic`); `AI_MODEL` defaults to `claude-sonnet-5` and
+   needs no variable either (HUMAN-05).
 4. After the Phase 7 merge, redeploy (the deploy that includes Phase 7 is what reads `OPENROUTER_API_KEY`) and tell
    the orchestrator the variables are in place (do not paste any key in the chat).
 **Changelog:**
 - human decision (OpenRouter default), not a failure revision: steps 1–2 marked done (human, 2026-09-25);
   `AI_PROVIDERS` needs no Vercel variable; `OPENROUTER_MODEL` only if TASK-217 picks a non-default model.
+- orchestrator decision after the TASK-217 eval, not a failure revision: TASK-218 makes `anthropic/claude-sonnet-5` the
+  code default, so no `OPENROUTER_MODEL` (nor `AI_MODEL`) variable is needed; step 3 now follows TASK-218.

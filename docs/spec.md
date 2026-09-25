@@ -36,6 +36,10 @@ Decided by the human on 2026-09-24 and recorded in `docs/business-rules.md`.
   Anthropic is optional and used only when an operator lists it explicitly (either order) with its key configured;
   failover has an effect only when more than one provider is configured → BR-119 and BR-121 (amended 2026-09-25).
   Applied in REQ-86, REQ-87, REQ-88.
+- **Default model follows the eval** (orchestrator decision after TASK-217, 2026-09-25; no business rule changes,
+  reversible via env) → only `anthropic/claude-sonnet-5` passes the eval gate, so the code defaults become
+  `OPENROUTER_MODEL=anthropic/claude-sonnet-5` and `AI_MODEL=claude-sonnet-5`; production needs no model variable.
+  Applied in REQ-87, REQ-93 (TASK-218).
 
 ---
 
@@ -1283,7 +1287,7 @@ Terms used below:
 - Default = OpenRouter only (BR-119 amended 2026-09-25): `parseAiProviders(undefined)`, `parseAiProviders('')` and
   `parseAiProviders('   ')` → `['openrouter']` (never `['anthropic', 'openrouter']`, the superseded default)
 - Given `AI_PROVIDERS` unset and **both** keys set (`ANTHROPIC_API_KEY=a`, `OPENROUTER_API_KEY=o`), when the provider
-  list is built, then it is only `[{ name: 'openrouter', model: 'anthropic/claude-haiku-4.5' }]` and the Anthropic
+  list is built, then it is only `[{ name: 'openrouter', model: 'anthropic/claude-sonnet-5' }]` and the Anthropic
   factory is never called: a configured Anthropic key alone does not enable Anthropic
 - Anthropic is enabled only by listing it, in either order: `parseAiProviders('openrouter,anthropic')` →
   `['openrouter', 'anthropic']`; `parseAiProviders('anthropic,openrouter')` → `['anthropic', 'openrouter']`;
@@ -1306,13 +1310,15 @@ Terms used below:
   counts as "no key"
 - Given `AI_PROVIDERS=anthropic,openrouter` (Anthropic listed) and `OPENROUTER_API_KEY=o` with `ANTHROPIC_API_KEY`
   missing or `'   '`, when the provider list is built, then it is only `{ name: 'openrouter', model:
-  'anthropic/claude-haiku-4.5' }`; the Anthropic factory is never called (the listed provider is skipped, not
+  'anthropic/claude-sonnet-5' }`; the Anthropic factory is never called (the listed provider is skipped, not
   attempted)
 - `buildAiProviders({}, factories)` (default list, no key) → `[]`; `AiEventParser` with `[]` rejects with
   `AiUnavailableError` without any model call, so the organizer sees "Couldn't fill automatically — please fill the
   form." (BR-65, BR-66)
-- Models: OpenRouter uses `OPENROUTER_MODEL` (default `anthropic/claude-haiku-4.5`); Anthropic, when listed, uses
-  `AI_MODEL` (default `claude-haiku-4-5`); a blank value means the default
+- Models: OpenRouter uses `OPENROUTER_MODEL` (default `anthropic/claude-sonnet-5`); Anthropic, when listed, uses
+  `AI_MODEL` (default `claude-sonnet-5`); a blank value means the default. The defaults are the model chosen by the
+  evaluation (`docs/evals/README.md`, REQ-93; TASK-218): production needs no model variable. Given
+  `AI_MODEL=claude-haiku-4-5` and `OPENROUTER_MODEL=openai/gpt-4o-mini`, those values override the defaults
 - Building the provider list creates no SDK or HTTP client and reads no key value beyond the presence check: the
   Anthropic SDK is created on the first call (REQ-47, TASK-119) and the OpenRouter client reads its key on each call
   (REQ-94)
@@ -1555,7 +1561,10 @@ These requirements are code in the repository and are TDD'd like product code. T
   every character of the model outside `[A-Za-z0-9._-]` becomes `-`: `2026-09-24-openrouter-anthropic-claude-haiku-4.5.md`
 - The production OpenRouter model is the cheapest model that passes the gate (same rule as REQ-91). The Phase 7
   evaluation (TASK-217, which absorbs the former TASK-131) runs the 30 cases on `openai/gpt-4o-mini`,
-  `anthropic/claude-haiku-4.5` and `anthropic/claude-sonnet-5` through OpenRouter
+  `anthropic/claude-haiku-4.5` and `anthropic/claude-sonnet-5` through OpenRouter; the model it chooses is the code
+  default of `OPENROUTER_MODEL` (and its Anthropic id the default of `AI_MODEL`), so production needs no model
+  variable. Result (2026-09-25): only `anthropic/claude-sonnet-5` passes, so the defaults are
+  `anthropic/claude-sonnet-5` / `claude-sonnet-5` (TASK-218)
 **Test level:** unit
 
 ---
