@@ -80,8 +80,8 @@ test.describe('REQ-18: deleting an event', () => {
     });
 
     await page.goto(`/en/e/${event.slug}`);
-    page.once('dialog', (dialog) => dialog.accept());
     await page.getByRole('button', { name: 'Delete event' }).click();
+    await page.getByRole('button', { name: 'Delete', exact: true }).click();
 
     await expect(page).toHaveURL(/\/en\/dashboard$/);
     expect(await db.event.count()).toBe(0);

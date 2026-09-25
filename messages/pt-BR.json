@@ -8,13 +8,18 @@
     "language": "Idioma",
     "myEvents": "Meus eventos",
     "signIn": "Entrar com Google",
-    "signOut": "Sair"
+    "signInShort": "Entrar",
+    "signOut": "Sair",
+    "darkTheme": "Tema escuro",
+    "accountMenu": "Menu da conta",
+    "signedInAs": "Conectado como {name}"
   },
   "languages": { "en": "English", "fr": "Français", "pt-BR": "Português (Brasil)" },
   "home": {
     "headline": "Planeje um evento. Compartilhe um único link. Veja quem vai.",
     "explanation": "Crie um evento em segundos — descreva-o com suas próprias palavras e deixe a IA preencher o formulário. Os convidados confirmam presença a partir de um único link sem precisar de conta, e você vê a lista de convidados e os totais em um só lugar.",
-    "demoLink": "Ver um evento de demonstração"
+    "demoLink": "Ver o evento de demonstração",
+    "previewCaption": "O que um convidado vê ao tocar no seu link. Uma página, uma resposta."
   },
   "dashboard": {
     "title": "Meus eventos",
@@ -24,10 +29,19 @@
     "createSample": "Criar evento de exemplo",
     "empty": "Você ainda não tem eventos.",
     "noUpcoming": "Nenhum evento próximo.",
-    "noPast": "Nenhum evento passado."
+    "noPast": "Nenhum evento passado.",
+    "stepsIntro": "Três passos, cerca de um minuto:",
+    "step1Title": "Crie um evento",
+    "step1Text": "Preencha o formulário, ou descreva o evento em uma frase e deixe a IA preencher.",
+    "step2Title": "Compartilhe um único link",
+    "step2Text": "Envie o link de convite em qualquer conversa. Os convidados não precisam de conta.",
+    "step3Title": "Acompanhe as respostas",
+    "step3Text": "Veja quem vai e quantas pessoas, em uma só lista.",
+    "sampleHint": "O exemplo vem com cinco convidados fictícios para você explorar. Exclua-o quando terminar.",
+    "noReplies": "Nenhuma resposta ainda"
   },
   "totals": {
-    "summary": "Confirmados: {going} · Recusados: {declined} · Pessoas: {people}",
+    "summary": "{going, plural, one {# confirmado} other {# confirmados}} · {declined, plural, one {# recusado} other {# recusados}} · {people, plural, one {# pessoa} other {# pessoas}}",
     "peopleGoing": "{count, plural, one {# pessoa confirmada} other {# pessoas confirmadas}}"
   },
   "eventForm": {
@@ -40,7 +54,11 @@
     "timezone": "Fuso horário",
     "location": "Local (opcional)",
     "save": "Salvar evento",
-    "saving": "Salvando…"
+    "saving": "Salvando…",
+    "groupWhat": "O quê",
+    "groupWhen": "Quando",
+    "groupWhere": "Onde",
+    "timezoneHint": "Os convidados veem a data e a hora neste fuso horário."
   },
   "ai": {
     "label": "Descreva seu evento",
@@ -48,7 +66,9 @@
     "fill": "Preencher com IA",
     "filling": "Preenchendo…",
     "missingHint": "Não encontrado no seu texto — por favor, preencha.",
-    "notAnEvent": "Não foi possível encontrar detalhes de evento nesse texto."
+    "notAnEvent": "Não foi possível encontrar detalhes de evento nesse texto.",
+    "filled": "{count, plural, one {# campo preenchido} other {# campos preenchidos}} · confira abaixo",
+    "needed": "Necessário"
   },
   "event": {
     "edit": "Editar",
@@ -64,7 +84,20 @@
     "colResponse": "Resposta",
     "colPeople": "Pessoas",
     "colUpdated": "Última atualização",
-    "remove": "Remover"
+    "remove": "Remover",
+    "endedPill": "Encerrado",
+    "endedHint": "As respostas estão encerradas e não podem mais ser enviadas nem alteradas.",
+    "inviteLink": "Link de convite",
+    "inviteHint": "Qualquer pessoa com este link pode responder. Os convidados não precisam de conta.",
+    "copied": "Copiado",
+    "deleteConfirmAction": "Excluir",
+    "keep": "Manter",
+    "removeNamed": "Remover {name}",
+    "removeConfirm": "Remover {name} da lista de convidados?",
+    "declined": "Recusou",
+    "actions": "Ações",
+    "updatedPrefix": "Atualizado",
+    "peopleSuffix": "{count, plural, one {pessoa} other {pessoas}}"
   },
   "rsvp": {
     "title": "Você vem?",
@@ -73,11 +106,17 @@
     "notGoing": "Não vou",
     "partySize": "Quantas pessoas, incluindo você?",
     "submit": "Enviar confirmação",
-    "youreGoing": "Você vai ({count})",
+    "youreGoing": "Você vai · {count, plural, one {# pessoa} other {# pessoas}}",
     "youreNotGoing": "Você não vai",
     "change": "Alterar",
-    "cancel": "Cancelar",
-    "formRejected": "Não foi possível enviar sua confirmação. Tente novamente."
+    "cancel": "Cancelar confirmação",
+    "formRejected": "Não foi possível enviar sua confirmação. Tente novamente.",
+    "nameHint": "O organizador vê este nome na lista de convidados.",
+    "answer": "Sua resposta",
+    "partySizeHint": "Até 10.",
+    "decrease": "Uma pessoa a menos",
+    "increase": "Uma pessoa a mais",
+    "savedAs": "Salvo como {name}. Você pode alterar sua resposta neste navegador até o início do evento."
   },
   "sample": {
     "name": "Exemplo: Encontro de sexta-feira",

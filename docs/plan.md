@@ -2781,7 +2781,7 @@ calls the real API any more (the real evaluation is TASK-217, Phase 7, through O
 production "Fill with AI".
 
 ### TASK-110 — Fixed-window rate limiter
-**Phase:** 4 · **Requirements:** REQ-55 · **Status:** todo · **Revision:** 1
+**Phase:** 4 · **Requirements:** REQ-55 · **Status:** done · **Revision:** 1
 **Files:** src/services/rate-limiter.ts, src/services/rate-limiter.test.ts
 **Interface:** C5 `RateLimitRule`, `RSVP_RULE`, `AI_RULE`, `windowStart`, `RateLimiter`
 **Test first:**
@@ -2796,7 +2796,7 @@ production "Fill with AI".
 **TDD exception:** none
 
 ### TASK-111 — Atomic Postgres counter
-**Phase:** 4 · **Requirements:** REQ-55 · **Status:** todo · **Revision:** 1
+**Phase:** 4 · **Requirements:** REQ-55 · **Status:** done · **Revision:** 1
 **Files:** src/repositories/prisma/prisma-rate-limit-repository.ts, src/repositories/prisma/prisma-rate-limit-repository.int.test.ts
 **Interface:** `export class PrismaRateLimitRepository implements RateLimitRepository { constructor(private readonly prisma: PrismaClient) }`
 **Test first:** `REQ-55: 15 concurrent increments return 1 to 15 exactly once` —
@@ -2814,7 +2814,7 @@ return Number(rows[0].count);
 **TDD exception:** none
 
 ### TASK-112 — AI output schema and per-field validation
-**Phase:** 4 · **Requirements:** REQ-43 · **Status:** todo · **Revision:** 3
+**Phase:** 4 · **Requirements:** REQ-43 · **Status:** done · **Revision:** 3
 **Files:** src/lib/ai/types.ts, src/lib/ai/output.ts, src/lib/ai/output.test.ts
 **Interface:** C6 (types.ts verbatim);
 ```ts
@@ -2847,7 +2847,7 @@ const VALID_RAW = { isEvent: true, name: 'Team dinner', description: 'Dinner wit
 - r3 — preventive review (lessons #9–#13), not a failure revision: shared `VALID_RAW` fixture spelled out (#11).
 
 ### TASK-113 — Timezone priority
-**Phase:** 4 · **Requirements:** REQ-46 · **Status:** todo · **Revision:** 2
+**Phase:** 4 · **Requirements:** REQ-46 · **Status:** done · **Revision:** 2
 **Files:** src/lib/ai/output.ts, src/lib/ai/output.test.ts
 **Test first:** two tests, each with a first assertion that fails before this task (after TASK-112 the timezone is
 the model value if valid, else `null`, and the form timezone is ignored). Assert on `result.fields.timezone` and
@@ -2870,7 +2870,7 @@ the model value if valid, else `null`, and the form timezone is ignored). Assert
   after TASK-112 (#13), so each is merged as a later assertion into a test whose first assertion fails first.
 
 ### TASK-114 — Missing fields list
-**Phase:** 4 · **Requirements:** REQ-45, REQ-46 · **Status:** todo · **Revision:** 3
+**Phase:** 4 · **Requirements:** REQ-45, REQ-46 · **Status:** done · **Revision:** 3
 **Files:** src/lib/ai/output.ts, src/lib/ai/output.test.ts
 **Test first:** (before this task `missing` is always `[]`, so each test fails on its first assertion)
 - `REQ-45: missing lists every null field in form order` —
@@ -2888,7 +2888,7 @@ the model value if valid, else `null`, and the form timezone is ignored). Assert
   TASK-113, where it could not pass.
 
 ### TASK-132 — Non-event text is flagged and empty
-**Phase:** 4 · **Requirements:** REQ-45 · **Status:** todo · **Revision:** 1
+**Phase:** 4 · **Requirements:** REQ-45 · **Status:** done · **Revision:** 1
 **Files:** src/lib/ai/output.ts, src/lib/ai/output.test.ts
 **Interface:** `normalizeAiOutput(raw, formTimezone)` (unchanged signature; C6 `ParseEventResult.notAnEvent`)
 **Test first:** `REQ-45: non-event text returns notAnEvent with every field empty and missing` — raw
@@ -2902,7 +2902,7 @@ Red reason: before this task the fields are filled from the raw values and `notA
 **TDD exception:** none
 
 ### TASK-115 — Reference line in the organizer's timezone
-**Phase:** 4 · **Requirements:** REQ-44 · **Status:** todo · **Revision:** 1
+**Phase:** 4 · **Requirements:** REQ-44 · **Status:** done · **Revision:** 1
 **Files:** src/lib/ai/prompt.ts, src/lib/ai/prompt.test.ts
 **Interface:** `export function buildReferenceLine(now: Date, timeZone: string | null): string`
 **Test first:** `REQ-44: the reference uses the organizer's local day` (REQ-44 Fortaleza example);
@@ -2913,7 +2913,7 @@ Red reason: before this task the fields are filled from the raw values and `notA
 **TDD exception:** none
 
 ### TASK-116 — Delimited user message and system prompt
-**Phase:** 4 · **Requirements:** REQ-44 · **Status:** todo · **Revision:** 1
+**Phase:** 4 · **Requirements:** REQ-44 · **Status:** done · **Revision:** 1
 **Files:** src/lib/ai/prompt.ts, src/lib/ai/prompt.test.ts
 **Interface:** `export const SYSTEM_PROMPT: string`;
 `export function buildUserMessage(input: { text: string; now: Date; timezone: string | null }): string` →
@@ -2939,7 +2939,7 @@ location: the place as written in the text, or null.
 **TDD exception:** none
 
 ### TASK-117 — Promise timeout helper
-**Phase:** 4 · **Requirements:** REQ-47 · **Status:** todo · **Revision:** 2
+**Phase:** 4 · **Requirements:** REQ-47 · **Status:** done · **Revision:** 2
 **Files:** src/lib/with-timeout.ts, src/lib/with-timeout.test.ts
 **Interface:** `export class TimeoutError extends Error {}`; `export function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T>`
 (clears its timer when the promise settles). `TimeoutError` sets `this.name = 'TimeoutError'`.
@@ -2962,7 +2962,7 @@ The `p.catch(() => {})` line attaches a handler before the timer fires, so Vites
   pending" without an unhandled rejection).
 
 ### TASK-118 — AiEventParser
-**Phase:** 4 · **Requirements:** REQ-45, REQ-47 · **Status:** todo · **Revision:** 2
+**Phase:** 4 · **Requirements:** REQ-45, REQ-47 · **Status:** done · **Revision:** 2
 **Files:** src/services/ai-event-parser.ts, src/services/ai-event-parser.test.ts
 **Interface:**
 ```ts
@@ -2999,7 +2999,7 @@ team.', date: '2026-10-02', time: '19:00', timezone: null, location: "Mario's" }
   here (#9); exact fixture (#11) and fake-timer steps.
 
 ### TASK-119 — Anthropic model client
-**Phase:** 4 · **Requirements:** REQ-47, REQ-43 · **Status:** todo · **Revision:** 2
+**Phase:** 4 · **Requirements:** REQ-47, REQ-43 · **Status:** done · **Revision:** 2
 **Files:** src/lib/ai/anthropic-model-client.ts, src/lib/ai/anthropic-model-client.test.ts, package.json, package-lock.json
 **Interface:** `export function createAnthropicModelClient(client?: Anthropic): AiModelClient` (no `server-only`
 import here: the eval runner uses it from Node; the key only ever comes from `process.env.ANTHROPIC_API_KEY`, and the
@@ -3044,7 +3044,7 @@ export function createAnthropicModelClient(client?: Anthropic): AiModelClient {
   uses, lockfile validated with npm 10 (#10); lazy SDK creation so `getServices()` never needs the key.
 
 ### TASK-120 — ParseEventTextService with the daily limit
-**Phase:** 4 · **Requirements:** REQ-48 · **Status:** todo · **Revision:** 1
+**Phase:** 4 · **Requirements:** REQ-48 · **Status:** done · **Revision:** 1
 **Files:** src/services/parse-event-text.ts, src/services/parse-event-text.test.ts
 **Interface:** C5 `ParseEventTextService`
 **Algorithm:** `text` trimmed: empty → `ValidationError({ text: 'required' })`, longer than 2000 → `ValidationError({ text: 'tooLong' })`;
@@ -3074,7 +3074,7 @@ const call = (userId = 'u1') => service.execute({ userId, text: 'Dinner', timezo
 - r2 — preventive review (lessons #9–#13), not a failure revision: exact fixture and clock (#11).
 
 ### TASK-121 — Fill-with-AI action (signed-in only)
-**Phase:** 4 · **Requirements:** REQ-49 · **Status:** todo · **Revision:** 2
+**Phase:** 4 · **Requirements:** REQ-49 · **Status:** done · **Revision:** 2
 **Files:** src/app/[locale]/events/new/ai-actions.ts, src/app/[locale]/events/new/ai-actions.test.ts, src/lib/container.ts
 **Interface:** `parseEventTextAction(text: string, timezone: string | null): Promise<ActionResult<ParseEventResult>>` ('use server').
 Same shape as the existing `createEventAction` in `./actions.ts`: `getCurrentUserId()`; `null` →
@@ -3104,7 +3104,7 @@ vi.mock('@/lib/container', () => ({ getServices: () => ({ parseEventText: { exec
   `rateLimiter` constant, imports) matching the current `container.ts`; action body mirrors `createEventAction`.
 
 ### TASK-122 — The AI path never writes an event
-**Phase:** 4 · **Requirements:** REQ-50 · **Status:** todo · **Revision:** 2
+**Phase:** 4 · **Requirements:** REQ-50 · **Status:** done · **Revision:** 2
 **Files:** src/services/parse-event-text.int.test.ts
 **Test first (characterization test — the service has no event dependency by construction):**
 `REQ-50: parsing text leaves the events table unchanged` — `beforeEach(resetDatabase)` (`@/test/db`); `prisma` from
@@ -3121,7 +3121,7 @@ parser `{ parse: vi.fn().mockResolvedValue(result) }` (`result` as in TASK-120);
   starting count; `AiEventParser` type check added (REQ-50 names both constructors).
 
 ### TASK-123 — Fill-with-AI panel in the event form
-**Phase:** 4 · **Requirements:** REQ-51 · **Status:** todo · **Revision:** 3
+**Phase:** 4 · **Requirements:** REQ-51 · **Status:** done · **Revision:** 3
 **Files:** src/components/event-form.tsx, src/components/event-form.test.tsx, src/app/[locale]/events/new/page.tsx
 **Interface:** `EventFormProps` gains an optional prop (existing props `initialValues` and `submit` unchanged; the
 edit page passes no `aiFill`, so it shows no AI panel):
@@ -3188,7 +3188,7 @@ Red reason: before this task there is no "Describe your event" field, so every t
   `fieldErrors`, call arguments), exact fixtures and assertions (#11), stated red reason (#13).
 
 ### TASK-133 — Fill with AI shows "Couldn't find event details" for non-event text
-**Phase:** 4 · **Requirements:** REQ-51 · **Status:** todo · **Revision:** 2
+**Phase:** 4 · **Requirements:** REQ-51 · **Status:** done · **Revision:** 2
 **Files:** src/components/event-form.tsx, src/components/event-form.test.tsx
 **Interface:** unchanged (`EventFormProps.aiFill` from TASK-123); message key `ai.notAnEvent` (C8, already in
 `messages/*.json` since TASK-07).
@@ -3210,7 +3210,7 @@ Red reason: before this task every field is in `missing`, so six hints and six `
   (the `ai.notAnEvent` key is not under `errors.*`) and that `missing` is cleared.
 
 ### TASK-124 — Mock Anthropic server for E2E
-**Phase:** 4 · **Requirements:** — · **Status:** todo · **Revision:** 2
+**Phase:** 4 · **Requirements:** — · **Status:** done · **Revision:** 2
 **Files:** e2e/mock-anthropic.mjs, playwright.config.ts
 **Rule (same as ENV incident #3 for `E2E_PORT`):** the mock is **never reused** (`reuseExistingServer: false`, also
 locally) and its port comes only from the shell variable `MOCK_AI_PORT` (default `4010`). If Playwright reports that
@@ -3281,7 +3281,7 @@ webServer: [
   port from `MOCK_AI_PORT` (default 4010), app's `ANTHROPIC_BASE_URL` follows that port; mock binds `127.0.0.1`.
 
 ### TASK-125 — Fill with AI end-to-end
-**Phase:** 4 · **Requirements:** REQ-51, REQ-50 · **Status:** todo · **Revision:** 2
+**Phase:** 4 · **Requirements:** REQ-51, REQ-50 · **Status:** done · **Revision:** 2
 **Files:** e2e/ai.spec.ts
 **Setup:** `test.beforeEach(async () => { await resetDatabase(); })` (`./helpers/db`, also exports `db`); each test
 starts with `await signInAs(context, { email: 'organizer@example.com', name: 'Organizer' })` (`./helpers/auth`) and
@@ -3306,7 +3306,7 @@ alone also matches `Timezone`). The project's browser timezone is `America/New_Y
   assertions; the expected timezone is derived from the mock output (`null`) and the browser timezone (#11).
 
 ### TASK-126 — Eval: score a case
-**Phase:** 4 · **Requirements:** REQ-91 · **Status:** todo · **Revision:** 2
+**Phase:** 4 · **Requirements:** REQ-91 · **Status:** done · **Revision:** 2
 **Files:** evals/event-parser/types.ts, evals/event-parser/score.ts, evals/event-parser/score.test.ts
 **Interface:**
 ```ts
@@ -3338,7 +3338,7 @@ export function scoreCase(evalCase: EvalCase, outcome: ParseEventResult | { erro
 - r2 (DOC-Q2 / BR-96, not a failure revision): `expected.notAnEvent` and its test added.
 
 ### TASK-127 — Eval: summary and gate
-**Phase:** 4 · **Requirements:** REQ-91 · **Status:** todo · **Revision:** 2
+**Phase:** 4 · **Requirements:** REQ-91 · **Status:** done · **Revision:** 2
 **Files:** evals/event-parser/score.ts, evals/event-parser/score.test.ts
 **Interface:** `export interface Summary { total: number; passed: number; overall: number; byCategory: Record<Category, { total: number; passed: number; rate: number }> }`;
 `export function summarize(results: CaseResult[]): Summary` (`overall = passed / total`, `0` when `total` is 0;
@@ -3364,7 +3364,7 @@ const many = (n: number, category: Category, passed: boolean) => Array.from({ le
 - r2 — preventive review (lessons #9–#13), not a failure revision: exact fixtures and derived expected values (#11).
 
 ### TASK-128 — Eval: Markdown report
-**Phase:** 4 · **Requirements:** REQ-91 · **Status:** todo · **Revision:** 2
+**Phase:** 4 · **Requirements:** REQ-91 · **Status:** done · **Revision:** 2
 **Files:** evals/event-parser/report.ts, evals/event-parser/report.test.ts
 **Interface:** `export function renderReport(summary: Summary, results: CaseResult[], meta: { model: string; date: string }): string`
 **Layout** (lines joined with `\n`; `pct(x) = Math.round(x * 100) + '%'`; `<…>` are placeholders):
@@ -3415,7 +3415,7 @@ const md = renderReport(summarize(results), results, { model: 'claude-haiku-4-5'
   missing; full layout and fixture given, expected values derived from it (#11).
 
 ### TASK-130 — Eval cases
-**Phase:** 4 · **Requirements:** REQ-92 · **Status:** todo · **Revision:** 3
+**Phase:** 4 · **Requirements:** REQ-92 · **Status:** done · **Revision:** 3
 **Files:** evals/event-parser/cases.schema.ts, evals/event-parser/cases.test.ts, evals/event-parser/cases.json
 **Interface:** `export const evalCaseSchema` (zod for `EvalCase`; matcher = string | null | object with the four
 optional keys; `expected` also accepts optional `missing: AiField[]` and optional `notAnEvent: boolean`) and
@@ -3500,7 +3500,7 @@ is the form timezone; expectations list only the fields that are checked).
   `evalCasesSchema` (#9); dataset re-checked mechanically against both tests and the day-rollover dates (#11).
 
 ### TASK-129 — Eval: command-line runner
-**Phase:** 4 · **Requirements:** REQ-91 · **Status:** todo · **Revision:** 2
+**Phase:** 4 · **Requirements:** REQ-91 · **Status:** done · **Revision:** 2
 **Depends on:** TASK-126–TASK-128 (`scoreCase`, `summarize`, `gate`, `renderReport`) and TASK-130 (`evalCasesSchema`)
 **Files:** evals/event-parser/run.ts, evals/event-parser/run.test.ts, package.json
 **Interface:** `npm run eval -- --model <id> [--cases <path>] [--out <dir>]`; add the C9 script
@@ -3536,6 +3536,7 @@ Red: the stub `run.ts` is the single line `throw new Error('not implemented');` 
 ### HUMAN-05 — Anthropic API key
 **Phase:** 4 · **Owner:** human · **When:** on the Phase 4 branch after TASK-129 (steps 1–4); step 5 after TASK-217
 (Phase 7).
+**Status:** done (human, 2026-09-24)
 **Needed for exactly one thing:** "Fill with AI" in production (Vercel) through Anthropic. (The real evaluation,
 former TASK-131, is now TASK-217 and runs through OpenRouter, so it does not need this key.) **Not needed** for anything else: unit and integration
 tests use fake clients, E2E uses the mock server (TASK-124) with the dummy `ANTHROPIC_API_KEY=test-key` from
@@ -3826,7 +3827,7 @@ Expected values in this phase are derived from fixtures: e.g. RSVPs Maria GOING 
 `computeTotals` = going 1, declined 1, people 3 → "1 going · 1 declined · 3 people" (lesson #11).
 
 ### TASK-150 — Pin lucide-react and add the Icon primitive
-**Phase:** 6 · **Requirements:** REQ-78 · **Status:** todo · **Revision:** 1
+**Phase:** 6 · **Requirements:** REQ-78 · **Status:** done · **Revision:** 1
 **Files:** package.json, package-lock.json, src/lib/cx.ts, src/lib/cx.test.ts, src/components/ui/icon.tsx,
 src/components/ui/icon.test.tsx
 **Steps (dependency first, its own `chore(deps)` commit):**
@@ -3859,7 +3860,7 @@ export function Icon({ icon: Glyph, size = 16, className }: IconProps) {
 **TDD exception:** chore (the dependency install commit only)
 
 ### TASK-151 — Contrast math and theme token reader
-**Phase:** 6 · **Requirements:** REQ-65 · **Status:** todo · **Revision:** 1
+**Phase:** 6 · **Requirements:** REQ-65 · **Status:** done · **Revision:** 1
 **Files:** src/lib/contrast.ts, src/lib/contrast.test.ts
 **Interface (C10).** Formulas (OKLab → linear sRGB matrices from Björn Ottosson; WCAG 2.x luminance):
 ```ts
@@ -3910,7 +3911,7 @@ Stubs throw `Error('not implemented')`.
 **TDD exception:** none
 
 ### TASK-152 — Theme helpers
-**Phase:** 6 · **Requirements:** REQ-62 · **Status:** todo · **Revision:** 1
+**Phase:** 6 · **Requirements:** REQ-62 · **Status:** done · **Revision:** 1
 **Files:** src/lib/theme.ts, src/lib/theme.test.ts
 **Interface (C10):** `Theme`, `THEME_COOKIE = 'theme'`, `DEFAULT_THEME = 'dark'`, `parseTheme`, `nextTheme`,
 `themeCookieString` (`` `${THEME_COOKIE}=${theme}; Path=/; Max-Age=31536000; SameSite=Lax` ``).
@@ -3925,7 +3926,7 @@ Stubs throw.
 **TDD exception:** none
 
 ### TASK-153 — Design tokens and base styles
-**Phase:** 6 · **Requirements:** REQ-65, REQ-66 · **Status:** todo · **Revision:** 1
+**Phase:** 6 · **Requirements:** REQ-65, REQ-66 · **Status:** done · **Revision:** 1
 **Files:** src/app/globals.css, src/app/theme-tokens.test.ts, e2e/a11y.spec.ts
 **Interface:** replace the whole of `src/app/globals.css` with:
 ```css
@@ -4034,7 +4035,7 @@ classes still override the body colors until TASK-154 removes them (expected).
 **TDD exception:** none
 
 ### TASK-154 — Root layout: Geist fonts and the theme from the cookie
-**Phase:** 6 · **Requirements:** REQ-62, REQ-63 · **Status:** todo · **Revision:** 1
+**Phase:** 6 · **Requirements:** REQ-62, REQ-63 · **Status:** done · **Revision:** 1
 **Files:** src/app/[locale]/layout.tsx, e2e/theme.spec.ts
 **Interface:** in the layout add
 ```tsx
@@ -4063,7 +4064,7 @@ Red reason: `<html>` has no `data-theme` today.
 **TDD exception:** none
 
 ### TASK-155 — Component styles from the mockup, with reduced motion
-**Phase:** 6 · **Requirements:** REQ-74 · **Status:** todo · **Revision:** 1
+**Phase:** 6 · **Requirements:** REQ-74 · **Status:** done · **Revision:** 1
 **Files:** src/app/globals.css, e2e/motion.spec.ts
 **Steps:** append to `globals.css`, after the `@layer base` block:
 1. `@layer components { … }` containing, in this order:
@@ -4116,7 +4117,7 @@ Red reason: no `.btn` / `.confirm` rules exist yet (`transition` is `all`, no an
 **TDD exception:** none
 
 ### TASK-156 — Phase 6 message keys
-**Phase:** 6 · **Requirements:** REQ-52 · **Status:** todo · **Revision:** 2
+**Phase:** 6 · **Requirements:** REQ-52 · **Status:** done · **Revision:** 2
 **Files:** messages/en.json, messages/fr.json, messages/pt-BR.json
 **Steps:** add every key of C11 "New keys" with its three translations. Do **not** apply the C11 "Changed values"
 (their tasks do, together with the tests that read them). Do not add, move or edit `rsvp.formRejected` (already
@@ -4129,7 +4130,7 @@ present since Phase 5) nor any other existing key.
   must stay untouched; the returning-guest values moved to C11 "Changed values" (TASK-176).
 
 ### TASK-157 — Button primitive
-**Phase:** 6 · **Requirements:** REQ-71 · **Status:** todo · **Revision:** 1
+**Phase:** 6 · **Requirements:** REQ-71 · **Status:** done · **Revision:** 1
 **Files:** src/components/ui/button.tsx, src/components/ui/button.test.tsx
 **Interface (C10):**
 ```tsx
@@ -4161,7 +4162,7 @@ Stubs: `buttonClass` throws; `Button` returns `null`.
 **TDD exception:** none
 
 ### TASK-158 — Field primitives and Alert
-**Phase:** 6 · **Requirements:** REQ-68, REQ-69, REQ-70 · **Status:** todo · **Revision:** 1
+**Phase:** 6 · **Requirements:** REQ-68, REQ-69, REQ-70 · **Status:** done · **Revision:** 1
 **Files:** src/components/ui/field.tsx, src/components/ui/field.test.tsx
 **Interface (C10)** — markup:
 ```tsx
@@ -4193,7 +4194,7 @@ Stubs return `null` (components) / throw (`describedBy`).
 **TDD exception:** none
 
 ### TASK-159 — Segmented control
-**Phase:** 6 · **Requirements:** REQ-84, REQ-70 · **Status:** todo · **Revision:** 1
+**Phase:** 6 · **Requirements:** REQ-84, REQ-70 · **Status:** done · **Revision:** 1
 **Files:** src/components/ui/segmented-control.tsx, src/components/ui/segmented-control.test.tsx
 **Interface (C10)** — markup (mockup lines 759–765, as a radio group):
 ```tsx
@@ -4225,7 +4226,7 @@ Stub returns `null`.
 **TDD exception:** none
 
 ### TASK-160 — Stepper
-**Phase:** 6 · **Requirements:** REQ-84, REQ-71 · **Status:** todo · **Revision:** 1
+**Phase:** 6 · **Requirements:** REQ-84, REQ-71 · **Status:** done · **Revision:** 1
 **Files:** src/components/ui/stepper.tsx, src/components/ui/stepper.test.tsx
 **Interface (C10)** — markup (mockup lines 768–772):
 ```tsx
@@ -4259,7 +4260,7 @@ Stub returns `null`.
 **TDD exception:** none
 
 ### TASK-161 — Status pill
-**Phase:** 6 · **Requirements:** REQ-70 · **Status:** todo · **Revision:** 1
+**Phase:** 6 · **Requirements:** REQ-70 · **Status:** done · **Revision:** 1
 **Files:** src/components/ui/status-pill.tsx, src/components/ui/status-pill.test.tsx
 **Interface (C10):**
 ```tsx
@@ -4277,7 +4278,7 @@ Stub returns `null`.
 **TDD exception:** none
 
 ### TASK-162 — Inline confirmation
-**Phase:** 6 · **Requirements:** REQ-72, REQ-67 · **Status:** todo · **Revision:** 1
+**Phase:** 6 · **Requirements:** REQ-72, REQ-67 · **Status:** done · **Revision:** 1
 **Files:** src/components/ui/inline-confirm.tsx, src/components/ui/inline-confirm.test.tsx
 **Interface (C10)** — implementation:
 ```tsx
@@ -4352,7 +4353,7 @@ Stub returns `null`.
 **TDD exception:** none
 
 ### TASK-163 — Logo mark and favicon
-**Phase:** 6 · **Requirements:** REQ-75, REQ-76 · **Status:** todo · **Revision:** 1
+**Phase:** 6 · **Requirements:** REQ-75, REQ-76 · **Status:** done · **Revision:** 1
 **Files:** src/components/logo-mark.tsx, src/components/logo-mark.test.tsx, src/app/icon.svg, src/app/icon.test.ts,
 src/app/favicon.ico (delete), e2e/brand.spec.ts
 **Interface:**
@@ -4393,7 +4394,7 @@ export function LogoMark() {
 **TDD exception:** none
 
 ### TASK-164 — Theme toggle
-**Phase:** 6 · **Requirements:** REQ-64 · **Status:** todo · **Revision:** 1
+**Phase:** 6 · **Requirements:** REQ-64 · **Status:** done · **Revision:** 1
 **Files:** src/components/theme-toggle.tsx, src/components/theme-toggle.test.tsx
 **Interface (C10):**
 ```tsx
@@ -4428,7 +4429,7 @@ Stub returns `null`.
 **TDD exception:** none
 
 ### TASK-165 — Language select with a globe and a compact phone variant
-**Phase:** 6 · **Requirements:** REQ-80, REQ-78, REQ-68 · **Status:** todo · **Revision:** 2
+**Phase:** 6 · **Requirements:** REQ-80, REQ-78, REQ-68 · **Status:** done · **Revision:** 2
 **Files:** src/components/locale-switcher.tsx, src/components/locale-switcher.test.tsx
 **Interface** (behavior unchanged; the accessible name stays `aria-label` "Language" exactly as today — BR-105
 exception, REQ-68; `e2e/i18n.spec.ts` keeps passing). Wrap the existing `select` and add the two icons; the `select`
@@ -4458,7 +4459,7 @@ Red reason: today the select has no icons (the svg assertions fail).
   the visually hidden `<label>` was dropped.
 
 ### TASK-166 — Avatar initial and the current user
-**Phase:** 6 · **Requirements:** REQ-80 · **Status:** todo · **Revision:** 1
+**Phase:** 6 · **Requirements:** REQ-80 · **Status:** done · **Revision:** 1
 **Files:** src/lib/user-initial.ts, src/lib/user-initial.test.ts, src/lib/session.ts
 **Interface (C10):**
 ```ts
@@ -4481,7 +4482,7 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
 **TDD exception:** none
 
 ### TASK-167 — Header: logo mark and theme toggle
-**Phase:** 6 · **Requirements:** REQ-64, REQ-75 · **Status:** todo · **Revision:** 1
+**Phase:** 6 · **Requirements:** REQ-64, REQ-75 · **Status:** done · **Revision:** 1
 **Files:** src/components/site-header.tsx, src/app/[locale]/layout.tsx, e2e/theme.spec.ts
 **Interface:** `SiteHeader({ locale, theme }: { locale: string; theme: Theme })`; the layout renders
 `<SiteHeader locale={locale} theme={theme} />`. Markup (mockup lines 524–531), keeping today's auth elements
@@ -4515,7 +4516,7 @@ unchanged inside `.topbar-actions` for now (TASK-168 replaces them):
 **TDD exception:** none
 
 ### TASK-168 — Header: account menu and phone variant
-**Phase:** 6 · **Requirements:** REQ-80, REQ-71 · **Status:** todo · **Revision:** 1
+**Phase:** 6 · **Requirements:** REQ-80, REQ-71 · **Status:** done · **Revision:** 1
 **Files:** src/components/user-menu.tsx, src/components/user-menu.test.tsx, src/components/site-header.tsx,
 e2e/header.spec.ts
 **Interface (C10)** — `UserMenu` (mockup lines 574–576):
@@ -4578,7 +4579,7 @@ home page still has its own links (REQ-39 tests unchanged).
 **TDD exception:** none
 
 ### TASK-169 — Home page
-**Phase:** 6 · **Requirements:** REQ-81, REQ-39, REQ-78 · **Status:** todo · **Revision:** 1
+**Phase:** 6 · **Requirements:** REQ-81, REQ-39, REQ-78 · **Status:** done · **Revision:** 1
 **Files:** src/app/[locale]/page.tsx, src/components/google-mark.tsx, src/components/invite-preview.tsx,
 src/app/[locale]/not-found.tsx, messages/en.json, messages/fr.json, messages/pt-BR.json, e2e/home.spec.ts,
 e2e/journeys.spec.ts
@@ -4634,7 +4635,7 @@ Red reason: the link text and the figure do not exist yet.
 **TDD exception:** none
 
 ### TASK-170 — Dashboard: page head and empty state
-**Phase:** 6 · **Requirements:** REQ-82, REQ-36, REQ-37 · **Status:** todo · **Revision:** 1
+**Phase:** 6 · **Requirements:** REQ-82, REQ-36, REQ-37 · **Status:** done · **Revision:** 1
 **Files:** src/app/[locale]/dashboard/page.tsx, src/components/create-sample-button.tsx, e2e/dashboard.spec.ts
 **Interface:** page markup (mockup lines 579–599 and 617–620; the list itself stays as today until TASK-172):
 ```tsx
@@ -4684,7 +4685,7 @@ done.")` visible.
 **TDD exception:** none
 
 ### TASK-171 — Date tile and short date-time formatters
-**Phase:** 6 · **Requirements:** REQ-82, REQ-85 · **Status:** todo · **Revision:** 1
+**Phase:** 6 · **Requirements:** REQ-82, REQ-85 · **Status:** done · **Revision:** 1
 **Files:** src/lib/format-date.ts, src/lib/format-date.test.ts
 **Interface (C10):**
 ```ts
@@ -4710,7 +4711,7 @@ Stubs throw.
 **TDD exception:** none
 
 ### TASK-172 — Dashboard: event rows and the counts line
-**Phase:** 6 · **Requirements:** REQ-82, REQ-36, REQ-34 · **Status:** todo · **Revision:** 1
+**Phase:** 6 · **Requirements:** REQ-82, REQ-36, REQ-34 · **Status:** done · **Revision:** 1
 **Files:** src/app/[locale]/dashboard/page.tsx, messages/en.json, messages/fr.json, messages/pt-BR.json,
 e2e/dashboard.spec.ts, e2e/owner.spec.ts, e2e/journeys.spec.ts
 **Interface:** apply C11 changed value `totals.summary` (it also changes the owner page's totals line). Sections and
@@ -4754,7 +4755,7 @@ function renderItem(item: DashboardItem) {
 **TDD exception:** none
 
 ### TASK-173 — Event form: groups, field primitives, announced errors and saving state
-**Phase:** 6 · **Requirements:** REQ-83, REQ-69, REQ-68 · **Status:** todo · **Revision:** 1
+**Phase:** 6 · **Requirements:** REQ-83, REQ-69, REQ-68 · **Status:** done · **Revision:** 1
 **Files:** src/components/event-form.tsx, src/components/event-form.test.tsx, src/app/[locale]/events/new/page.tsx,
 src/app/[locale]/e/[slug]/edit/page.tsx
 **Interface:** keep state, handlers, ids, `ariaInvalid` and `ariaDescribedBy` as they are; leave the AI block
@@ -4816,7 +4817,7 @@ Red reason: no fieldsets; the error `<p>` has no role; the label switches to "Sa
 **TDD exception:** none
 
 ### TASK-174 — "Fill with AI" panel states
-**Phase:** 6 · **Requirements:** REQ-83, REQ-70 · **Status:** todo · **Revision:** 1
+**Phase:** 6 · **Requirements:** REQ-83, REQ-70 · **Status:** done · **Revision:** 1
 **Files:** src/components/event-form.tsx, src/components/event-form.test.tsx
 **Interface:** new state `const [filledCount, setFilledCount] = useState<number | null>(null)`; in `handleAiFill` call
 `setFilledCount(null)` first and, after a successful non-`notAnEvent` result,
@@ -4852,7 +4853,7 @@ Red reason: no status line, no badge; the label switches to "Filling…".
 **TDD exception:** none
 
 ### TASK-175 — RSVP form: answer segments, stepper, hints and 44 px targets
-**Phase:** 6 · **Requirements:** REQ-84, REQ-69, REQ-71, REQ-78, REQ-58 · **Status:** todo · **Revision:** 2
+**Phase:** 6 · **Requirements:** REQ-84, REQ-69, REQ-71, REQ-78, REQ-58 · **Status:** done · **Revision:** 2
 **Files:** src/components/rsvp-form.tsx, src/components/rsvp-form.test.tsx, e2e/event-page.spec.ts
 **Interface:** state, validation and submit logic unchanged; the honeypot block unchanged; the `formAlert()` helper
 (Phase 5, TASK-143 r3) and its TSDoc unchanged — it returns the `errors.<formError>` message when `formError` is set,
@@ -4928,7 +4929,7 @@ keeps the values`; see "Existing tests that must keep passing unchanged").
   `rsvp.formRejected`) instead of `formError`; added the form-level alert test.
 
 ### TASK-176 — Guest RSVP panel: confirmation, not going and ended notices
-**Phase:** 6 · **Requirements:** REQ-84, REQ-70, REQ-78, REQ-31, REQ-29 · **Status:** todo · **Revision:** 2
+**Phase:** 6 · **Requirements:** REQ-84, REQ-70, REQ-78, REQ-31, REQ-29 · **Status:** done · **Revision:** 2
 **Files:** src/components/guest-rsvp-panel.tsx, src/components/guest-rsvp-panel.test.tsx, messages/en.json,
 messages/fr.json, messages/pt-BR.json, e2e/rsvp.spec.ts, e2e/journeys.spec.ts
 **Interface:** apply the C11 changed values `rsvp.youreGoing` and `rsvp.cancel` (three catalogs, values copied
@@ -5002,7 +5003,7 @@ saved-as line. Commit 2 `feat(rsvp): …`: the catalog values and the markup abo
   values applied here, with the existing tests that read them); Not going keeps only "Change" (DOC-Q4 default).
 
 ### TASK-177 — Event page layout, head and "Ended" pill (375 px)
-**Phase:** 6 · **Requirements:** REQ-73, REQ-84, REQ-85, REQ-70 · **Status:** todo · **Revision:** 2
+**Phase:** 6 · **Requirements:** REQ-73, REQ-84, REQ-85, REQ-70 · **Status:** done · **Revision:** 2
 **Files:** src/app/[locale]/e/[slug]/page.tsx, src/components/event-details.tsx, e2e/event-page.spec.ts
 **Interface:** `EventDetailsProps` gains `ended: boolean`. `EventDetails` (mockup lines 736–748 and 839):
 ```tsx
@@ -5057,7 +5058,7 @@ Red reason: the unstyled `h1` overflows at 375 px; no pill exists.
 - r2 — human decision DOC-Q3.1, not a failure revision: confirmation text "You're going · 1 person".
 
 ### TASK-178 — Invite link field with "Copied" and a live announcement
-**Phase:** 6 · **Requirements:** REQ-79, REQ-85, REQ-70, REQ-38 · **Status:** todo · **Revision:** 1
+**Phase:** 6 · **Requirements:** REQ-79, REQ-85, REQ-70, REQ-38 · **Status:** done · **Revision:** 1
 **Files:** src/components/copy-invite-link-button.tsx, src/components/copy-invite-link-button.test.tsx
 **Interface:** `CopyInviteLinkButtonProps` gains `copiedMs?: number` (default `2000`). The URL is computed after
 mount (`const [url, setUrl] = useState('')`; `useEffect(() => setUrl(buildInviteUrl(window.location.origin, slug)),
@@ -5093,7 +5094,7 @@ Red reason: today the message is a `role="status"` span without `aria-live`, the
 **TDD exception:** none
 
 ### TASK-179 — Delete an event with the inline confirmation
-**Phase:** 6 · **Requirements:** REQ-72, REQ-19 · **Status:** todo · **Revision:** 1
+**Phase:** 6 · **Requirements:** REQ-72, REQ-19 · **Status:** done · **Revision:** 1
 **Files:** src/components/delete-event-button.tsx, src/components/delete-event-button.test.tsx, e2e/events.spec.ts
 **Interface:**
 ```tsx
@@ -5123,7 +5124,7 @@ Red reason: today the button calls `window.confirm` and renders no group.
 **TDD exception:** none
 
 ### TASK-180 — Remove an RSVP with the inline confirmation
-**Phase:** 6 · **Requirements:** REQ-72, REQ-30 · **Status:** todo · **Revision:** 1
+**Phase:** 6 · **Requirements:** REQ-72, REQ-30 · **Status:** done · **Revision:** 1
 **Files:** src/components/remove-rsvp-button.tsx, src/components/remove-rsvp-button.test.tsx,
 src/components/owner-guest-list.tsx, e2e/owner.spec.ts
 **Interface:** `RemoveRsvpButtonProps` becomes `{ name: string; removeAction: () => Promise<ActionResult<null>> }`;
@@ -5148,7 +5149,7 @@ Red reason: today the first click removes immediately and the button is named "R
 **TDD exception:** none
 
 ### TASK-181 — Owner guest list: pills, short dates and stacked rows
-**Phase:** 6 · **Requirements:** REQ-85, REQ-70, REQ-34 · **Status:** todo · **Revision:** 1
+**Phase:** 6 · **Requirements:** REQ-85, REQ-70, REQ-34 · **Status:** done · **Revision:** 1
 **Files:** src/components/owner-guest-list.tsx, e2e/owner.spec.ts
 **Interface** (mockup lines 920–935):
 ```tsx
@@ -5195,7 +5196,7 @@ Red reason: the response is plain text "Not going" and the table does not stack.
 **TDD exception:** none
 
 ### TASK-182 — Keyboard and focus verification
-**Phase:** 6 · **Requirements:** REQ-66, REQ-67 · **Status:** todo · **Revision:** 2
+**Phase:** 6 · **Requirements:** REQ-66, REQ-67 · **Status:** done · **Revision:** 2
 **Files:** e2e/helpers/keyboard.ts, e2e/a11y.spec.ts
 **Interface:**
 ```ts
@@ -5228,7 +5229,7 @@ computed style of `nextElementSibling` instead; it records `outerHTML.slice(0, 8
 - r2 — human decision DOC-Q3.1, not a failure revision: confirmation text "You're going · 2 people".
 
 ### TASK-183 — Labels, hidden icons and target sizes verification
-**Phase:** 6 · **Requirements:** REQ-68, REQ-71, REQ-78 · **Status:** todo · **Revision:** 1
+**Phase:** 6 · **Requirements:** REQ-68, REQ-71, REQ-78 · **Status:** done · **Revision:** 1
 **Files:** e2e/a11y.spec.ts
 **Test first (characterization test)** — page set: `/en` (signed out), the guest page of an open event (form), the
 same page after RSVPing "Maria" (confirmation), the owner page with one RSVP, `/en/dashboard` with one event,
@@ -5247,7 +5248,7 @@ same page after RSVPing "Maria" (confirmation), the owner page with one RSVP, `/
 **TDD exception:** none (characterization test, convention 13)
 
 ### TASK-184 — French layout verification
-**Phase:** 6 · **Requirements:** REQ-77 · **Status:** todo · **Revision:** 2
+**Phase:** 6 · **Requirements:** REQ-77 · **Status:** done · **Revision:** 2
 **Files:** e2e/i18n-layout.spec.ts
 **Test first (characterization test):** `REQ-77: French pages have no clipped text and no horizontal scrolling` — for
 each width in `[375, 1280]` (`page.setViewportSize({ width, height: 800 })`): `/fr` signed out; `/fr/e/<slug>` of
@@ -5263,7 +5264,7 @@ with at least one client rect) whose `scrollWidth > clientWidth + 1` or `scrollH
 - r2 — human decision DOC-Q3.1, not a failure revision: confirmation text "Vous venez · 1 personne".
 
 ### TASK-148 — README
-**Phase:** 6 · **Requirements:** — · **Status:** todo · **Revision:** 2
+**Phase:** 6 · **Requirements:** — · **Status:** done · **Revision:** 2
 **Files:** README.md
 **Steps:** replace the work-in-progress README with these sections, in this order (facts only; link, do not copy):
 1. **Live demo** — production URL placeholder `<!-- release agent fills this -->` and the demo event link `/e/demoPicnic`.

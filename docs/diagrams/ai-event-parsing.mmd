@@ -25,11 +25,16 @@ sequenceDiagram
       M-->>S: error
       S-->>O: "Couldn't fill automatically — please fill the form"
     else structured response
-      M-->>S: { name, description, date, time, timezone, location }
-      S->>Z: validate
+      M-->>S: { isEvent, name, description, date, time, timezone, location }
+      S->>Z: validate per field
       Z-->>S: valid fields + missing[]
-      S-->>C: ParseResult
-      C-->>O: fill form · highlight missing fields
+      alt isEvent is false
+        S-->>C: notAnEvent: true, all fields null
+        C-->>O: "Couldn't find event details in that text."
+      else isEvent is true
+        S-->>C: ParseResult (fields + missing[])
+        C-->>O: fill form · highlight missing fields
+      end
     end
   end
   Note over O,Z: The AI never saves. The Organizer reviews and clicks Save.

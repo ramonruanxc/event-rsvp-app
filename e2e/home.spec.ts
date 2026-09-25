@@ -26,10 +26,21 @@ test.describe('REQ-39: the home page', () => {
       'href',
       '/api/login?callbackUrl=%2Fen%2Fdashboard',
     );
-    await expect(main.getByRole('link', { name: 'See a demo event' })).toHaveAttribute(
+    await expect(main.getByRole('link', { name: 'See the demo event' })).toHaveAttribute(
       'href',
       '/en/e/demoPicnic',
     );
+  });
+
+  test('REQ-81: the home page previews what a guest sees', async ({ page }) => {
+    await page.goto('/en');
+
+    const figure = page.getByRole('figure');
+    await expect(figure).toContainText(
+      'What a guest sees after tapping your link. One page, one answer.',
+    );
+    await expect(figure.locator('.ip-card')).toHaveAttribute('aria-hidden', 'true');
+    await expect(page.locator('main .g-chip svg')).toHaveAttribute('aria-hidden', 'true');
   });
 
   test('REQ-39: signed-in home links to My events', async ({ page, context }) => {

@@ -12,7 +12,7 @@ test.describe('REQ-40: a guest RSVPs to the public demo event', () => {
     await seedDemo(db, new Date());
 
     await page.goto('/en');
-    await page.getByRole('link', { name: 'See a demo event' }).click();
+    await page.getByRole('link', { name: 'See the demo event' }).click();
 
     await expect(page.getByRole('heading', { name: 'Community Picnic in the Park' })).toBeVisible();
 
@@ -20,7 +20,7 @@ test.describe('REQ-40: a guest RSVPs to the public demo event', () => {
     await page.getByLabel('How many people, including you?').fill('2');
     await page.getByRole('button', { name: 'Send RSVP' }).click();
 
-    await expect(page.getByText("You're going (2)")).toBeVisible();
+    await expect(page.getByText("You're going · 2 people")).toBeVisible();
     await expect(page.getByText('9 people going')).toBeVisible();
   });
 });
@@ -47,13 +47,13 @@ test.describe('REQ-34: organizer creates an event with AI and sees the guest lis
     await guestPage.getByLabel('Your name').fill('Maria');
     await guestPage.getByLabel('How many people, including you?').fill('3');
     await guestPage.getByRole('button', { name: 'Send RSVP' }).click();
-    await expect(guestPage.getByText("You're going (3)")).toBeVisible();
+    await expect(guestPage.getByText("You're going · 3 people")).toBeVisible();
     await guestContext.close();
 
     await page.reload();
     const mariaRow = page.getByRole('row', { name: /Maria/ });
     await expect(mariaRow).toContainText('Going');
     await expect(mariaRow).toContainText('3');
-    await expect(page.getByText('Going: 1 · Declined: 0 · People: 3')).toBeVisible();
+    await expect(page.getByText('1 going · 0 declined · 3 people')).toBeVisible();
   });
 });

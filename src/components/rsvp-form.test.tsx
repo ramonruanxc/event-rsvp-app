@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { describe, expect, test, vi } from 'vitest';
 import { renderWithIntl } from '@/test/render';
 import { RsvpForm } from './rsvp-form';
@@ -126,5 +126,74 @@ describe('RsvpForm', () => {
     expect(
       (screen.getByLabelText('How many people, including you?') as HTMLInputElement).value,
     ).toBe('3');
+  });
+
+  test('REQ-69: a form-level rejection is announced with an alert icon', async () => {
+    const submit = vi.fn().mockResolvedValue({
+      ok: false,
+      code: 'VALIDATION_ERROR',
+      fieldErrors: { form: 'invalidFormat' },
+    });
+    renderWithIntl(<RsvpForm submit={submit} />);
+    fillGoing('Maria', 3);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Send RSVP' }));
+
+    const alert = await screen.findByRole('alert');
+    expect(alert.textContent).toBe("We couldn't send your RSVP. Please try again.");
+    expect(alert.classList.contains('alert')).toBe(true);
+    expect(alert.querySelector('svg[aria-hidden="true"]')).not.toBeNull();
+    expect(screen.queryByText('Please fix the highlighted fields.')).toBeNull();
+  });
+
+  test('REQ-84: Going / Not going is a radio group named "Your answer"', () => {
+    renderWithIntl(<RsvpForm submit={vi.fn()} />);
+
+    const group = screen.getByRole('radiogroup', { name: 'Your answer' });
+    expect(within(group).getAllByRole('radio')).toHaveLength(2);
+    expect((screen.getByLabelText('Going') as HTMLInputElement).checked).toBe(true);
+  });
+
+  test('REQ-84: the stepper changes the party size and disappears when Not going', () => {
+    renderWithIntl(<RsvpForm submit={vi.fn()} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'One more person' }));
+    expect(
+      (screen.getByLabelText('How many people, including you?') as HTMLInputElement).value,
+    ).toBe('2');
+
+    fireEvent.click(screen.getByLabelText('Not going'));
+    expect(screen.queryByRole('button', { name: 'One more person' })).toBeNull();
+  });
+
+  test('REQ-69: an empty name is announced as an alert', async () => {
+    renderWithIntl(<RsvpForm submit={vi.fn()} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Send RSVP' }));
+
+    const alert = await screen.findByRole('alert');
+    expect(alert.textContent).toBe('This field is required.');
+    expect(screen.getByLabelText('Your name').getAttribute('aria-describedby')).toBe(
+      'rsvp-name-hint rsvp-name-error',
+    );
+  });
+
+  test('REQ-84: the name hint is linked to the input', () => {
+    const { container } = renderWithIntl(<RsvpForm submit={vi.fn()} />);
+
+    expect(screen.getByLabelText('Your name').getAttribute('aria-describedby')).toBe(
+      'rsvp-name-hint',
+    );
+    expect(container.querySelector('#rsvp-name-hint')?.textContent).toBe(
+      'The organizer sees this name on the guest list.',
+    );
+  });
+
+  test('REQ-78: every icon in the form is hidden from assistive technology', () => {
+    const { container } = renderWithIntl(<RsvpForm submit={vi.fn()} />);
+
+    const icons = container.querySelectorAll('svg');
+    expect(icons.length).toBeGreaterThan(0);
+    expect(container.querySelectorAll('svg:not([aria-hidden="true"])')).toHaveLength(0);
   });
 });

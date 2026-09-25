@@ -10,9 +10,13 @@ export default async function NewEventPage({ params }: { params: Promise<{ local
   await requireUserId(`/${locale}/events/new`);
   const t = await getTranslations();
   return (
-    <main>
-      <h1>{t('eventForm.titleNew')}</h1>
-      <EventForm submit={createEventAction} aiFill={parseEventTextAction} />
+    <main className="page">
+      <div className="col-640">
+        <div className="page-head">
+          <h1 className="h2">{t('eventForm.titleNew')}</h1>
+        </div>
+        <EventForm submit={createEventAction} aiFill={parseEventTextAction} />
+      </div>
     </main>
   );
 }

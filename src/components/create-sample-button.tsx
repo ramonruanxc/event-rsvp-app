@@ -1,9 +1,11 @@
 'use client';
 
+import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from '@/i18n/navigation';
 import { detectBrowserTimeZone } from '@/lib/browser-timezone';
 import type { ActionResult } from '@/lib/action-result';
+import { Button } from '@/components/ui/button';
 
 /** Props of {@link CreateSampleButton}. */
 export interface CreateSampleButtonProps {
@@ -14,13 +16,21 @@ export interface CreateSampleButtonProps {
 export function CreateSampleButton({ create }: CreateSampleButtonProps) {
   const t = useTranslations();
   const router = useRouter();
+  const [pending, setPending] = useState(false);
 
   async function handleClick() {
+    setPending(true);
     const result = await create(detectBrowserTimeZone());
     if (result.ok) {
       router.push(`/e/${result.data.slug}`);
+    } else {
+      setPending(false);
     }
   }
 
-  return <button onClick={handleClick}>{t('dashboard.createSample')}</button>;
+  return (
+    <Button loading={pending} onClick={handleClick}>
+      {t('dashboard.createSample')}
+    </Button>
+  );
 }

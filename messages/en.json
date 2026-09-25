@@ -8,13 +8,18 @@
     "language": "Language",
     "myEvents": "My events",
     "signIn": "Sign in with Google",
-    "signOut": "Sign out"
+    "signInShort": "Sign in",
+    "signOut": "Sign out",
+    "darkTheme": "Dark theme",
+    "accountMenu": "Account menu",
+    "signedInAs": "Signed in as {name}"
   },
   "languages": { "en": "English", "fr": "Français", "pt-BR": "Português (Brasil)" },
   "home": {
     "headline": "Plan an event. Share one link. See who's coming.",
     "explanation": "Create an event in seconds — describe it in your own words and let AI fill the form. Guests RSVP from one link without an account, and you see the guest list and totals in one place.",
-    "demoLink": "See a demo event"
+    "demoLink": "See the demo event",
+    "previewCaption": "What a guest sees after tapping your link. One page, one answer."
   },
   "dashboard": {
     "title": "My events",
@@ -24,10 +29,19 @@
     "createSample": "Create sample event",
     "empty": "You have no events yet.",
     "noUpcoming": "No upcoming events.",
-    "noPast": "No past events."
+    "noPast": "No past events.",
+    "stepsIntro": "Three steps, about a minute:",
+    "step1Title": "Create an event",
+    "step1Text": "Fill the form, or describe the event in a sentence and let AI fill it.",
+    "step2Title": "Share one link",
+    "step2Text": "Send the invite link in any chat. Guests don't need an account.",
+    "step3Title": "Watch replies come in",
+    "step3Text": "See who's going and how many people, in one list.",
+    "sampleHint": "The sample comes with five fictional guests so you can look around. Delete it when you're done.",
+    "noReplies": "No replies yet"
   },
   "totals": {
-    "summary": "Going: {going} · Declined: {declined} · People: {people}",
+    "summary": "{going} going · {declined} declined · {people, plural, one {# person} other {# people}}",
     "peopleGoing": "{count, plural, one {# person going} other {# people going}}"
   },
   "eventForm": {
@@ -40,7 +54,11 @@
     "timezone": "Timezone",
     "location": "Location (optional)",
     "save": "Save event",
-    "saving": "Saving…"
+    "saving": "Saving…",
+    "groupWhat": "What",
+    "groupWhen": "When",
+    "groupWhere": "Where",
+    "timezoneHint": "Guests see the date and time in this timezone."
   },
   "ai": {
     "label": "Describe your event",
@@ -48,7 +66,9 @@
     "fill": "Fill with AI",
     "filling": "Filling…",
     "missingHint": "Not found in your text — please fill it.",
-    "notAnEvent": "Couldn't find event details in that text."
+    "notAnEvent": "Couldn't find event details in that text.",
+    "filled": "{count, plural, one {Filled # field} other {Filled # fields}} · check them below",
+    "needed": "Needed"
   },
   "event": {
     "edit": "Edit",
@@ -64,7 +84,20 @@
     "colResponse": "Response",
     "colPeople": "People",
     "colUpdated": "Last updated",
-    "remove": "Remove"
+    "remove": "Remove",
+    "endedPill": "Ended",
+    "endedHint": "Replies are closed, so answers can no longer be sent or changed.",
+    "inviteLink": "Invite link",
+    "inviteHint": "Anyone with this link can reply. Guests don't need an account.",
+    "copied": "Copied",
+    "deleteConfirmAction": "Delete",
+    "keep": "Keep",
+    "removeNamed": "Remove {name}",
+    "removeConfirm": "Remove {name} from the guest list?",
+    "declined": "Declined",
+    "actions": "Actions",
+    "updatedPrefix": "Updated",
+    "peopleSuffix": "{count, plural, one {person} other {people}}"
   },
   "rsvp": {
     "title": "Will you come?",
@@ -73,11 +106,17 @@
     "notGoing": "Not going",
     "partySize": "How many people, including you?",
     "submit": "Send RSVP",
-    "youreGoing": "You're going ({count})",
+    "youreGoing": "You're going · {count, plural, one {# person} other {# people}}",
     "youreNotGoing": "You're not going",
     "change": "Change",
-    "cancel": "Cancel",
-    "formRejected": "We couldn't send your RSVP. Please try again."
+    "cancel": "Cancel RSVP",
+    "formRejected": "We couldn't send your RSVP. Please try again.",
+    "nameHint": "The organizer sees this name on the guest list.",
+    "answer": "Your answer",
+    "partySizeHint": "Up to 10.",
+    "decrease": "One less person",
+    "increase": "One more person",
+    "savedAs": "Saved as {name}. You can change your answer from this browser until the event starts."
   },
   "sample": {
     "name": "Sample: Friday get-together",

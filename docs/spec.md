@@ -40,6 +40,9 @@ Decided by the human on 2026-09-24 and recorded in `docs/business-rules.md`.
   reversible via env) → only `anthropic/claude-sonnet-5` passes the eval gate, so the code defaults become
   `OPENROUTER_MODEL=anthropic/claude-sonnet-5` and `AI_MODEL=claude-sonnet-5`; production needs no model variable.
   Applied in REQ-87, REQ-93 (TASK-218).
+- **DOC-Q4** (decided 2026-09-25) — Does the Not going panel also get a "Cancel RSVP" action, per amended BR-35's
+  general wording? → **No.** The Not going panel shows only "Change" (a "Cancel RSVP" on an already "Not going"
+  RSVP would change nothing) → BR-35 (amended again). Confirms the default already applied in REQ-31, REQ-84.
 
 ---
 
@@ -690,7 +693,7 @@ TASK-172, TASK-180 and TASK-181.
 
 ### REQ-43 — AI output is schema-constrained and validated field by field
 **Rules:** BR-59, BR-70
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - `aiRawOutputSchema` (zod) is `{ isEvent: boolean, name, description, date, time, timezone, location: string | null }`
   and is passed to the Anthropic API as the structured output format
@@ -704,7 +707,7 @@ TASK-172, TASK-180 and TASK-181.
 
 ### REQ-44 — Prompt: delimited input, organizer-local reference time, languages
 **Rules:** BR-55, BR-62, BR-63, BR-69
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - `buildReferenceLine(new Date("2026-09-25T02:00:00.000Z"), "America/Fortaleza")` →
   `"Today is Thursday 2026-09-24 23:00, America/Fortaleza."` (organizer's local day, not the UTC day)
@@ -720,7 +723,7 @@ TASK-172, TASK-180 and TASK-181.
 
 ### REQ-45 — AI fill result: fields, missing list and not-an-event flag
 **Rules:** BR-54, BR-55, BR-56, BR-59, BR-96
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - Given a fake model client returning `{ isEvent: true, name: "Team dinner", description: "Dinner with the team.",
   date: "2026-10-02", time: "19:00", timezone: null, location: "Mario's" }` and form timezone `"America/New_York"`
@@ -738,7 +741,7 @@ TASK-172, TASK-180 and TASK-181.
 
 ### REQ-46 — Timezone resolution priority
 **Rules:** BR-60, BR-61
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - Model timezone `"America/New_York"` (explicit in text), form `"America/Sao_Paulo"` → `timezone:
   "America/New_York"`, `timezoneFromText: true` (the UI then sets the form field to it)
@@ -748,7 +751,7 @@ TASK-172, TASK-180 and TASK-181.
 
 ### REQ-47 — AI timeout and errors
 **Rules:** BR-64, BR-65
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - Given a fake model client that never resolves and Vitest fake timers
 - `AiEventParser.parse(...)` rejects with `AiUnavailableError` once 10 000 ms have elapsed (not before 9 999 ms)
@@ -758,7 +761,7 @@ TASK-172, TASK-180 and TASK-181.
 
 ### REQ-48 — AI daily limit: 20 calls per user per UTC day
 **Rules:** BR-68, BR-89
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - Given user `"u1"`, now = `2026-09-24T23:59:00.000Z`, and a fake parser
 - Calls 1–20 of `ParseEventTextService.execute({ userId: "u1", text, timezone })` reach the parser
@@ -770,7 +773,7 @@ TASK-172, TASK-180 and TASK-181.
 
 ### REQ-49 — AI fill requires sign-in
 **Rules:** BR-67
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - `parseEventTextAction` without a session → `{ ok: false, code: "UNAUTHENTICATED" }` and the service is not called
 - The "Fill with AI" control exists only on `/[locale]/events/new`, which requires sign-in (REQ-02)
@@ -778,7 +781,7 @@ TASK-172, TASK-180 and TASK-181.
 
 ### REQ-50 — The AI never saves the event
 **Rules:** BR-58
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - `ParseEventTextService` and `AiEventParser` constructors take no `EventRepository` (checked by their types)
 - Integration: after `parseEventTextAction`-equivalent service call with a fake parser, `prisma.event.count()` is
@@ -788,7 +791,7 @@ TASK-172, TASK-180 and TASK-181.
 
 ### REQ-51 — "Fill with AI" UI
 **Rules:** BR-53, BR-57, BR-61, BR-65, BR-66, BR-89, BR-96
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - The new-event page shows a textarea "Describe your event" and a button "Fill with AI" above the manual form
 - Component: given the action resolves `{ ok: true, data: { fields: {…, timezone: "America/New_York"},
@@ -842,7 +845,7 @@ TASK-172, TASK-180 and TASK-181.
 
 ### REQ-55 — Fixed-window rate limiter
 **Rules:** BR-68, BR-79
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - `windowStart(new Date("2026-09-24T15:07:30.000Z"), 600_000)` → `2026-09-24T15:00:00.000Z`;
   `windowStart(new Date("2026-09-24T23:59:59.000Z"), 86_400_000)` → `2026-09-24T00:00:00.000Z` (UTC midnight)
@@ -937,16 +940,13 @@ switch and the logo/favicon.
 invite link" kept (BR-51); the header language select is exempt from the visible label and is named by `aria-label`
 "Language" (BR-105 amended). "You're going · N people" pluralizes N like `totals.peopleGoing` ("1 person").
 
-**Pending DOC question (DOC-Q4), default applied in this spec:** amended BR-35 says both views come "each with
-'Change' and 'Cancel RSVP' actions", while DESIGN.md (which DOC-Q3.1 says to follow) gives the Not going panel only
-"Change", and "Cancel RSVP" on a Not going RSVP would not change anything (BR-36). **Default: DESIGN.md** — the Not
-going panel shows only "Change" (today's behavior; REQ-31, REQ-84). If the human picks the other option, TASK-176
-renders the "Cancel RSVP" button in the Not going notice too and the `REQ-31: a guest who is not going…` test flips
-its last assertion; no other change.
+**Resolved DOC-Q4** (2026-09-25, see "Resolved DOC questions" at the top): the Not going panel shows only "Change"
+(DESIGN.md, BR-35 amended again) — "Cancel RSVP" on a Not going RSVP would change nothing (BR-36). This confirms
+the default already applied in this spec (REQ-31, REQ-84, TASK-176).
 
 ### REQ-62 — Dark theme by default; the choice is stored in a `theme` cookie
 **Rules:** BR-97, BR-99
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - `parseTheme(undefined)`, `parseTheme('')`, `parseTheme('purple')` and `parseTheme('LIGHT')` → `'dark'`;
   `parseTheme('light')` → `'light'`; `parseTheme('dark')` → `'dark'`
@@ -957,7 +957,7 @@ its last assertion; no other change.
 
 ### REQ-63 — The server renders the stored theme (no flash)
 **Rules:** BR-100
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - Given the cookie `theme=light`, the HTML the server returns for `/en` (response body, before any script runs)
   contains the `<html` start tag with `data-theme="light"`; with `theme=purple` it contains `data-theme="dark"`
@@ -967,7 +967,7 @@ its last assertion; no other change.
 
 ### REQ-64 — Theme toggle in the header of every page
 **Rules:** BR-98, BR-99
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - Home, event page (guest and owner), dashboard and new-event page each have, inside the `banner` landmark, a button
   named "Dark theme" (`nav.darkTheme`) with `aria-pressed="true"` in the dark theme and `"false"` in the light theme;
@@ -979,7 +979,7 @@ its last assertion; no other change.
 
 ### REQ-65 — Design tokens meet AA contrast in both themes
 **Rules:** BR-101, BR-102
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - `src/app/globals.css` defines the DESIGN.md tokens with DESIGN.md's exact OKLCH values under `:root,
   [data-theme='dark']` and under `[data-theme='light']`; `--on-danger` is `var(--bg)` in dark and `var(--on-primary)`
@@ -1001,7 +1001,7 @@ its last assertion; no other change.
 
 ### REQ-66 — Visible focus indicator
 **Rules:** BR-103
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - Every focusable control shows, when focused from the keyboard, `outline: 2px solid var(--link)` (offset 2 px;
   −2 px inside the stepper and the dashboard event rows). The segmented control's radio inputs are transparent; its
@@ -1013,7 +1013,7 @@ its last assertion; no other change.
 
 ### REQ-67 — Every action works from the keyboard
 **Rules:** BR-104
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - A guest answers with Tab, arrow keys and Enter only: types "Kim" in "Your name", ArrowRight / ArrowLeft move the
   answer between "Not going" and "Going", Enter on "One more person" makes the party size 2, Enter on "Send RSVP" →
@@ -1026,7 +1026,7 @@ its last assertion; no other change.
 
 ### REQ-68 — Every form input has a visible label
 **Rules:** BR-105
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - Every `input` (except `type="hidden"`), `select` and `textarea` inside `main` that is not inside an
   `aria-hidden="true"` subtree has a `<label>` (by `for` or by wrapping) with a non-zero rendered size and without the
@@ -1040,7 +1040,7 @@ its last assertion; no other change.
 
 ### REQ-69 — Form errors are announced
 **Rules:** BR-106
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - A field error renders `<p id="<field id>-error" role="alert">` with an alert icon and the translated message; the
   input has `aria-invalid="true"` and its `aria-describedby` includes the error id
@@ -1055,7 +1055,7 @@ its last assertion; no other change.
 
 ### REQ-70 — Status is never conveyed by color alone
 **Rules:** BR-107
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - `StatusPill`: `going` = check icon + label, `declined` = x icon + label, `ended` = clock icon + label; the owner's
   guest list shows "Going" / "Declined", event pages show "Ended" (`event.endedPill`)
@@ -1069,7 +1069,7 @@ its last assertion; no other change.
 
 ### REQ-71 — Interactive targets are large enough
 **Rules:** BR-108, BR-109
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - `buttonClass(variant, size)` heights: `sm` 36 px, `md` 40 px, `lg` 44 px; icon buttons, the language select and
   the account menu summary are 40 px high
@@ -1081,7 +1081,7 @@ its last assertion; no other change.
 
 ### REQ-72 — Destructive actions are confirmed inline
 **Rules:** BR-09, BR-41, BR-110, BR-111
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - `InlineConfirm` closed: one button (the trigger). Activating it replaces the trigger in place with a
   `role="group"` element labelled by the question, containing the confirm button (danger) and "Keep" (secondary);
@@ -1096,7 +1096,7 @@ its last assertion; no other change.
 
 ### REQ-73 — Guest event page works at 375 px without horizontal scrolling
 **Rules:** BR-112
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - Given a 375×740 viewport and an open event named
   `Supercalifragilisticexpialidociousneighbourhoodgettogether2026` with location
@@ -1106,7 +1106,7 @@ its last assertion; no other change.
 
 ### REQ-74 — Reduced motion keeps only opacity changes
 **Rules:** BR-113
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - Without a reduced-motion preference: a `.btn` element's computed `transition-property` is
   `background-color, border-color, color, transform`, and a `.confirm` element's `reveal` animation keyframes
@@ -1117,7 +1117,7 @@ its last assertion; no other change.
 
 ### REQ-75 — The header shows the logo on every page
 **Rules:** BR-114
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - `LogoMark` renders an `svg` 24×24 with `viewBox="0 0 24 24"`, `aria-hidden="true"`, `data-logo-mark`, the calendar
   filled `#3630B0` and the check stroked `#3BDBD1`
@@ -1127,7 +1127,7 @@ its last assertion; no other change.
 
 ### REQ-76 — The favicon is the logo
 **Rules:** BR-115
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - `src/app/icon.svg` is the logo (contains `#3630B0` and `#3BDBD1`); `src/app/favicon.ico` no longer exists
 - E2E: `/en` has exactly one `link[rel="icon"][type="image/svg+xml"]`, its `href` starts with `/icon.svg`, fetching
@@ -1137,7 +1137,7 @@ its last assertion; no other change.
 
 ### REQ-77 — Layouts hold with French strings
 **Rules:** BR-116
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - At 375 px and at 1280 px wide, on `/fr` (signed out), the French guest event page (form and confirmation), the
   French owner event page, `/fr/dashboard` and `/fr/events/new`: `document.documentElement.scrollWidth` ≤ the
@@ -1147,7 +1147,7 @@ its last assertion; no other change.
 
 ### REQ-78 — Decorative icons are hidden from assistive technology
 **Rules:** BR-117
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - `Icon` renders its `svg` with `aria-hidden="true"` and `focusable="false"`; the logo mark, the Google mark and the
   check badge are hidden too
@@ -1157,7 +1157,7 @@ its last assertion; no other change.
 
 ### REQ-79 — The copy-link confirmation is announced
 **Rules:** BR-118
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - `CopyInviteLinkButton` always renders `<p class="sr-only" aria-live="polite">`: empty before copying, "Link copied"
   (`event.linkCopied`) after a successful copy, empty again when the button returns to "Copy invite link" (after
@@ -1166,7 +1166,7 @@ its last assertion; no other change.
 
 ### REQ-80 — Header: language, theme and account
 **Rules:** BR-01, BR-75, BR-108
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - The `banner` holds, left, the link "Event RSVP" (logo + wordmark, REQ-75); right, in this order: the language select
   (globe icon, current language name, `aria-label="Language"` and no `<label>` element — BR-105 exception, REQ-68;
@@ -1182,7 +1182,7 @@ its last assertion; no other change.
 
 ### REQ-81 — Home page
 **Rules:** BR-52
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - One column below 768 px, two from 768 px: headline (display style), explanation, a primary "Sign in with Google"
   link with the Google mark (or "My events" when signed in) and a secondary "See the demo event" link to
@@ -1192,7 +1192,7 @@ its last assertion; no other change.
 
 ### REQ-82 — Dashboard
 **Rules:** BR-46, BR-47, BR-48, BR-49
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - Heading "My events"; when the organizer has at least one event, a primary "Create event" link (calendar-plus icon)
   in the page head
@@ -1211,7 +1211,7 @@ its last assertion; no other change.
 
 ### REQ-83 — Event form and "Fill with AI" panel
 **Rules:** BR-20, BR-53, BR-57, BR-65, BR-66, BR-89, BR-96
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - Fields are grouped in fieldsets named by their legends: "What" (Name, Description), "When" (Date and Time side by
   side from 480 px, Timezone with the hint "Guests see the date and time in this timezone."), "Where" (Location
@@ -1226,7 +1226,7 @@ its last assertion; no other change.
 
 ### REQ-84 — Guest RSVP controls and confirmation
 **Rules:** BR-23, BR-25, BR-26, BR-27, BR-33, BR-35, BR-36
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - RSVP form: heading "Will you come?"; "Your name" with the hint "The organizer sees this name on the guest list."
   (linked by `aria-describedby`); a radio group named "Your answer" with "Going" (check icon) and "Not going"
@@ -1250,7 +1250,7 @@ its last assertion; no other change.
 
 ### REQ-85 — Owner event page
 **Rules:** BR-42, BR-43, BR-51, BR-91, BR-94
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - Owner tools under the event head: a panel with the read-only input labelled "Invite link" whose value is
   `buildInviteUrl(window.location.origin, slug)`, the hint "Anyone with this link can reply. Guests don't need an
@@ -1504,7 +1504,7 @@ These requirements are code in the repository and are TDD'd like product code. T
 
 ### REQ-91 — AI eval runner
 **Rules:** none (tooling)
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - `npm run eval -- --model claude-haiku-4-5` loads `evals/event-parser/cases.json`, runs every case through
   `AiEventParser` (real Anthropic client, given model), scores, prints a summary, writes
@@ -1527,7 +1527,7 @@ These requirements are code in the repository and are TDD'd like product code. T
 
 ### REQ-92 — Eval cases dataset
 **Rules:** none (tooling)
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - `evals/event-parser/cases.json` parses with `evalCaseSchema` (zod) — each case: `{ id, category, input: { text,
   timezone: string | null, now: ISO string }, expected: {...matchers} }`
