@@ -230,8 +230,12 @@ BR-10's cascade).
 ### Guest RSVP editing
 
 #### BR-35 — Returning guest sees their RSVP status
-**Rule:** A guest returning to the event page in the same browser (holding a valid edit-token cookie for that event) sees "You're going (N) · Change · Cancel" instead of a blank RSVP form.
-**Source:** design brief §2 "RSVPs"
+**Rule:** A guest returning to the event page in the same browser (holding a valid edit-token cookie for that
+event) sees, instead of a blank RSVP form: "You're going · N people" (where N is their party size) when their
+response is "Going", or "You're not going" when their response is "Not going" — each with "Change" and
+"Cancel RSVP" actions.
+**Source:** design brief §2 "RSVPs"; DESIGN.md; approved mockup
+**Amended:** 2026-09-24 — human decision (DOC-Q3.1)
 
 #### BR-36 — Cancel sets response to Not going, does not delete
 **Rule:** Using "Cancel" on an existing RSVP sets its response to "Not going" rather than deleting the RSVP record.
@@ -567,7 +571,12 @@ receives keyboard focus.
 
 #### BR-105 — Every input has a visible label
 **Rule:** Every form input displays a visible text label; a placeholder is never the only label for an input.
+Exception: the header's language select is not required to show a visible text label — its visible content (a
+globe icon plus the current language name, or the globe icon alone below a 480 px viewport width) together with
+an accessible name supplied via `aria-label` satisfies this rule for that control. Every input inside the main
+content area of any page keeps a visible label with no exception.
 **Source:** PRODUCT.md §"Accessibility & Inclusion"; DESIGN.md §"Components"
+**Amended:** 2026-09-24 — human decision (DOC-Q3.3)
 
 #### BR-106 — Form errors are announced to assistive technology
 **Rule:** When a form submission produces a validation or server error, the error message is exposed to
@@ -684,3 +693,13 @@ None open.
 
 - DOC-Q1 (edit-token cookie belonging to a different RSVP of the same event) → BR-37, BR-38 (amended)
 - DOC-Q2 (AI response to text that does not describe an event) → BR-55 (amended), BR-96 (new)
+
+**Resolved** — decided by the human (Ramon) on 2026-09-24, from `spec-writer`'s DOC failure report (Phase 6):
+
+- DOC-Q3.1 (returning-guest line wording) → BR-35 (amended): follow DESIGN.md / the approved mockup —
+  "You're going · N people" / "You're not going", with "Change" and "Cancel RSVP" actions.
+- DOC-Q3.2 ("Copy invite link" vs DESIGN.md's "Copy link") → BR-51 kept as is, no change; the BR wording is
+  authoritative over DESIGN.md's "Copy link" for this action's label.
+- DOC-Q3.3 (visible label on every input vs the header language select) → BR-105 (amended): documented
+  exception for the header language select (globe icon + current language name, globe only below 480 px, plus
+  `aria-label`); every input in the main content keeps a visible label.
