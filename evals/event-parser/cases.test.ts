@@ -47,8 +47,14 @@ describe('hard eval dataset (REQ-106)', () => {
     for (const tag of HARD_TAGS) {
       const tagged = cases.filter((c) => c.tag === tag);
       expect(tagged.length, tag).toBeGreaterThanOrEqual(2);
-      expect(tagged.some((c) => c.holdout === true), `${tag} hold-out`).toBe(true);
-      expect(tagged.some((c) => c.holdout !== true), `${tag} tuning`).toBe(true);
+      expect(
+        tagged.some((c) => c.holdout === true),
+        `${tag} hold-out`,
+      ).toBe(true);
+      expect(
+        tagged.some((c) => c.holdout !== true),
+        `${tag} tuning`,
+      ).toBe(true);
     }
   });
 
