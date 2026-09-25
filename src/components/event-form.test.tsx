@@ -171,6 +171,41 @@ describe('EventForm — Fill with AI (REQ-51)', () => {
     expect(aiFill).toHaveBeenCalledWith("Team dinner next Friday 7pm at Mario's", 'UTC');
   });
 
+  test('REQ-83: a successful fill reports how many fields were filled', async () => {
+    const aiFill = vi.fn().mockResolvedValue({ ok: true, data: filled });
+    const { container } = renderWithIntl(<EventForm submit={vi.fn()} aiFill={aiFill} />);
+
+    describeAndFill(container);
+
+    await waitFor(() =>
+      expect(screen.getByRole('status').textContent).toBe('Filled 5 fields · check them below'),
+    );
+  });
+
+  test('REQ-70: a missing field shows "Needed" next to its label', async () => {
+    const aiFill = vi.fn().mockResolvedValue({ ok: true, data: filled });
+    const { container } = renderWithIntl(<EventForm submit={vi.fn()} aiFill={aiFill} />);
+
+    describeAndFill(container);
+
+    await waitFor(() => expect(screen.getAllByText('Needed')).toHaveLength(1));
+    expect(container.querySelector('.field.is-missing #location')).not.toBeNull();
+  });
+
+  test('REQ-83: while filling, Fill with AI keeps its label and is busy', async () => {
+    const aiFill = vi.fn(() => new Promise<never>(() => {}));
+    const { container } = renderWithIntl(<EventForm submit={vi.fn()} aiFill={aiFill} />);
+
+    describeAndFill(container);
+
+    await waitFor(() => {
+      const button = screen.getByRole('button', { name: 'Fill with AI' }) as HTMLButtonElement;
+      expect(button.getAttribute('aria-busy')).toBe('true');
+      expect(button.disabled).toBe(true);
+    });
+    expect(screen.getByRole('status').textContent).toBe('Filling…');
+  });
+
   test('REQ-51: an AI failure shows the fallback message and keeps the typed values', async () => {
     const aiFill = vi.fn().mockResolvedValue({ ok: false, code: 'AI_UNAVAILABLE' });
     const { container } = renderWithIntl(<EventForm submit={vi.fn()} aiFill={aiFill} />);
