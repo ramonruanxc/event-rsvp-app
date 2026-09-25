@@ -7109,7 +7109,9 @@ Order: TASK-220 → TASK-238 in document order. Only TASK-237 calls a real API.
 2. **No real calls in tests.** The OpenRouter client gets a fake `fetch`; the runner test (TASK-234) uses the local
    mock `e2e/mock-openrouter.mjs` with the dummy key `test-key`. Only TASK-237 uses the real key, through `npm run eval`.
 3. **Secrets.** Never open, print, `cat`, `grep` or edit `.env.local`; never print a key; never pass `--rotate` to
-   `npm run openrouter:key`; always pass `--limit 3` (the key's limit never changes in this phase).
+   `npm run openrouter:key`; always pass `--limit 6` — the key's limit is USD 6 (raised by the human on 2026-09-25,
+   "Resolved — A4" item 4 in `docs/spec.md`); any other value would change it, because the script updates a
+   differing limit (REQ-98).
 4. **Hold-out (REQ-104).** No task of this phase changes `src/lib/ai/prompt.ts`. After TASK-235 no agent edits a case
    with `"holdout": true`, except to fix a derivation error, recorded in `docs/pipeline/failures.md`.
 5. **Traceability.** Test titles are plain `it('REQ-xx: …')`; loop inside one test, never `it.each`.
@@ -8277,7 +8279,7 @@ to its own test; it does not hide the cases from a reader.
 **TDD exception:** docs
 
 ### TASK-237 — Evaluate four models with the Phase 8 gate
-**Phase:** 8 · **Requirements:** REQ-107, REQ-106, REQ-105, REQ-103 · **Status:** todo · **Revision:** 1
+**Phase:** 8 · **Requirements:** REQ-107, REQ-106, REQ-105, REQ-103 · **Status:** todo · **Revision:** 2
 **Files:** docs/evals/phase-8/<date>-openrouter-<model>.md (one per model run), docs/evals/README.md, README.md
 **Preconditions:** TASK-220 … TASK-236 are committed on `phase-8/eval-hardening`; `npm run test:unit` passes.
 **Runtime:** a full run is 60 cases × 3 runs = 180 calls of up to 10 s each — up to 30 minutes per model. Start each
@@ -8297,15 +8299,17 @@ USD 0.1283 — + 150 answer tokens + about 250 reasoning tokens at `low`, a gues
 gpt-4o-mini 126 000 × 0.15 + 27 000 × 0.60 → ≈ USD 0.04; Gemini 126 000 × 0.75 + 72 000 × 3.75 → ≈ USD 0.36;
 Haiku 126 000 × 1.00 + 72 000 × 5.00 → ≈ USD 0.49; Sonnet 126 000 × 2.00 + 72 000 × 10.00 → ≈ USD 0.97.
 **Total ≈ USD 1.86** (≈ USD 1.2 if the models reason little; up to ≈ USD 4 if the Claude models spent their whole
-1 024-token thinking budget on every call). The key's USD 3 limit is a hard stop; the guard below stops earlier.
-**Budget guard** (Phase 8 rule 3 applies — never `--rotate`, always `--limit 3`, never open `.env.local`):
-- `U` = the `usage` printed by `npm run openrouter:key -- --limit 3` (expected action `reused`). Exit 2 → stop,
-  `ENV_FAILURE` ("set the system environment variable `OPENROUTER_MANAGMENT_KEY` and restart the shell"); exit 1 →
-  stop, `ENV_FAILURE` with the printed message (do not rotate).
-- Before each full run, read `U`. Run the model only if `U + E ≤ 2.50`, where `E` = 0.04 (gpt-4o-mini), 0.40
+1 024-token thinking budget on every call). The key's USD 6 limit is a hard stop; the guard below stops earlier, at
+USD 5.50 (limit − 0.50). Key usage before this task was about USD 0.16.
+**Budget guard** (Phase 8 rule 3 applies — never `--rotate`, always `--limit 6`, never open `.env.local`):
+- `U` = the `usage` printed by `npm run openrouter:key -- --limit 6` (expected action `reused`; the printed line is
+  `limit: 6 USD` — any other limit or action `updated` → stop, `ENV_FAILURE` "the OpenRouter key limit is not USD 6").
+  Exit 2 → stop, `ENV_FAILURE` ("set the system environment variable `OPENROUTER_MANAGMENT_KEY` and restart the
+  shell"); exit 1 → stop, `ENV_FAILURE` with the printed message (do not rotate).
+- Before each full run, read `U`. Run the model only if `U + E ≤ 5.50`, where `E` = 0.04 (gpt-4o-mini), 0.40
   (Gemini), 0.50 (Haiku), and for Sonnet the larger of 0.97 and twice the measured cost of the Haiku run (Sonnet's
   prices are exactly twice Haiku's). Otherwise skip that model and every later one, and go to step 4.
-- Any `U > 2.50` → stop the runs and go to step 4.
+- Any `U > 5.50` → stop the runs and go to step 4.
 **Steps:**
 1. Smoke test (a few cents in total): create the file `test-results/eval-smoke/smoke.json` (ignored by git) holding a
    JSON array with only the case `explicit-01` copied from `evals/event-parser/cases.json`. For each of the four
@@ -8335,7 +8339,7 @@ Haiku 126 000 × 1.00 + 72 000 × 5.00 → ≈ USD 0.49; Sonnet 126 000 × 2.00 
    percentage), Availability (percentage), p95 latency (e.g. `4.2 s`), Gate (`PASS`/`FAIL`), measured cost with four
    decimals. A skipped model: Overall `not run (budget guard)` and `—` in every other column. Then the line
    `Estimated cost of the round: ≈ USD 1.86. Measured: USD <sum of the measured costs> (key usage USD <first U> →
-   USD <last U> of the USD 3 limit).`
+   USD <last U> of the USD 6 limit).`
    Then one paragraph starting `**Production choice (Phase 8):**` — the model with the lowest measured cost among
    those whose Gate is PASS, with its reasoning effort — and, for every cheaper model, the failed gate checks from its
    report (e.g. `google/gemini-3.8-flash fails every category ≥ 80% (relative 75%)`). End the paragraph with exactly
@@ -8369,6 +8373,9 @@ Haiku 126 000 × 1.00 + 72 000 × 5.00 → ≈ USD 0.49; Sonnet 126 000 × 2.00 
 **Done when:** the committed reports exist under `docs/evals/phase-8/`; `git status` shows no `.env*` and no
 `test-results/` file staged; no key appears in any committed file.
 **TDD exception:** docs — generated reports
+**Changelog:**
+- Rev 2 — human decision (key limit raised to USD 6), not a failure revision: guard threshold USD 5.50 (limit − 0.50),
+  `--limit 6` everywhere, README cost line says "of the USD 6 limit".
 
 ### TASK-238 — The code default model follows the Phase 8 gate
 **Phase:** 8 · **Requirements:** REQ-107, REQ-87 · **Status:** todo · **Revision:** 1

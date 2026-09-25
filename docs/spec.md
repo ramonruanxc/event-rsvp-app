@@ -68,6 +68,12 @@ Decided by the human on 2026-09-24 and recorded in `docs/business-rules.md`.
        `UTC+2` gives `Etc/GMT-2`, the only IANA zone equal to that offset on every date (IANA inverts the sign).
      - A local time inside a daylight-saving gap (2:30am on 2026-03-08 in New York) is extracted as written: the AI
        extracts text, it does not resolve instants.
+  4. **Spec approval and key limit** (human decisions, 2026-09-25): the spec and plan are approved as written,
+     including every item raised for approval — reasoning effort `low` for `anthropic/claude-sonnet-5` in production,
+     `max_tokens` 2048, the hard-case expectations of item 3, Phase 8 results not comparable with Phase 7, reports
+     under `docs/evals/phase-8/`, and TASK-238 stopping to ask in its listed cases. The OpenRouter key's spend limit
+     was raised from USD 3 to **USD 6** (usage then ≈ USD 0.16); the Phase 8 budget guard stops at USD 5.50 (limit −
+     0.50) and every `npm run openrouter:key` call in Phase 8 passes `--limit 6` (TASK-237 Rev 2).
 
 ---
 
@@ -1820,7 +1826,7 @@ These requirements are code in the repository and are TDD'd like product code. T
   reasoning parameter), `google/gemini-3.8-flash`, `anthropic/claude-haiku-4.5` and `anthropic/claude-sonnet-5`
   (effort `low`, the production default) through OpenRouter, writes its reports to `docs/evals/phase-8/` (the Phase 7
   reports of the same date stay untouched), stops before a model whose estimated cost would take the key's usage above
-  USD 2.50, and records the measured cost of each run
+  USD 5.50 (the key's USD 6 spend limit − 0.50), and records the measured cost of each run
 - The production OpenRouter model is the model with the **lowest measured cost** among those that pass the Phase 8
   gate; the code default of `OPENROUTER_MODEL` follows it (TASK-238). If only `anthropic/claude-sonnet-5` passes, the
   default stays. If none passes, or the cheapest passing model needs an effort other than `low`, the choice goes to
