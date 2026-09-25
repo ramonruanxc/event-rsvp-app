@@ -16,6 +16,7 @@ Event times are taken from session timestamps. All times in America/Fortaleza (U
 | 5 | Review (interleaved with execution: one reviewer + doc-sync per PR) | — | — |
 | 6 | Ship (final verification, Dependabot triage, time report) | 2026-09-25 10:10:04 | 2026-09-25 10:17:22 |
 | 8 | Post-delivery: harder AI evaluation + reasoning control (amendment A4) | 2026-09-25 10:51:53 | 2026-09-25 13:38:28 |
+| 9 | Post-delivery: containerized one-command local run (amendment A5) | 2026-09-25 14:02:26 | — |
 
 ## Pauses
 
@@ -186,6 +187,8 @@ Pipeline agents working autonomously. Reported separately from human active time
 | 2026-09-25 13:22:10 | HUMAN-07 done by the human: `OPENROUTER_REASONING_EFFORT=omit` set in Vercel production |
 | 2026-09-25 13:38:28 | PR #13 merged by the orchestrator (human pre-authorized); Phase 8 closed |
 | 2026-09-25 13:48:02 | Orchestrator ran README "Run locally" on a fresh clone with an empty Docker database: migrate, seed, demo page, RSVP stored, `.ics` OK; found 3 doc gaps (missing `npm ci`, obsolete `npx auth secret --raw`, no note that organizer sign-in needs Google credentials) — incident #23 |
+| 2026-09-25 14:02:26 | Human approved Phase 9 (amendment A5, decisions 1–5) and pre-approved its spec; human asked to containerize the app after the fresh-clone run |
+| 2026-09-25 14:03:10 | PR #14 merged by the orchestrator (human authorized) |
 
 ## Time report
 
