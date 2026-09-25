@@ -62,7 +62,7 @@ describe('createOpenRouterModelClient', () => {
     expect(init.signal).toBeInstanceOf(AbortSignal);
     expect(JSON.parse(init.body as string)).toEqual({
       model: 'openai/gpt-4o-mini',
-      max_tokens: 1024,
+      max_tokens: 2048,
       messages: [
         { role: 'system', content: 'sys' },
         { role: 'user', content: 'user' },
@@ -72,7 +72,32 @@ describe('createOpenRouterModelClient', () => {
         json_schema: { name: 'event_fields', strict: true, schema: AI_OUTPUT_JSON_SCHEMA },
       },
       provider: { require_parameters: true },
+      reasoning: { effort: 'low' },
     });
+  });
+
+  it('REQ-99: sends the reasoning effort from OPENROUTER_REASONING_EFFORT, read on each call', async () => {
+    const fetchMock = fakeFetch(() => reply(200, completion(JSON.stringify(RAW))));
+    const env: Record<string, string | undefined> = { OPENROUTER_API_KEY: 'test-key' };
+    const c = client(fetchMock, env);
+    const bodyOf = (i: number) =>
+      JSON.parse(callOf(fetchMock, i)[1].body as string) as Record<string, unknown>;
+    const cases: [string | undefined, unknown][] = [
+      [' MEDIUM ', { effort: 'medium' }],
+      ['None', { effort: 'none' }],
+      ['minimal', { effort: 'minimal' }],
+      ['turbo', { effort: 'low' }],
+      [undefined, { effort: 'low' }],
+    ];
+    for (const [i, [value, expected]] of cases.entries()) {
+      env.OPENROUTER_REASONING_EFFORT = value;
+      await c.complete(REQ);
+      expect(bodyOf(i).reasoning, String(value)).toEqual(expected);
+      expect(bodyOf(i).max_tokens).toBe(2048);
+    }
+    env.OPENROUTER_REASONING_EFFORT = 'omit';
+    await c.complete(REQ);
+    expect('reasoning' in bodyOf(cases.length)).toBe(false);
   });
 
   it('REQ-94: returns the parsed JSON content of the first choice', async () => {
