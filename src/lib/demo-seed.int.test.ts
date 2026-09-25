@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
+import { SAMPLE_GUESTS } from '@/domain/sample';
 import { prisma } from '@/lib/prisma';
 import { resetDatabase } from '@/test/db';
 import { DEMO_EMAIL, DEMO_SLUG, seedDemo } from './demo-seed';
@@ -60,5 +61,19 @@ describe('seedDemo', () => {
     });
     expect(refreshed?.startsAt.toISOString()).toBe('2026-10-24T22:00:00.000Z');
     expect(refreshed?.rsvps).toHaveLength(6);
+  });
+
+  it('REQ-110: repeated container starts converge to one demo event with its 5 guests', async () => {
+    const nextDay = new Date('2026-09-25T15:00:00.000Z');
+    for (const start of [now, now, nextDay]) await seedDemo(prisma, start);
+
+    const events = await prisma.event.findMany({ include: { rsvps: true } });
+    expect(events).toHaveLength(1);
+    expect(events[0].slug).toBe(DEMO_SLUG);
+    expect(events[0].startsAt.toISOString()).toBe('2026-10-24T22:00:00.000Z');
+    expect(events[0].rsvps.map((r) => r.name).sort()).toEqual(
+      SAMPLE_GUESTS.map((g) => g.name).sort(),
+    );
+    expect(await prisma.user.count()).toBe(1);
   });
 });

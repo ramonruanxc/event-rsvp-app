@@ -48,6 +48,8 @@ Create an event, share one link, see who's coming.
   anything.
 - **Dark/light theme with WCAG 2.2 AA checks** — dark theme by default, switchable from the header; automated
   contrast and focus-ring checks guard both themes.
+- **One-command local run** — `docker compose up --build` builds and serves the whole app (Postgres + the app,
+  migrated and seeded); Node is not required and no secret is baked into the image.
 
 ### Security and abuse protection
 
@@ -82,11 +84,40 @@ Diagrams: [agent pipeline](docs/diagrams/agent-pipeline.svg), [user flows](docs/
 
 ## Run locally
 
-Prerequisites: Node 22 (npm 10), Docker. Docker runs PostgreSQL only; the app runs on Node.
+### One command (Docker)
+
+Prerequisite: Docker with Compose 2.24 or later. Node is not needed.
+
+```bash
+docker compose up --build
+```
+
+Open `http://localhost:3000`; the seeded demo event is at `http://localhost:3000/en/e/demoPicnic`. If port 3000 is
+taken, pick another host port: `APP_PORT=3100 docker compose up --build` (PowerShell:
+`$env:APP_PORT=3100; docker compose up --build`).
+
+- On every start the app container applies the database migrations and the demo seed (which never duplicates
+  data), then serves the app.
+- `.env.local` is optional. Without it the public side works fully (event page, RSVP, `.ics` download); an
+  `AUTH_SECRET` is generated at each container start, so sign-in sessions last only until the container restarts;
+  "Sign in with Google" needs your own Google OAuth client; "Fill with AI" shows its fallback message and the
+  manual form still works.
+- With a `.env.local` (copy `.env.example`, see below), its values are used: `AUTH_SECRET`, `AUTH_GOOGLE_ID` /
+  `AUTH_GOOGLE_SECRET` (redirect URI `http://localhost:<APP_PORT>/api/auth/callback/google`) and the AI keys. The
+  database URLs always point to the compose database. Secrets are read when the container starts and are never
+  baked into the image.
+- Stop with `Ctrl+C` or `docker compose down`; `docker compose down -v` also deletes the database.
+
+This path (`docker compose up --build`, then the smoke check below) was run end to end by the implementer agent on
+2026-09-25: image build, migrate, seed, and all three smoke checks green on the first attempt.
+
+### Development (Node)
+
+Prerequisites: Node 22 (npm 10), Docker for PostgreSQL.
 
 ```bash
 npm ci
-docker compose up -d
+docker compose up -d db
 cp .env.example .env.local   # then fill in the values (see below and docs/plan.md, HUMAN-04)
 npx dotenv -e .env.local -- prisma migrate dev
 npx dotenv -e .env.local -- prisma db seed
@@ -117,11 +148,14 @@ demo event page, RSVP stored, `.ics` download; sign-in without Google credential
 
 ## Tests
 
+The integration and E2E suites need only the database container: `docker compose up -d db`.
+
 ```bash
 npm run test:unit     # Vitest, no database — domain, services and components in isolation
 npm run test:int      # Vitest, Docker Postgres (rsvp_test) — repositories and Server Actions against a real database
 npm run test:e2e      # Playwright, Docker Postgres (rsvp_test) — full user journeys in a browser; uses E2E_PORT (default 3000)
 npm run trace         # traceability check: every done requirement is cited by a passing test
+npx tsx scripts/docker/smoke-cli.ts   # smoke check of a running docker compose stack (APP_PORT, default 3000)
 ```
 
 ## AI evaluation
@@ -217,5 +251,8 @@ active work is **3h 30m**.
 | 2 — Pipeline bootstrap + spec | 1h 14m | 0h 39m |
 | 4 — Execution, review, merges | 11h 36m | 7h 30m |
 | 6 — Ship | 0h 07m | 0h 07m |
+
+Post-delivery, after the timer above closed: Phase 9 (containerize, amendment A5) ran 2026-09-25 14:02–14:45,
+agent-only, no human task. Human active time is unchanged.
 
 Full breakdown, including per-phase agent runs and every pause: [docs/timelog.md](docs/timelog.md).

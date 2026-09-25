@@ -16,6 +16,7 @@ Event times are taken from session timestamps. All times in America/Fortaleza (U
 | 5 | Review (interleaved with execution: one reviewer + doc-sync per PR) | — | — |
 | 6 | Ship (final verification, Dependabot triage, time report) | 2026-09-25 10:10:04 | 2026-09-25 10:17:22 |
 | 8 | Post-delivery: harder AI evaluation + reasoning control (amendment A4) | 2026-09-25 10:51:53 | 2026-09-25 13:38:28 |
+| 9 | Post-delivery: containerized one-command local run (amendment A5) | 2026-09-25 14:02:26 | — |
 
 ## Pauses
 
@@ -108,6 +109,9 @@ Pipeline agents working autonomously. Reported separately from human active time
 | Implementer TASK-217 real eval | sonnet | 2026-09-25 01:14:45 | 2026-09-25 01:22:17 | 7m 32s | see failures.md / PRs |
 | Spec-writer: default model from eval | opus | 2026-09-25 01:22:45 | 2026-09-25 01:26:36 | 3m 50s | see failures.md / PRs |
 | Implementer TASK-218 | sonnet | 2026-09-25 01:26:45 | 2026-09-25 01:33:48 | 7m 02s | see failures.md / PRs |
+| Analyst: BR-127–144 (A5) | sonnet | 2026-09-25 14:03:11 | 2026-09-25 14:04:59 | 1m 48s | 18 BRs, no DOC questions |
+| Spec-writer: REQ-108–113, TASK-239–246 | opus | 2026-09-25 14:05:27 | 2026-09-25 14:26:58 | 21m 33s | spec + plan; a trial build caught `spawn tsx ENOENT` before implementation |
+| Implementer TASK-239–246 | sonnet | 2026-09-25 14:27:38 | 2026-09-25 14:44:00 | 16m 22s | 8/8 first attempt; local compose run + smoke OK |
 
 ## Events
 
@@ -186,6 +190,9 @@ Pipeline agents working autonomously. Reported separately from human active time
 | 2026-09-25 13:22:10 | HUMAN-07 done by the human: `OPENROUTER_REASONING_EFFORT=omit` set in Vercel production |
 | 2026-09-25 13:38:28 | PR #13 merged by the orchestrator (human pre-authorized); Phase 8 closed |
 | 2026-09-25 13:48:02 | Orchestrator ran README "Run locally" on a fresh clone with an empty Docker database: migrate, seed, demo page, RSVP stored, `.ics` OK; found 3 doc gaps (missing `npm ci`, obsolete `npx auth secret --raw`, no note that organizer sign-in needs Google credentials) — incident #23 |
+| 2026-09-25 14:02:26 | Human approved Phase 9 (amendment A5, decisions 1–5) and pre-approved its spec; human asked to containerize the app after the fresh-clone run |
+| 2026-09-25 14:03:10 | PR #14 merged by the orchestrator (human authorized) |
+| 2026-09-25 14:45:30 | Orchestrator added the missing `Co-Authored-By` trailer to one unpushed commit (local rebase, no force push) and opened the Phase 9 PR |
 
 ## Time report
 

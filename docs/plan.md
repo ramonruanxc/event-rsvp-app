@@ -19,8 +19,9 @@
 | 6 | `phase-6/ui-ux` | UI/UX redesign (A2): tokens and themes, primitives, header and logo, every screen, accessibility checks, README | REQ-62–REQ-85 (+ amended REQ-19, REQ-30, REQ-34, REQ-36, REQ-38, REQ-39) | 36 (TASK-150–TASK-184 + TASK-148) |
 | 7 | `phase-7/openrouter` | OpenRouter as the default AI provider, Anthropic optional (A3): provider list (default `openrouter`) and failover in one 10 s budget, OpenRouter client, OpenAI-compatible E2E mock, key hygiene, eval `--provider` (default `openrouter`), key-provisioning script, OpenRouter eval run on 3 models (absorbs TASK-131), code default model follows the eval (`anthropic/claude-sonnet-5`) | REQ-86–REQ-89, REQ-93–REQ-98 | 29 + 1 human (TASK-190–TASK-218, HUMAN-06) |
 | 8 | `phase-8/eval-hardening` | Harder AI evaluation + reasoning control (A4): `OPENROUTER_REASONING_EFFORT` (default `low`) sent as `reasoning: { effort }`; 3 runs per case (every answered run must pass); availability and p95 latency (< 8 s) reported apart from correctness; description-invention check; every category ≥ 80%; hidden hold-out split (⅓); +30 hard cases; real run on four models; code default model follows the new gate. **Outcome:** no model passes; delivered as a measurement (human decision, option A): default stays `anthropic/claude-sonnet-5`, production sets `OPENROUTER_REASONING_EFFORT=omit` (HUMAN-07) | REQ-99–REQ-107 (+ amended REQ-91, REQ-92, REQ-93, REQ-94) | 19 + 1 human (TASK-220–TASK-238, HUMAN-07) |
+| 9 | `phase-9/containerize` | One-command local run (A5): `docker compose up --build` starts Postgres and the app, which migrates, seeds and serves on `APP_PORT` (default 3000). `.env.local` is optional (`AUTH_SECRET` is generated when it is absent). Node 22 image with the full build, and no secret in the image. `docker compose up -d db` for development and tests. A non-required CI smoke job. README | REQ-108–REQ-113 | 8 (TASK-239–TASK-246), no human task |
 
-Totals: 107 requirements (95 product + 12 tooling), 205 agent tasks, 6 human tasks.
+Totals: 113 requirements (101 product + 12 tooling), 213 agent tasks, 6 human tasks.
 
 **Adjustments to the suggested phases (with reasons):**
 - *All Prisma repositories move to Phase 1* (including the RSVP repository and its unique-constraint test REQ-27):
@@ -44,7 +45,8 @@ Totals: 107 requirements (95 product + 12 tooling), 205 agent tasks, 6 human tas
 
 1. Read the task, the REQs it cites in `docs/spec.md`, and the **Contracts** section below for any type it names.
 2. Services, domain and repositories must match the contracts **exactly** (names, parameter shapes, return types).
-3. Local services: `docker compose up -d` starts Postgres (databases `rsvp` and `rsvp_test`). If Docker is not
+3. Local services: `docker compose up -d db` starts Postgres (databases `rsvp` and `rsvp_test`). Always name the
+   `db` service: from Phase 9 on, a bare `docker compose up` also builds and starts the app. If Docker is not
    running, stop and return `ENV_FAILURE`.
 4. Commands:
    - one unit file: `npx vitest run --project unit <path>` · all unit: `npm run test:unit`
@@ -870,6 +872,53 @@ export interface EvalOptions {
   provider: AiProviderName; model: string; cases: string; out: string;
   runs: number; reasoningEffort: ReasoningEffortSetting;
 }
+```
+
+### C14 — Phase 9 container start and smoke check (amendment A5)
+
+Created by the task named in each comment. Every exported symbol gets the one-line TSDoc shown in its task. There is
+no new npm dependency. The four runtime modules import nothing from `src/`, because the entrypoints run under plain
+`node --import tsx` / `npx tsx` without the `@/` alias. Only the test `smoke.test.ts` imports `DEMO_SLUG` from
+`@/lib/demo-seed`.
+
+```ts
+// scripts/docker/start-plan.ts (whole file: TASK-239; withAuthSecret body: TASK-239; runStart body: TASK-240)
+/** Environment variables as the app container sees them. */
+export type Env = Record<string, string | undefined>;
+/** One command the app container runs at start (REQ-108). */
+export interface StartStep { name: 'migrate' | 'seed' | 'serve'; command: string; args: string[] }
+/** Start steps in order: migrations, then the idempotent demo seed, then the server (REQ-108). */
+export const START_STEPS: readonly StartStep[] = [
+  { name: 'migrate', command: 'prisma', args: ['migrate', 'deploy'] },
+  { name: 'seed', command: 'prisma', args: ['db', 'seed'] },
+  { name: 'serve', command: 'next', args: ['start', '-H', '0.0.0.0', '-p', '3000'] },
+];
+/** Logged when AUTH_SECRET was generated; it never contains the secret itself (REQ-109). */
+export const GENERATED_SECRET_NOTICE =
+  'start: AUTH_SECRET is not set, generated one for this container run (sign-in sessions end when the container restarts)';
+export function withAuthSecret(env: Env, generate: () => string): { env: Env; generated: boolean };
+/** Everything runStart needs from the outside world (REQ-108). */
+export interface StartDeps {
+  env: Env;
+  generateSecret: () => string;
+  run: (step: StartStep, env: Env) => Promise<number>;
+  log: (line: string) => void;
+}
+export function runStart(deps: StartDeps): Promise<number>;
+
+// scripts/docker/start.ts (TASK-243): thin entrypoint, no exports. It spawns each step with stdio 'inherit',
+// forwards SIGTERM and SIGINT to the running step, and exits with runStart's result.
+
+// scripts/docker/smoke.ts (TASK-242)
+/** Slug of the seeded demo event; the REQ-113 test keeps it equal to DEMO_SLUG. */
+export const SMOKE_SLUG = 'demoPicnic';
+/** One GET request the smoke check sends to the running stack (REQ-113). */
+export interface SmokeCheck { path: string; contentType?: string }
+export const SMOKE_CHECKS: readonly SmokeCheck[];   // /en, /en/e/demoPicnic, /e/demoPicnic/calendar.ics (text/calendar)
+export function smokeBaseUrl(env: Record<string, string | undefined>): string;
+export function runSmoke(baseUrl: string, fetchImpl: typeof fetch): Promise<{ ok: boolean; lines: string[] }>;
+
+// scripts/docker/smoke-cli.ts (TASK-242): thin CLI, no exports.
 ```
 
 ---
@@ -8445,3 +8494,815 @@ weakest category of every model, 33–67%: vague times, partial dates and weekda
 being left `null` and listed in `missing`), tuning **only** against cases without `"holdout": true`; the hold-out cases
 stay untouched (REQ-104, Phase 8 rule 4). Then re-run the Phase 8 gate (TASK-237 procedure) and apply the REQ-107
 production-choice rule to the new results. The spec-writer plans these tasks when the human starts that work.
+
+---
+
+## Phase 9 — Containerized one-command local run (`phase-9/containerize`, amendment A5)
+
+Goal: `docker compose up --build` starts PostgreSQL and the app. On every start the app container applies the
+migrations, runs the idempotent demo seed, then serves on `http://localhost:${APP_PORT:-3000}` (REQ-108, REQ-110,
+REQ-112). `.env.local` is optional. Without it, `AUTH_SECRET` is generated at start (REQ-109). With it, its values
+are used. The image is Node 22 with the full `next build`, and no secret goes into it (REQ-111).
+`docker compose up -d db` still starts only the database. A non-required CI job builds the stack and smoke-tests it
+(REQ-113). The README gets the one-command path (TASK-246). The Vercel build, the existing CI jobs, the application
+code and the tests all stay the same. The only test change is one added characterization test.
+
+Order: TASK-239 → TASK-246 in document order. There is no human task: no new secret, no account, and no GitHub setting
+changes.
+
+**Phase 9 notes — decisions taken while writing the spec** (none changes a business rule):
+1. **Image:** a single stage on `node:22-bookworm-slim`, with `openssl` for Prisma (BR-139: Node 22.23.3 / npm 10.9.9
+   on 2026-09-25). The app is built and run in the same image, so Prisma generates its engine for the runtime's own
+   platform and `schema.prisma` needs no `binaryTargets`. devDependencies stay in the image, because the seed runs
+   with `tsx` (`prisma db seed`) and so does the entrypoint (`node --import tsx`). A larger image is accepted: it is
+   for local runs only.
+2. **`PATH`:** the Dockerfile adds `/app/node_modules/.bin` to `PATH`, and the start steps call `prisma` and `next`
+   by name. Without it, `prisma db seed` cannot find `tsx` (`spawn tsx ENOENT`). The prototype hit exactly this
+   error.
+3. **`.env.local` vs compose `environment:`** (BR-138): `DATABASE_URL`, `DATABASE_URL_UNPOOLED` and `AUTH_TRUST_HOST`
+   always come from compose. A developer's `.env.local` points to `localhost`, which inside the container is the
+   container itself. Every other variable in `.env.local` is used. Compose never sets `AUTH_SECRET`.
+4. **A blank `AUTH_SECRET`** (`AUTH_SECRET=` in a copied `.env.example`) counts as absent and is generated (REQ-109).
+   The generated secret is also the salt of the RSVP IP hash (REQ-56), so the RSVP rate-limit counters start again
+   with each container start. This is accepted for a local run.
+5. **Seed idempotency (BR-130):** the seed already converges (REQ-40, and the prototype: 1 event and 5 RSVPs after two
+   starts), so there is no code change. REQ-110 adds a characterization test. Known limit, accepted: if the
+   container were killed between creating the demo event and inserting its guests (two statements, milliseconds
+   apart), the next start would keep an event without guests.
+6. **Non-required job (BR-143):** "not required" means `container-smoke` is not in branch protection's explicit list
+   of required checks (HUMAN-03; checked on 2026-09-25: `commitlint`, `lint`, `typecheck`, `unit`, `integration`,
+   `e2e`, `traceability`). The job has no `continue-on-error`, so a red run stays visible.
+7. **Smoke checks** do not follow redirects: `/en` answers 200 directly, and `/` answers 307 → `/en` (both seen in the
+   prototype). The job runs `npm ci` only so that it can run the TypeScript smoke script with `tsx`.
+8. **Build without environment variables:** every page is dynamic because the layout reads cookies, so `next build`
+   needs no database and no secret (verified by the prototype build). The Google fonts are downloaded during the
+   build, so building the image needs network access.
+9. **Compose 2.24 or later** is needed for `env_file` with `required: false`. The README says so.
+10. **Prototype:** before this plan was written, the exact files of TASK-239 … TASK-245 were built and run once in a
+    throwaway compose project, with no `AUTH_SECRET` and the app on port 3100. The results: the notice was logged,
+    there was no `MissingSecret`, all three smoke lines were `✓`, a restart took about 2 s (signals are forwarded),
+    and the seed was re-run without duplicates. The unit tests, `npm run typecheck`, `npm run lint` and Prettier all
+    passed on those files. The prototype was then deleted.
+
+**Phase 9 rules (read once, in addition to "How to execute a task"):**
+1. **No new dependency.** `package.json` and `package-lock.json` do not change.
+2. **Local Docker safety.** Port 3000 is taken on this machine by an unrelated app, so every local run of the stack
+   uses `APP_PORT=3100`. The project's `db` container holds the development and test databases: **never** run
+   `docker compose down`, with or without `-v`, on this project. Remove only the app, with
+   `docker compose rm --stop --force app`. Never stop, remove, restart or inspect any other container or process. If
+   port 3100 is busy, or Docker is not running, stop and return `ENV_FAILURE`.
+3. **Secrets.** Never open, print, copy or edit `.env.local`. Never write `AUTH_SECRET`, a key or a token into
+   `Dockerfile`, `.dockerignore`, `docker-compose.yml`, a workflow or a test.
+4. **Traceability.** Test titles are plain `it('REQ-xx: …')`. Loop inside one test; never use `it.each`.
+5. **Formatting.** Run `npx prettier --write <file>` on every changed `.ts` and `.yml` file. Prettier does not format
+   `Dockerfile` or `.dockerignore`, and `.prettierignore` excludes `*.md`. Write those files exactly as given, with LF
+   line endings and a final newline, and keep Markdown lines at 120 characters or fewer by hand.
+6. **Red for the right reason.** New exported functions start as stubs that throw `new Error('not implemented')`. If
+   a "test first" passes before the implementation, stop and return `SPEC_FAILURE`, except in TASK-241
+   (characterization test).
+
+**Existing tests that change:** none. `src/lib/demo-seed.int.test.ts` gains one test (TASK-241). All other tests must
+keep passing unchanged, in particular `scripts/secrets-hygiene.test.ts`: the new CI job mentions no provider key.
+
+### TASK-239 — Start plan contracts and AUTH_SECRET generation
+**Phase:** 9 · **Requirements:** REQ-109 · **Status:** done · **Revision:** 1
+**Files:** scripts/docker/start-plan.ts, scripts/docker/start-plan.test.ts
+**Interface:** `export function withAuthSecret(env: Env, generate: () => string): { env: Env; generated: boolean }`
+**Steps (red commit):** create `scripts/docker/start-plan.ts` with every C14 symbol of that file, with its TSDoc from
+C14 (`Env`, `StartStep`, `START_STEPS`, `GENERATED_SECRET_NOTICE`, `StartDeps`) and two stubs:
+```ts
+/** Copy of `env` with AUTH_SECRET set: the supplied non-blank value, else a generated one (REQ-109). */
+export function withAuthSecret(_env: Env, _generate: () => string): { env: Env; generated: boolean } {
+  throw new Error('not implemented');
+}
+
+/** Runs START_STEPS in order with AUTH_SECRET ensured; stops at the first failing step and returns its code (REQ-108, REQ-109). */
+export async function runStart(_deps: StartDeps): Promise<number> {
+  throw new Error('not implemented');
+}
+```
+**Test first** (new file `scripts/docker/start-plan.test.ts`):
+```ts
+import { describe, expect, it, vi } from 'vitest';
+import { withAuthSecret, type Env } from './start-plan';
+
+describe('withAuthSecret (REQ-109)', () => {
+  it('REQ-109: generates AUTH_SECRET when it is missing or blank', () => {
+    for (const given of [{}, { AUTH_SECRET: '' }, { AUTH_SECRET: '   ' }]) {
+      const input: Env = { ...given, PATH: '/usr/bin' };
+      expect(withAuthSecret(input, () => 'generated-secret'), JSON.stringify(given)).toEqual({
+        env: { PATH: '/usr/bin', AUTH_SECRET: 'generated-secret' },
+        generated: true,
+      });
+      expect(input).toEqual({ ...given, PATH: '/usr/bin' });
+    }
+  });
+
+  it('REQ-109: keeps a supplied AUTH_SECRET and never calls the generator', () => {
+    const generate = vi.fn(() => 'generated-secret');
+    expect(withAuthSecret({ AUTH_SECRET: 'from-env-local', PATH: '/usr/bin' }, generate)).toEqual({
+      env: { AUTH_SECRET: 'from-env-local', PATH: '/usr/bin' },
+      generated: false,
+    });
+    expect(generate).not.toHaveBeenCalled();
+  });
+});
+```
+Red: both tests fail with `not implemented`. Commit `test(docker): generate AUTH_SECRET when absent`.
+**Implementation** (commit `feat(docker): generate AUTH_SECRET when absent`). Replace the `withAuthSecret` stub by the
+following, and leave `runStart` as a stub:
+```ts
+export function withAuthSecret(env: Env, generate: () => string): { env: Env; generated: boolean } {
+  if (env.AUTH_SECRET?.trim()) return { env: { ...env }, generated: false };
+  return { env: { ...env, AUTH_SECRET: generate() }, generated: true };
+}
+```
+**Done when:** `npx vitest run --project unit scripts/docker/start-plan.test.ts` passes; `npm run typecheck` and
+`npm run lint` pass.
+**TDD exception:** none
+
+### TASK-240 — Start steps run in order and stop at the first failure
+**Phase:** 9 · **Requirements:** REQ-108, REQ-109 · **Status:** done · **Revision:** 1
+**Files:** scripts/docker/start-plan.ts, scripts/docker/start-plan.test.ts
+**Interface:** `export async function runStart(deps: StartDeps): Promise<number>` (the stub exists since TASK-239)
+**Test first** (same test file). First, change the import to
+`import { GENERATED_SECRET_NOTICE, START_STEPS, runStart, withAuthSecret, type Env, type StartStep } from './start-plan';`.
+Then add this helper under the imports:
+```ts
+/** Fake step runner: records each step and its env, answers `codes[step.name]` (default 0). */
+function fakeRun(codes: Partial<Record<StartStep['name'], number>> = {}) {
+  const calls: { name: string; env: Env }[] = [];
+  const run = async (step: StartStep, env: Env) => {
+    calls.push({ name: step.name, env });
+    return codes[step.name] ?? 0;
+  };
+  return { run, calls };
+}
+```
+and this block at the end of the file:
+```ts
+describe('runStart (REQ-108, REQ-109)', () => {
+  it('REQ-108: migrates, then seeds, then serves, each with the same environment', async () => {
+    expect(START_STEPS).toEqual([
+      { name: 'migrate', command: 'prisma', args: ['migrate', 'deploy'] },
+      { name: 'seed', command: 'prisma', args: ['db', 'seed'] },
+      { name: 'serve', command: 'next', args: ['start', '-H', '0.0.0.0', '-p', '3000'] },
+    ]);
+    const env: Env = { AUTH_SECRET: 's', DATABASE_URL: 'postgresql://rsvp:rsvp@db:5432/rsvp' };
+    const { run, calls } = fakeRun();
+    const log: string[] = [];
+
+    const code = await runStart({ env, generateSecret: () => 'unused', run, log: (l) => log.push(l) });
+
+    expect(code).toBe(0);
+    expect(calls.map((c) => c.name)).toEqual(['migrate', 'seed', 'serve']);
+    for (const call of calls) expect(call.env).toEqual(env);
+    expect(log).toEqual(['start: migrate', 'start: seed', 'start: serve']);
+  });
+
+  it('REQ-108: never serves when the migrations or the seed fail', async () => {
+    const env: Env = { AUTH_SECRET: 's' };
+    const migrate = fakeRun({ migrate: 3 });
+    const log: string[] = [];
+    const code = await runStart({ env, generateSecret: () => 'x', run: migrate.run, log: (l) => log.push(l) });
+    expect(code).toBe(3);
+    expect(migrate.calls.map((c) => c.name)).toEqual(['migrate']);
+    expect(log).toEqual(['start: migrate', 'start: migrate failed with exit code 3']);
+
+    const seed = fakeRun({ seed: 1 });
+    expect(await runStart({ env, generateSecret: () => 'x', run: seed.run, log: () => {} })).toBe(1);
+    expect(seed.calls.map((c) => c.name)).toEqual(['migrate', 'seed']);
+  });
+
+  it('REQ-109: generates the secret once, passes it to every step and never logs it', async () => {
+    const { run, calls } = fakeRun();
+    const log: string[] = [];
+
+    await runStart({ env: {}, generateSecret: () => 'generated-secret-value', run, log: (l) => log.push(l) });
+
+    expect(log).toEqual([GENERATED_SECRET_NOTICE, 'start: migrate', 'start: seed', 'start: serve']);
+    for (const call of calls) expect(call.env.AUTH_SECRET).toBe('generated-secret-value');
+    expect(log.filter((line) => line.includes('generated-secret-value'))).toEqual([]);
+
+    const supplied: string[] = [];
+    const env: Env = { AUTH_SECRET: 'from-env-local' };
+    await runStart({ env, generateSecret: () => 'x', run, log: (l) => supplied.push(l) });
+    expect(supplied).toEqual(['start: migrate', 'start: seed', 'start: serve']);
+  });
+});
+```
+Red: the three new tests fail with `not implemented`, and the two REQ-109 tests of TASK-239 stay green. Commit
+`test(docker): start steps run in order`.
+**Implementation** (commit `feat(docker): run migrate, seed and serve in order`). Replace the `runStart` stub by:
+```ts
+export async function runStart(deps: StartDeps): Promise<number> {
+  const { env, generated } = withAuthSecret(deps.env, deps.generateSecret);
+  if (generated) deps.log(GENERATED_SECRET_NOTICE);
+  for (const step of START_STEPS) {
+    deps.log(`start: ${step.name}`);
+    const code = await deps.run(step, env);
+    if (code !== 0) {
+      deps.log(`start: ${step.name} failed with exit code ${code}`);
+      return code;
+    }
+  }
+  return 0;
+}
+```
+**Done when:** `npx vitest run --project unit scripts/docker/start-plan.test.ts` passes (5 tests); `npm run typecheck`
+and `npm run lint` pass.
+**TDD exception:** none
+
+### TASK-241 — Repeated seeding converges (characterization)
+**Phase:** 9 · **Requirements:** REQ-110 · **Status:** done · **Revision:** 1
+**Files:** src/lib/demo-seed.int.test.ts
+**Test** (characterization: the behavior has existed since REQ-40, so this test passes at once). Add
+`import { SAMPLE_GUESTS } from '@/domain/sample';` above the `./demo-seed` import, and add this last test inside
+`describe('seedDemo', …)`:
+```ts
+  it('REQ-110: repeated container starts converge to one demo event with its 5 guests', async () => {
+    const nextDay = new Date('2026-09-25T15:00:00.000Z');
+    for (const start of [now, now, nextDay]) await seedDemo(prisma, start);
+
+    const events = await prisma.event.findMany({ include: { rsvps: true } });
+    expect(events).toHaveLength(1);
+    expect(events[0].slug).toBe(DEMO_SLUG);
+    expect(events[0].startsAt.toISOString()).toBe('2026-10-24T22:00:00.000Z');
+    expect(events[0].rsvps.map((r) => r.name).sort()).toEqual(
+      SAMPLE_GUESTS.map((g) => g.name).sort(),
+    );
+    expect(await prisma.user.count()).toBe(1);
+  });
+```
+Derivation: `now` is `2026-09-24T15:00:00.000Z` (top of the file), so the first run sets 18:00 New York on 2026-10-24,
+which is `2026-10-24T22:00:00.000Z` (REQ-40). The run on 09-25 is 29 days before that, not within 7 days, so the
+event is not moved. `resetDatabase` empties every table, including `User`.
+Commit `test(seed): repeated container starts converge (characterization)`.
+**Done when:** `npm run test:int -- src/lib/demo-seed.int.test.ts` passes (4 tests; needs `docker compose up -d db`).
+**TDD exception:** characterization test (the behavior has existed since REQ-40, and BR-130 needs no code change).
+Mention it in the PR notes.
+
+### TASK-242 — Smoke check script
+**Phase:** 9 · **Requirements:** REQ-113 · **Status:** done · **Revision:** 1
+**Files:** scripts/docker/smoke.ts, scripts/docker/smoke.test.ts, scripts/docker/smoke-cli.ts
+**Interface:** C14 `smoke.ts`.
+**Steps (red commit):** create `scripts/docker/smoke.ts` with `SMOKE_SLUG` and `SmokeCheck` as in C14, and these
+stubs:
+```ts
+/** Home page, seeded demo event page and its .ics download (REQ-113). */
+export const SMOKE_CHECKS: readonly SmokeCheck[] = [];
+
+/** URL of the app published by docker compose: `http://localhost:<APP_PORT or 3000>` (REQ-113). */
+export function smokeBaseUrl(_env: Record<string, string | undefined>): string {
+  throw new Error('not implemented');
+}
+
+/** Runs every SMOKE_CHECKS entry in order; `ok` is true only when every line starts with `✓` (REQ-113). */
+export async function runSmoke(
+  _baseUrl: string,
+  _fetchImpl: typeof fetch,
+): Promise<{ ok: boolean; lines: string[] }> {
+  throw new Error('not implemented');
+}
+```
+**Test first** (new file `scripts/docker/smoke.test.ts`):
+```ts
+import { describe, expect, it, vi } from 'vitest';
+import { DEMO_SLUG } from '@/lib/demo-seed';
+import { SMOKE_CHECKS, runSmoke, smokeBaseUrl } from './smoke';
+
+const HTML = 'text/html; charset=utf-8';
+const ok = (contentType: string) =>
+  new Response('ok', { status: 200, headers: { 'content-type': contentType } });
+
+/** Fake fetch answering by URL path; an Error answer is thrown instead of returned. */
+function fakeFetch(byPath: Record<string, Response | Error>) {
+  return vi.fn(async (url: string | URL | Request) => {
+    const answer = byPath[new URL(String(url)).pathname];
+    if (answer instanceof Error) throw answer;
+    return answer;
+  });
+}
+
+describe('smoke check (REQ-113)', () => {
+  it('REQ-113: checks the home page, the seeded demo event page and its .ics download', () => {
+    expect(SMOKE_CHECKS).toEqual([
+      { path: '/en' },
+      { path: `/en/e/${DEMO_SLUG}` },
+      { path: `/e/${DEMO_SLUG}/calendar.ics`, contentType: 'text/calendar' },
+    ]);
+  });
+
+  it('REQ-113: passes when every check answers 200 with the expected content type', async () => {
+    const fetchMock = fakeFetch({
+      '/en': ok(HTML),
+      '/en/e/demoPicnic': ok(HTML),
+      '/e/demoPicnic/calendar.ics': ok('text/calendar; charset=utf-8'),
+    });
+
+    const result = await runSmoke('http://localhost:3100', fetchMock as unknown as typeof fetch);
+
+    expect(result).toEqual({
+      ok: true,
+      lines: ['✓ /en 200', '✓ /en/e/demoPicnic 200', '✓ /e/demoPicnic/calendar.ics 200 text/calendar'],
+    });
+    expect(fetchMock.mock.calls).toEqual([
+      ['http://localhost:3100/en', { redirect: 'manual' }],
+      ['http://localhost:3100/en/e/demoPicnic', { redirect: 'manual' }],
+      ['http://localhost:3100/e/demoPicnic/calendar.ics', { redirect: 'manual' }],
+    ]);
+  });
+
+  it('REQ-113: fails on a wrong status, a network error or a wrong content type', async () => {
+    const fetchMock = fakeFetch({
+      '/en': new Response(null, { status: 307, headers: { location: '/en/' } }),
+      '/en/e/demoPicnic': new TypeError('fetch failed'),
+      '/e/demoPicnic/calendar.ics': ok(HTML),
+    });
+
+    const result = await runSmoke('http://localhost:3000', fetchMock as unknown as typeof fetch);
+
+    expect(result).toEqual({
+      ok: false,
+      lines: [
+        '✗ /en — expected 200, got 307',
+        '✗ /en/e/demoPicnic — request failed: fetch failed',
+        '✗ /e/demoPicnic/calendar.ics — expected content-type text/calendar, got text/html; charset=utf-8',
+      ],
+    });
+  });
+
+  it('REQ-113: targets http://localhost:<APP_PORT>, 3000 when APP_PORT is unset or blank', () => {
+    expect(smokeBaseUrl({})).toBe('http://localhost:3000');
+    expect(smokeBaseUrl({ APP_PORT: ' ' })).toBe('http://localhost:3000');
+    expect(smokeBaseUrl({ APP_PORT: '3100' })).toBe('http://localhost:3100');
+  });
+});
+```
+Red: the first test fails on its assertion (`[]`), and the other three fail with `not implemented`. Commit
+`test(docker): smoke check of the running stack`.
+**Implementation** (commit `feat(docker): smoke check of the running stack`). In `smoke.ts`, replace the three stubs
+by the following. `checkOne` is private (not exported):
+```ts
+/** Home page, seeded demo event page and its .ics download (REQ-113). */
+export const SMOKE_CHECKS: readonly SmokeCheck[] = [
+  { path: '/en' },
+  { path: `/en/e/${SMOKE_SLUG}` },
+  { path: `/e/${SMOKE_SLUG}/calendar.ics`, contentType: 'text/calendar' },
+];
+
+/** URL of the app published by docker compose: `http://localhost:<APP_PORT or 3000>` (REQ-113). */
+export function smokeBaseUrl(env: Record<string, string | undefined>): string {
+  return `http://localhost:${env.APP_PORT?.trim() || '3000'}`;
+}
+
+/** Sends one check without following redirects; returns its `✓ …` or `✗ …` line. */
+async function checkOne(baseUrl: string, check: SmokeCheck, fetchImpl: typeof fetch): Promise<string> {
+  let response: Response;
+  try {
+    response = await fetchImpl(`${baseUrl}${check.path}`, { redirect: 'manual' });
+  } catch (error) {
+    return `✗ ${check.path} — request failed: ${error instanceof Error ? error.message : String(error)}`;
+  }
+  if (response.status !== 200) return `✗ ${check.path} — expected 200, got ${response.status}`;
+  const contentType = response.headers.get('content-type') ?? '';
+  if (check.contentType && !contentType.startsWith(check.contentType)) {
+    return `✗ ${check.path} — expected content-type ${check.contentType}, got ${contentType || 'none'}`;
+  }
+  return check.contentType ? `✓ ${check.path} 200 ${check.contentType}` : `✓ ${check.path} 200`;
+}
+
+/** Runs every SMOKE_CHECKS entry in order; `ok` is true only when every line starts with `✓` (REQ-113). */
+export async function runSmoke(
+  baseUrl: string,
+  fetchImpl: typeof fetch,
+): Promise<{ ok: boolean; lines: string[] }> {
+  const lines: string[] = [];
+  for (const check of SMOKE_CHECKS) lines.push(await checkOne(baseUrl, check, fetchImpl));
+  return { ok: lines.every((line) => line.startsWith('✓')), lines };
+}
+```
+In the same commit, create the thin CLI `scripts/docker/smoke-cli.ts`:
+```ts
+import { runSmoke, smokeBaseUrl } from './smoke';
+
+const baseUrl = smokeBaseUrl(process.env);
+void runSmoke(baseUrl, fetch).then(({ ok, lines }) => {
+  console.log(`smoke: ${baseUrl}`);
+  for (const line of lines) console.log(line);
+  process.exit(ok ? 0 : 1);
+});
+```
+**Done when:**
+- `npx vitest run --project unit scripts/docker/smoke.test.ts` passes (4 tests)
+- `npm run typecheck` and `npm run lint` pass
+- with nothing listening on 3199, `APP_PORT=3199 npx tsx scripts/docker/smoke-cli.ts` prints
+  `smoke: http://localhost:3199`, then three lines that start with `✗` (the first is
+  `✗ /en — request failed: fetch failed`), and exits 1
+**TDD exception:** none (the CLI is a thin wrapper; the stack run in TASK-244 exercises it)
+
+### TASK-243 — App image: Dockerfile, .dockerignore and start entrypoint
+**Phase:** 9 · **Requirements:** REQ-111, REQ-108 · **Status:** done · **Revision:** 1
+**Files:** scripts/docker/container-files.test.ts, Dockerfile, .dockerignore, scripts/docker/start.ts
+**Test first** (new file `scripts/docker/container-files.test.ts`; vitest runs from the repository root):
+```ts
+import { readFileSync } from 'node:fs';
+import { describe, expect, it } from 'vitest';
+
+/** File text with LF line endings. */
+const read = (path: string) => readFileSync(path, 'utf8').replace(/\r\n/g, '\n');
+/** Trimmed, non-empty lines of a file. */
+const lines = (path: string) =>
+  read(path)
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+describe('app image (REQ-108, REQ-111)', () => {
+  it('REQ-108: the app container starts through the start script', () => {
+    expect(lines('Dockerfile').at(-1)).toBe(
+      'CMD ["node", "--import", "tsx", "scripts/docker/start.ts"]',
+    );
+  });
+
+  it('REQ-111: the image is built on Node 22 with the full next build, Vercel build unchanged', () => {
+    const dockerfile = lines('Dockerfile');
+    expect(dockerfile[0]).toBe('FROM node:22-bookworm-slim');
+    expect(dockerfile).toContain('RUN npm ci');
+    expect(dockerfile).toContain('RUN npm run build');
+    expect(read('Dockerfile')).not.toMatch(/standalone|vercel-build/);
+    expect(read('next.config.ts')).not.toMatch(/\boutput\s*:/);
+    const { scripts } = JSON.parse(read('package.json')) as { scripts: Record<string, string> };
+    expect(scripts.build).toBe('next build');
+    expect(scripts['vercel-build']).toBe(
+      'prisma generate && prisma migrate deploy && prisma db seed && next build',
+    );
+  });
+
+  it('REQ-111: no secret and no env file goes into the image', () => {
+    expect(lines('.dockerignore')).toEqual(
+      expect.arrayContaining(['.env*', '.git', 'node_modules', '.next']),
+    );
+    const dockerfile = lines('Dockerfile');
+    expect(dockerfile.filter((l) => /^(ARG|ENV)\b.*(SECRET|KEY|TOKEN|PASSWORD)/i.test(l))).toEqual(
+      [],
+    );
+    expect(dockerfile.filter((l) => l.includes('.env'))).toEqual([]);
+  });
+});
+```
+Red: all three tests fail with `ENOENT: no such file or directory, open 'Dockerfile'` or `'.dockerignore'`. This is
+the expected red, because the files do not exist yet. Commit `test(docker): app image invariants`.
+**Implementation** (commit `feat(docker): app image and start entrypoint`):
+1. `Dockerfile` (repository root), exactly:
+   ```dockerfile
+   FROM node:22-bookworm-slim
+   RUN apt-get update && apt-get install -y --no-install-recommends openssl && rm -rf /var/lib/apt/lists/*
+   WORKDIR /app
+   ENV PATH=/app/node_modules/.bin:$PATH
+   ENV HUSKY=0 NEXT_TELEMETRY_DISABLED=1
+   COPY package.json package-lock.json ./
+   COPY prisma ./prisma
+   RUN npm ci
+   COPY . .
+   RUN npm run build
+   ENV NODE_ENV=production
+   EXPOSE 3000
+   CMD ["node", "--import", "tsx", "scripts/docker/start.ts"]
+   ```
+   The schema is copied before `npm ci` because `postinstall` runs `prisma generate`. `HUSKY=0` skips the git hook
+   install, since the image has no `.git`. `NODE_ENV=production` is set only after `npm ci`, so the
+   devDependencies are installed (see Phase 9 note 1).
+2. `.dockerignore` (repository root), exactly these 15 lines:
+   ```
+   .git
+   .github
+   .husky
+   .claude
+   .idea
+   .vscode
+   .next
+   node_modules
+   coverage
+   playwright-report
+   test-results
+   blob-report
+   .env*
+   *.log
+   *.tsbuildinfo
+   ```
+3. `scripts/docker/start.ts`, exactly:
+   ```ts
+   import { spawn, type ChildProcess } from 'node:child_process';
+   import { randomBytes } from 'node:crypto';
+   import { runStart, type Env, type StartStep } from './start-plan';
+
+   let current: ChildProcess | undefined;
+   let stopping = false;
+
+   for (const signal of ['SIGTERM', 'SIGINT'] as const) {
+     process.on(signal, () => {
+       stopping = true;
+       if (current) current.kill(signal);
+       else process.exit(0);
+     });
+   }
+
+   /** Runs one start step as a child process on this terminal; resolves with its exit code. */
+   function run(step: StartStep, env: Env): Promise<number> {
+     return new Promise((resolve) => {
+       const child = spawn(step.command, step.args, {
+         env: env as NodeJS.ProcessEnv,
+         stdio: 'inherit',
+       });
+       current = child;
+       child.on('error', (error) => {
+         console.error(`start: ${step.name} could not start: ${error.message}`);
+         resolve(1);
+       });
+       child.on('exit', (code) => {
+         current = undefined;
+         if (stopping) process.exit(0);
+         resolve(code ?? 1);
+       });
+     });
+   }
+
+   void runStart({
+     env: process.env,
+     generateSecret: () => randomBytes(32).toString('base64'),
+     run,
+     log: (line) => console.log(line),
+   }).then((code) => process.exit(code));
+   ```
+   The `as NodeJS.ProcessEnv` cast is needed: Next's types make `NODE_ENV` required in `ProcessEnv`.
+**Done when:**
+- `npx vitest run --project unit scripts/docker/` passes; `npm run typecheck`, `npm run lint` and
+  `npm run format:check` pass
+- `docker build -t event-rsvp-app:phase9-check .` succeeds (about 2–4 minutes; it needs network access for npm and
+  the Google fonts)
+- `docker run --rm event-rsvp-app:phase9-check sh -c 'node -v; npm -v; ls -a /app | grep "^\.env" || echo no-env-files'`
+  prints `v22.<x>.<y>`, then `10.<x>.<y>`, then `no-env-files`
+- then `docker image rm event-rsvp-app:phase9-check`. Do not run this image on its own: it needs the database, and
+  TASK-244 runs it through compose
+**TDD exception:** `start.ts` is a thin entrypoint with no logic of its own (spawn, signal forwarding, exit code). The
+compose run in TASK-244 and the CI job (TASK-245) exercise it.
+
+### TASK-244 — Compose app service
+**Phase:** 9 · **Requirements:** REQ-112, REQ-108, REQ-110 · **Status:** done · **Revision:** 1
+**Files:** scripts/docker/container-files.test.ts, docker-compose.yml
+**Test first** (same test file). Add this constant after the `lines` helper:
+```ts
+/** The `db` service exactly as before Phase 9 (REQ-112: `docker compose up -d db` is unchanged). */
+const DB_SERVICE = `  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: rsvp
+      POSTGRES_PASSWORD: rsvp
+      POSTGRES_DB: rsvp
+    ports: ['5432:5432']
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./docker/init-test-db.sql:/docker-entrypoint-initdb.d/init-test-db.sql:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U rsvp']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+`;
+```
+and this block at the end of the file:
+```ts
+describe('compose stack (REQ-112)', () => {
+  it('REQ-112: the app service builds the image, waits for a healthy db and publishes APP_PORT', () => {
+    const compose = lines('docker-compose.yml');
+    for (const line of [
+      'app:',
+      'build: .',
+      'init: true',
+      'condition: service_healthy',
+      "ports: ['${APP_PORT:-3000}:3000']",
+      'start_period: 60s',
+    ]) {
+      expect(compose, line).toContain(line);
+    }
+  });
+
+  it('REQ-112: .env.local is optional and the database URLs point to the db service', () => {
+    const compose = lines('docker-compose.yml');
+    for (const line of [
+      '- path: .env.local',
+      'required: false',
+      'DATABASE_URL: postgresql://rsvp:rsvp@db:5432/rsvp',
+      'DATABASE_URL_UNPOOLED: postgresql://rsvp:rsvp@db:5432/rsvp',
+      "AUTH_TRUST_HOST: 'true'",
+    ]) {
+      expect(compose, line).toContain(line);
+    }
+    expect(read('docker-compose.yml')).not.toContain('AUTH_SECRET');
+  });
+
+  it('REQ-112: docker compose up -d db still starts only the unchanged database service', () => {
+    const text = read('docker-compose.yml');
+    const db = text.slice(text.indexOf('  db:\n'), text.indexOf('  app:\n'));
+    expect(db).toBe(DB_SERVICE);
+  });
+});
+```
+Red: the first two tests fail on `toContain` (there is no `app` service yet). The third fails because
+`indexOf('  app:\n')` is `-1`, so the slice drops the last character. Commit `test(docker): compose app service`.
+**Implementation** (commit `feat(docker): compose app service`). The whole `docker-compose.yml` becomes exactly the
+following. The `db` service and `volumes` do not change, and Prettier leaves this file as it is:
+```yaml
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: rsvp
+      POSTGRES_PASSWORD: rsvp
+      POSTGRES_DB: rsvp
+    ports: ['5432:5432']
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./docker/init-test-db.sql:/docker-entrypoint-initdb.d/init-test-db.sql:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U rsvp']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+  app:
+    build: .
+    init: true
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - path: .env.local
+        required: false
+    environment:
+      DATABASE_URL: postgresql://rsvp:rsvp@db:5432/rsvp
+      DATABASE_URL_UNPOOLED: postgresql://rsvp:rsvp@db:5432/rsvp
+      AUTH_TRUST_HOST: 'true'
+    ports: ['${APP_PORT:-3000}:3000']
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:3000/en').then((r) => process.exit(r.ok ? 0 : 1), () => process.exit(1))",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 24
+      start_period: 60s
+volumes:
+  pgdata: {}
+```
+**Local run** (Phase 9 rule 2 applies: port 3100, never `docker compose down`). Run from the repository root in Git
+Bash:
+1. `APP_PORT=3100 docker compose up --build -d --wait --wait-timeout 300` exits 0. The running `db` container is
+   reused, not recreated.
+2. `APP_PORT=3100 npx tsx scripts/docker/smoke-cli.ts` prints `smoke: http://localhost:3100` and the three `✓` lines
+   of REQ-113, then exits 0.
+3. `docker compose logs app | grep "start:"` shows `start: migrate`, `start: seed` and `start: serve` in that order.
+   It may also show `GENERATED_SECRET_NOTICE`: that depends on this machine's `.env.local`, which you must not open.
+4. `APP_PORT=3100 docker compose restart app`, then `APP_PORT=3100 docker compose up -d --wait --wait-timeout 300 app`,
+   then step 2 again. It must pass again (REQ-110: the seed runs again without error).
+5. Clean up: `docker compose rm --stop --force app`. Then `docker compose ps --services --status running` prints only
+   `db` (BR-141).
+6. Put the output of steps 2 and 5 in the PR notes.
+**Done when:** `npx vitest run --project unit scripts/docker/` passes; `npm run format:check` passes; local run steps
+1–5 succeed.
+**TDD exception:** none
+
+### TASK-245 — CI job `container-smoke`
+**Phase:** 9 · **Requirements:** REQ-113 · **Status:** done · **Revision:** 1
+**Files:** scripts/docker/container-files.test.ts, .github/workflows/ci.yml
+**Test first** (same test file; add at the end):
+```ts
+describe('CI smoke job (REQ-113)', () => {
+  it('REQ-113: container-smoke builds the stack, runs the smoke check and always tears it down', () => {
+    const ci = read('.github/workflows/ci.yml');
+    const jobs = ci.slice(ci.indexOf('\njobs:\n'));
+    expect([...jobs.matchAll(/^ {2}([a-z0-9-]+):$/gm)].map((m) => m[1])).toEqual([
+      'lint',
+      'typecheck',
+      'unit',
+      'integration',
+      'e2e',
+      'traceability',
+      'container-smoke',
+    ]);
+    const job = ci
+      .slice(ci.indexOf('  container-smoke:'))
+      .split('\n')
+      .map((l) => l.trim());
+    expect(job.filter((l) => l.startsWith('- run:') || l.startsWith('run:'))).toEqual([
+      '- run: npm ci',
+      '- run: docker compose up --build -d --wait --wait-timeout 300',
+      '- run: npx tsx scripts/docker/smoke-cli.ts',
+      'run: docker compose logs app',
+      'run: docker compose down -v',
+    ]);
+    expect(job).toContain('- if: always()');
+  });
+});
+```
+Red: the job list lacks `container-smoke`. Commit `test(ci): container smoke job`.
+**Implementation** (commit `ci: container smoke job (not required)`). Append this job at the end of
+`.github/workflows/ci.yml`, after `traceability`, with one blank line before it. No other line of the file changes:
+```yaml
+  container-smoke:
+    name: container-smoke
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - run: docker compose up --build -d --wait --wait-timeout 300
+      - run: npx tsx scripts/docker/smoke-cli.ts
+      - if: failure()
+        run: docker compose logs app
+      - if: always()
+        run: docker compose down -v
+```
+`docker compose down -v` is correct here, because it runs on a throwaway CI runner. Never run it locally (Phase 9 rule
+2). Do not add `continue-on-error`, and do not change the branch protection (BR-143).
+**Done when:**
+- `npx vitest run --project unit scripts/docker/ scripts/secrets-hygiene.test.ts` passes
+- `git diff main -- .github/workflows/ci.yml` shows only added lines
+- `npm run format:check` passes
+- read-only check: `gh api repos/{owner}/{repo}/branches/main/protection/required_status_checks --jq .contexts` does
+  not list `container-smoke`
+- after the orchestrator pushes, the PR shows the `container-smoke` check. The orchestrator confirms it is green
+  before the merge. If it is red, the job's `docker compose logs app` output goes into the failure report
+**TDD exception:** none
+
+### TASK-246 — README: one-command run first, Node path for development, database-only for tests
+**Phase:** 9 · **Requirements:** REQ-112, REQ-109, REQ-113 · **Status:** done · **Revision:** 1
+**Files:** README.md
+**Steps:**
+1. In `README.md`, replace everything from the line `## Run locally` up to (not including) the line `## Tests` with
+   exactly:
+   ````md
+   ## Run locally
+
+   ### One command (Docker)
+
+   Prerequisite: Docker with Compose 2.24 or later. Node is not needed.
+
+   ```bash
+   docker compose up --build
+   ```
+
+   Open `http://localhost:3000`; the seeded demo event is at `http://localhost:3000/en/e/demoPicnic`. If port 3000 is
+   taken, pick another host port: `APP_PORT=3100 docker compose up --build` (PowerShell:
+   `$env:APP_PORT=3100; docker compose up --build`).
+
+   - On every start the app container applies the database migrations and the demo seed (which never duplicates
+     data), then serves the app.
+   - `.env.local` is optional. Without it the public side works fully (event page, RSVP, `.ics` download); an
+     `AUTH_SECRET` is generated at each container start, so sign-in sessions last only until the container restarts;
+     "Sign in with Google" needs your own Google OAuth client; "Fill with AI" shows its fallback message and the
+     manual form still works.
+   - With a `.env.local` (copy `.env.example`, see below), its values are used: `AUTH_SECRET`, `AUTH_GOOGLE_ID` /
+     `AUTH_GOOGLE_SECRET` (redirect URI `http://localhost:<APP_PORT>/api/auth/callback/google`) and the AI keys. The
+     database URLs always point to the compose database. Secrets are read when the container starts and are never
+     baked into the image.
+   - Stop with `Ctrl+C` or `docker compose down`; `docker compose down -v` also deletes the database.
+
+   ### Development (Node)
+
+   Prerequisites: Node 22 (npm 10), Docker for PostgreSQL.
+
+   ```bash
+   npm ci
+   docker compose up -d db
+   cp .env.example .env.local   # then fill in the values (see below and docs/plan.md, HUMAN-04)
+   npx dotenv -e .env.local -- prisma migrate dev
+   npx dotenv -e .env.local -- prisma db seed
+   npm run dev
+   ```
+   ````
+   and after that block keep, unchanged and in the same order, the existing text that followed the old bash block.
+   That text is the `AUTH_SECRET` bullet, the Google credentials bullet, the AI bullet, the paragraph
+   `The app serves on http://localhost:3000. If port 3000 …`, and the paragraph `This sequence was run end to end on
+   a fresh clone …`.
+2. In the `## Tests` section:
+   - Insert this line between the heading and the code block, with a blank line before and after it:
+     `` The integration and E2E suites need only the database container: `docker compose up -d db`. ``
+   - Add this last line inside the code block:
+     `npx tsx scripts/docker/smoke-cli.ts   # smoke check of a running docker compose stack (APP_PORT, default 3000)`
+   - Change nothing else in the section.
+3. Keep every line at 120 characters or fewer. Prettier ignores `*.md` (`.prettierignore`), so check the lines by
+   hand.
+4. Check with `git grep -n "docker compose up -d$" README.md`: it must print nothing (every development mention names
+   `db`).
+
+Commit `docs: one-command docker run in the README`.
+**Test first:** —
+**Done when:** `npm run format:check` passes; step 4 prints nothing; `git diff main -- README.md` touches only the
+"Run locally" and "Tests" sections.
+**TDD exception:** docs

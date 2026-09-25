@@ -14,5 +14,31 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+  app:
+    build: .
+    init: true
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - path: .env.local
+        required: false
+    environment:
+      DATABASE_URL: postgresql://rsvp:rsvp@db:5432/rsvp
+      DATABASE_URL_UNPOOLED: postgresql://rsvp:rsvp@db:5432/rsvp
+      AUTH_TRUST_HOST: 'true'
+    ports: ['${APP_PORT:-3000}:3000']
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:3000/en').then((r) => process.exit(r.ok ? 0 : 1), () => process.exit(1))",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 24
+      start_period: 60s
 volumes:
   pgdata: {}
