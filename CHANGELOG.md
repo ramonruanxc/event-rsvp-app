@@ -6,6 +6,46 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- Dark theme by default, stored in a `theme` cookie and rendered by the server with no flash of the wrong theme;
+  a toggle in the header switches between dark and light on every page (REQ-62, REQ-63, REQ-64).
+- Full visual redesign of every screen (home, dashboard, event form, guest RSVP panel, owner event page) from a
+  documented design system of tokens, typography, components and motion (REQ-81, REQ-82, REQ-83, REQ-84, REQ-85).
+- Logo mark shown in the header on every page and used as the site favicon (REQ-75, REQ-76).
+- Deleting an event and removing an RSVP are confirmed inline, in place, instead of a browser `window.confirm`
+  dialog (REQ-72).
+- Reduced-motion preference limits transitions to opacity changes only (REQ-74).
+
+### Changed
+
+- Returning-guest RSVP status reads "You're going · N people" / "You're not going" (was "You're going (N)"), with
+  "Change" and "Cancel RSVP" when going, and "Change" only when not going, since cancelling an already-declined
+  RSVP would change nothing (REQ-31, REQ-84; BR-35 amended twice, DOC-Q3.1 and DOC-Q4).
+- Owner event page shows a "Declined" pill instead of plain text, a short localized "Last updated" time per RSVP,
+  and stacks the guest list into cards below 640 px (REQ-34, REQ-85).
+- Dashboard and owner totals read "N going · N declined · N people" (was "Going: N · Declined: N · People: N")
+  (REQ-36, REQ-82).
+- The "Copied" confirmation after copying the invite link is announced to assistive technology through a polite
+  live region (REQ-38, REQ-79).
+- Header language select is now a globe icon with the current language name (globe only below 480 px), with the
+  accessible name kept on `aria-label` (REQ-80, BR-105 amended).
+- Home page's demo link now reads "See the demo event" (was "See a demo event") (REQ-39, REQ-81).
+- Status (going / declined / ended) is never conveyed by color alone; every status pairs an icon with text
+  (REQ-70).
+- Every form input keeps a visible label, decorative icons are hidden from assistive technology, and form errors
+  are announced to screen readers (REQ-68, REQ-69, REQ-78).
+- Interactive targets are at least 44x44 px, including the RSVP party-size stepper's increment and decrement
+  buttons (REQ-71).
+- Design tokens meet WCAG 2.2 AA contrast in both themes, checked by an automated contrast script (REQ-65).
+- Every screen, including the guest event page, holds at 375 px without horizontal scrolling, in English and
+  French (REQ-73, REQ-77).
+
+### Fixed
+
+- The focus ring stayed visible when tabbing through date and time fields, restoring keyboard visibility lost
+  under the new styling (REQ-66, REQ-67).
+
 ### Security
 
 - RSVP submissions are rate-limited to 10 per 10 minutes per hashed IP address; the limit is enforced before

@@ -231,11 +231,12 @@ BR-10's cascade).
 
 #### BR-35 — Returning guest sees their RSVP status
 **Rule:** A guest returning to the event page in the same browser (holding a valid edit-token cookie for that
-event) sees, instead of a blank RSVP form: "You're going · N people" (where N is their party size) when their
-response is "Going", or "You're not going" when their response is "Not going" — each with "Change" and
-"Cancel RSVP" actions.
+event) sees, instead of a blank RSVP form: "You're going · N people" (where N is their party size) with "Change"
+and "Cancel RSVP" actions when their response is "Going", or "You're not going" with only a "Change" action when
+their response is "Not going" (a "Cancel RSVP" action on an already "Not going" RSVP would change nothing).
 **Source:** design brief §2 "RSVPs"; DESIGN.md; approved mockup
 **Amended:** 2026-09-24 — human decision (DOC-Q3.1)
+**Amended:** 2026-09-25 — human decision (DOC-Q4)
 
 #### BR-36 — Cancel sets response to Not going, does not delete
 **Rule:** Using "Cancel" on an existing RSVP sets its response to "Not going" rather than deleting the RSVP record.
@@ -703,3 +704,10 @@ None open.
 - DOC-Q3.3 (visible label on every input vs the header language select) → BR-105 (amended): documented
   exception for the header language select (globe icon + current language name, globe only below 480 px, plus
   `aria-label`); every input in the main content keeps a visible label.
+
+**Resolved** — decided by the human (Ramon) on 2026-09-25, from `spec-writer`'s DOC failure report (Phase 6):
+
+- DOC-Q4 (amended BR-35 said both "Going" and "Not going" panels get "Change" and "Cancel RSVP", but DESIGN.md
+  gives the Not going panel only "Change", and "Cancel RSVP" on an already "Not going" RSVP would change nothing)
+  → BR-35 (amended again): the Not going panel shows only "Change"; the "Going" panel keeps "Change" and
+  "Cancel RSVP". Confirms the default already applied in `docs/spec.md` REQ-31, REQ-84.
