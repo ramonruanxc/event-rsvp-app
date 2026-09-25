@@ -22,9 +22,9 @@ test.describe('REQ-39: the home page', () => {
     ).toBeVisible();
 
     const main = page.locator('main');
-    await expect(main.getByRole('link', { name: 'Sign in with Google' })).toHaveAttribute(
+    await expect(main.getByRole('link', { name: 'Sign in', exact: true })).toHaveAttribute(
       'href',
-      '/api/login?callbackUrl=%2Fen%2Fdashboard',
+      '/en/sign-in?callbackUrl=%2Fen%2Fdashboard',
     );
     await expect(main.getByRole('link', { name: 'See the demo event' })).toHaveAttribute(
       'href',
@@ -40,7 +40,6 @@ test.describe('REQ-39: the home page', () => {
       'What a guest sees after tapping your link. One page, one answer.',
     );
     await expect(figure.locator('.ip-card')).toHaveAttribute('aria-hidden', 'true');
-    await expect(page.locator('main .g-chip svg')).toHaveAttribute('aria-hidden', 'true');
   });
 
   test('REQ-39: signed-in home links to My events', async ({ page, context }) => {
@@ -53,6 +52,6 @@ test.describe('REQ-39: the home page', () => {
       'href',
       '/en/dashboard',
     );
-    await expect(main.getByRole('link', { name: 'Sign in with Google' })).toHaveCount(0);
+    await expect(main.getByRole('link', { name: 'Sign in', exact: true })).toHaveCount(0);
   });
 });
