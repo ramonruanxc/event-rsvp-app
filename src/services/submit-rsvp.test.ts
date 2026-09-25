@@ -3,10 +3,12 @@ import {
   DuplicateNameError,
   EventEndedError,
   NotFoundError,
+  RateLimitedError,
   ValidationError,
 } from '@/domain/errors';
 import { hashToken } from '@/lib/crypto';
-import { createMemoryRepositories } from '@/repositories/memory';
+import { createMemoryRepositories, MemoryRateLimitRepository } from '@/repositories/memory';
+import { RateLimiter } from './rate-limiter';
 import { SubmitRsvpService } from './submit-rsvp';
 
 const now = () => new Date('2026-09-24T15:00:00.000Z');
@@ -252,5 +254,48 @@ describe('SubmitRsvpService — REQ-29 submission closes at the start time', () 
     ).rejects.toBeInstanceOf(EventEndedError);
 
     expect(store.rsvps).toHaveLength(1);
+  });
+});
+
+describe('SubmitRsvpService — REQ-56 rate limit', () => {
+  it('REQ-56: the 11th submission from the same IP hash is refused and stores nothing; another IP hash is not affected', async () => {
+    const { events, rsvps, store } = await arrange();
+    const rateLimiter = new RateLimiter({ repo: new MemoryRateLimitRepository(store), now });
+    const service = new SubmitRsvpService({ events, rsvps, now, rateLimiter });
+    const going = (name: string) => ({ name, status: 'GOING', partySize: 1 });
+
+    for (let i = 1; i <= 10; i++) {
+      await service.execute({ ...base, values: going('Guest ' + i) });
+    }
+
+    await expect(
+      service.execute({ ...base, values: going('Guest 11') }),
+    ).rejects.toBeInstanceOf(RateLimitedError);
+    expect(store.rsvps).toHaveLength(10);
+
+    const result = await service.execute({
+      ...base,
+      ipHash: 'h2',
+      values: going('Guest 11'),
+    });
+    expect(result.created).toBe(true);
+    expect(store.rsvps).toHaveLength(11);
+  });
+
+  it('REQ-56: the limit is checked before validation', async () => {
+    const { events, rsvps, store } = await arrange();
+    const rateLimiter = new RateLimiter({ repo: new MemoryRateLimitRepository(store), now });
+    const service = new SubmitRsvpService({ events, rsvps, now, rateLimiter });
+    const going = (name: string) => ({ name, status: 'GOING', partySize: 1 });
+
+    for (let i = 1; i <= 10; i++) {
+      await expect(
+        service.execute({ ...base, values: going('') }),
+      ).rejects.toBeInstanceOf(ValidationError);
+    }
+
+    await expect(
+      service.execute({ ...base, values: going('Ana') }),
+    ).rejects.toBeInstanceOf(RateLimitedError);
   });
 });
