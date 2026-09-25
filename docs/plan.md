@@ -5337,7 +5337,7 @@ Order: TASK-190 → TASK-218 in document order, then HUMAN-06. Only TASK-217 cal
 both REQ-51 tests of `e2e/ai.spec.ts` and `e2e/journeys.spec.ts`.
 
 ### TASK-190 — Provider contracts: types and error classes
-**Phase:** 7 · **Requirements:** REQ-86, REQ-88, REQ-89 · **Status:** todo · **Revision:** 2
+**Phase:** 7 · **Requirements:** REQ-86, REQ-88, REQ-89 · **Status:** done · **Revision:** 2
 **Files:** src/lib/ai/types.ts, src/lib/ai/errors.ts
 **Steps:**
 1. `src/lib/ai/types.ts`: after `AI_TIMEOUT_MS` add `AI_PROVIDER_NAMES`, `AiProviderName` and `MIN_ATTEMPT_MS`
@@ -5372,7 +5372,7 @@ both REQ-51 tests of `e2e/ai.spec.ts` and `e2e/journeys.spec.ts`.
 - Rev 2 — human decision (Phase 7 approval), not a failure revision: `OutageReason` gains `'auth'` (BR-121 amended).
 
 ### TASK-191 — HTTP status → outage reason
-**Phase:** 7 · **Requirements:** REQ-88 · **Status:** todo · **Revision:** 2
+**Phase:** 7 · **Requirements:** REQ-88 · **Status:** done · **Revision:** 2
 **Files:** src/lib/ai/errors.ts, src/lib/ai/errors.test.ts
 **Interface:** `export function outageReasonForStatus(status: number): OutageReason | null` (red stub:
 `return null;`)
@@ -5401,7 +5401,7 @@ export function outageReasonForStatus(status: number): OutageReason | null {
   they move from the "not outages" loop to the outage loop; red stub stated.
 
 ### TASK-192 — AiEventParser takes a provider list
-**Phase:** 7 · **Requirements:** REQ-86 · **Status:** todo · **Revision:** 1
+**Phase:** 7 · **Requirements:** REQ-86 · **Status:** done · **Revision:** 1
 **Files:** src/services/ai-event-parser.ts, src/services/ai-event-parser.test.ts,
 src/services/parse-event-text.int.test.ts, src/lib/container.ts, evals/event-parser/run.ts
 **Interface:** C12 `AiEventParser` constructor `{ providers: readonly AiProvider[]; clock?: () => number }` (`clock` is
@@ -5445,7 +5445,7 @@ longer imported here.) Callers:
 **TDD exception:** refactor — constructor shape changes, behavior unchanged; commit `refactor(ai): …`
 
 ### TASK-193 — Try the next provider after a failure
-**Phase:** 7 · **Requirements:** REQ-88, REQ-86 · **Status:** todo · **Revision:** 1
+**Phase:** 7 · **Requirements:** REQ-88, REQ-86 · **Status:** done · **Revision:** 1
 **Files:** src/services/ai-event-parser.ts, src/services/ai-event-parser.test.ts
 **Fixture** (add at the top of `ai-event-parser.test.ts`, below the imports; reused by TASK-194, TASK-195, TASK-204):
 ```ts
@@ -5521,7 +5521,7 @@ throw new AiUnavailableError();
   provider orders (BR-121 amended: 401/403 fail over).
 
 ### TASK-194 — Invalid output and non-outage errors are not retried
-**Phase:** 7 · **Requirements:** REQ-89 · **Status:** todo · **Revision:** 2
+**Phase:** 7 · **Requirements:** REQ-89 · **Status:** done · **Revision:** 2
 **Files:** src/services/ai-event-parser.ts, src/services/ai-event-parser.test.ts
 **Test first** (in `describe('AiEventParser — providers')`; add `InvalidModelOutputError` to the test file's
 `@/lib/ai/errors` import; red because TASK-193 moves on after any failure):
@@ -5557,7 +5557,7 @@ throw new AiUnavailableError();
   `OpenRouter HTTP 404` (a 401 is an outage since BR-121 was amended).
 
 ### TASK-195 — One 10-second budget shared by every attempt
-**Phase:** 7 · **Requirements:** REQ-88 · **Status:** todo · **Revision:** 1
+**Phase:** 7 · **Requirements:** REQ-88 · **Status:** done · **Revision:** 1
 **Files:** src/services/ai-event-parser.ts, src/services/ai-event-parser.test.ts
 **Test first** (in `describe('AiEventParser — providers')`; a mutable fake clock `let t = 0; const clock = () => t;`,
 reset `t = 0` at the start of each test):
@@ -5609,7 +5609,7 @@ AiUnavailableError` keeps passing unchanged.
 **TDD exception:** none
 
 ### TASK-196 — Anthropic client uses the time left in the budget
-**Phase:** 7 · **Requirements:** REQ-88 · **Status:** todo · **Revision:** 1
+**Phase:** 7 · **Requirements:** REQ-88 · **Status:** done · **Revision:** 1
 **Files:** src/lib/ai/anthropic-model-client.ts, src/lib/ai/anthropic-model-client.test.ts
 **Test first:** `REQ-88: passes the time left in the budget as the SDK timeout` — a local fake (do not reuse the
 file's shared `parse` mock):
@@ -5626,7 +5626,7 @@ timeout and no retries` keeps passing (no `timeoutMs` → 10 000).
 **TDD exception:** none
 
 ### TASK-197 — Anthropic failures are classified
-**Phase:** 7 · **Requirements:** REQ-88, REQ-89 · **Status:** todo · **Revision:** 2
+**Phase:** 7 · **Requirements:** REQ-88, REQ-89 · **Status:** done · **Revision:** 2
 **Files:** src/lib/ai/anthropic-model-client.ts, src/lib/ai/anthropic-model-client.test.ts
 **Test first** (helpers at the top of the new `describe('createAnthropicModelClient — failures')`; the SDK error
 classes are named exports of `@anthropic-ai/sdk` 0.128.0):
@@ -5682,7 +5682,7 @@ then `if (response.parsed_output == null) throw new InvalidModelOutputError('mod
   amended); the pass-through list is now 400 / 404 / 422.
 
 ### TASK-198 — JSON schema of the AI output for OpenAI-compatible APIs
-**Phase:** 7 · **Requirements:** REQ-94 · **Status:** todo · **Revision:** 1
+**Phase:** 7 · **Requirements:** REQ-94 · **Status:** done · **Revision:** 1
 **Files:** src/lib/ai/output.ts, src/lib/ai/output.test.ts
 **Interface:** `export const AI_OUTPUT_JSON_SCHEMA: Record<string, unknown>` (red stub: `= {}`)
 **Test first:** `REQ-94: the JSON schema sent to OpenRouter matches the output schema` — `toEqual`:
@@ -5714,7 +5714,7 @@ export const AI_OUTPUT_JSON_SCHEMA: Record<string, unknown> = (() => {
 **TDD exception:** none
 
 ### TASK-199 — OpenRouter client: request and answer
-**Phase:** 7 · **Requirements:** REQ-94 · **Status:** todo · **Revision:** 1
+**Phase:** 7 · **Requirements:** REQ-94 · **Status:** done · **Revision:** 1
 **Files:** src/lib/ai/openrouter-model-client.ts, src/lib/ai/openrouter-model-client.test.ts
 **Contract verified** against OpenRouter's documentation on 2026-09-24 ("Structured Outputs", "Provider Routing",
 "Errors and Debugging"): `POST {base}/chat/completions`, `Authorization: Bearer <key>`, `response_format: { type:
@@ -5817,7 +5817,7 @@ export function createOpenRouterModelClient(deps: OpenRouterDeps = {}): AiModelC
 **TDD exception:** none
 
 ### TASK-200 — OpenRouter client: unusable content
-**Phase:** 7 · **Requirements:** REQ-89, REQ-94 · **Status:** todo · **Revision:** 1
+**Phase:** 7 · **Requirements:** REQ-89, REQ-94 · **Status:** done · **Revision:** 1
 **Files:** src/lib/ai/openrouter-model-client.ts, src/lib/ai/openrouter-model-client.test.ts
 **Test first** (fixture of TASK-199; import `InvalidModelOutputError` from `./errors`):
 - `REQ-89: content that is missing, blank or not JSON is InvalidModelOutputError` — for each body of
@@ -5846,7 +5846,7 @@ and return `parseContent(envelope.choices?.[0]?.message?.content)`.
 **TDD exception:** none
 
 ### TASK-201 — OpenRouter client: outages and other failures
-**Phase:** 7 · **Requirements:** REQ-88, REQ-89, REQ-94 · **Status:** todo · **Revision:** 2
+**Phase:** 7 · **Requirements:** REQ-88, REQ-89, REQ-94 · **Status:** done · **Revision:** 2
 **Files:** src/lib/ai/openrouter-model-client.ts, src/lib/ai/openrouter-model-client.test.ts
 **Test first** (fixture of TASK-199; import `ProviderUnavailableError` from `./errors`; helper
 `const failureOf = (fetchMock: unknown, request: { system: string; user: string; model: string; timeoutMs?: number } = REQ) => client(fetchMock).complete(request).then(() => { throw new Error('expected a rejection'); }, (error: unknown) => error);`):
@@ -5920,7 +5920,7 @@ return parseContent(envelope.data.choices?.[0]?.message?.content);
   outages (BR-121 amended); the non-outage list is now 400 / 404 / 422.
 
 ### TASK-202 — `AI_PROVIDERS` parsing
-**Phase:** 7 · **Requirements:** REQ-86 · **Status:** todo · **Revision:** 2
+**Phase:** 7 · **Requirements:** REQ-86 · **Status:** done · **Revision:** 2
 **Files:** src/lib/ai/providers-config.ts, src/lib/ai/providers-config.test.ts
 **Interface:** C12 `ProviderEnv`, `DEFAULT_AI_PROVIDERS`, `PROVIDER_KEY_ENV`, `PROVIDER_MODEL_ENV`, `DEFAULT_MODELS`,
 `parseAiProviders` (red stub: `throw new Error('not implemented')`). Constants:
@@ -5969,7 +5969,7 @@ export function parseAiProviders(value: string | undefined): AiProviderName[] {
   `{ anthropic: 'claude-sonnet-5', openrouter: 'anthropic/claude-sonnet-5' }`; this task stays as executed.
 
 ### TASK-203 — Provider list from the environment; providers without a key are skipped
-**Phase:** 7 · **Requirements:** REQ-86, REQ-87, REQ-88 · **Status:** todo · **Revision:** 2
+**Phase:** 7 · **Requirements:** REQ-86, REQ-87, REQ-88 · **Status:** done · **Revision:** 2
 **Files:** src/lib/ai/providers-config.ts, src/lib/ai/providers-config.test.ts
 **Interface:** C12 `buildAiProviders(env, factories)` (red stub: `throw new Error('not implemented')`)
 **Test first** (fixture: `const anthropicClient: AiModelClient = { complete: vi.fn() }; const openrouterClient: AiModelClient = { complete: vi.fn() };`
@@ -6026,7 +6026,7 @@ export function buildAiProviders(env: ProviderEnv, factories: Record<AiProviderN
   `claude-sonnet-5` / `anthropic/claude-sonnet-5`; this task stays as executed.
 
 ### TASK-204 — Same result whichever provider answered
-**Phase:** 7 · **Requirements:** REQ-95 · **Status:** todo · **Revision:** 1
+**Phase:** 7 · **Requirements:** REQ-95 · **Status:** done · **Revision:** 1
 **Files:** src/services/ai-event-parser.test.ts
 **Test first (characterization test — one prompt, one schema and one `normalizeAiOutput` already serve every
 provider after TASK-193–TASK-195):** fixture of TASK-193;
@@ -6045,7 +6045,7 @@ provider after TASK-193–TASK-195):** fixture of TASK-193;
 **TDD exception:** none (characterization test, convention 13)
 
 ### TASK-205 — Failover counts once against the daily limit
-**Phase:** 7 · **Requirements:** REQ-96 · **Status:** todo · **Revision:** 1
+**Phase:** 7 · **Requirements:** REQ-96 · **Status:** done · **Revision:** 1
 **Files:** src/services/parse-event-text.test.ts
 **Test first (characterization test — the limit is consumed before the parser runs, TASK-120):** new
 `describe('ParseEventTextService — failover (REQ-96)')`, imports `AiEventParser` (`./ai-event-parser`),
@@ -6074,7 +6074,7 @@ const call = (service: ParseEventTextService) => service.execute({ userId: 'u1',
 **TDD exception:** none (characterization test, convention 13)
 
 ### TASK-206 — Mock OpenRouter server and E2E configuration
-**Phase:** 7 · **Requirements:** REQ-94 · **Status:** todo · **Revision:** 2
+**Phase:** 7 · **Requirements:** REQ-94 · **Status:** done · **Revision:** 2
 **Files:** e2e/mock-openrouter.mjs, e2e/mock-anthropic.mjs, playwright.config.ts, .env.test, .env.example
 **Steps:**
 1. Create `e2e/mock-openrouter.mjs`:
@@ -6203,7 +6203,7 @@ three lines, all `false`; `grep -x "AI_PROVIDERS=anthropic,openrouter" .env.test
   and Anthropic as optional; `.env.test` keeps the explicit `anthropic,openrouter` list, with its reason.
 
 ### TASK-207 — Failover end to end: the app uses the provider list
-**Phase:** 7 · **Requirements:** REQ-88, REQ-95 · **Status:** todo · **Revision:** 2
+**Phase:** 7 · **Requirements:** REQ-88, REQ-95 · **Status:** done · **Revision:** 2
 **Files:** e2e/ai.spec.ts, src/lib/container.ts
 **Precondition:** `.env.test` contains `AI_PROVIDERS=anthropic,openrouter` (TASK-206, check with
 `grep -x "AI_PROVIDERS=anthropic,openrouter" .env.test`). The default is `openrouter` only, so without that line
@@ -6237,7 +6237,7 @@ parser: new AiEventParser({
   explicit `AI_PROVIDERS=anthropic,openrouter` in `.env.test`, since the default lists OpenRouter only.
 
 ### TASK-208 — Keys stay out of the browser and CI
-**Phase:** 7 · **Requirements:** REQ-97 · **Status:** todo · **Revision:** 1
+**Phase:** 7 · **Requirements:** REQ-97 · **Status:** done · **Revision:** 1
 **Files:** scripts/secrets-hygiene.test.ts, e2e/secrets.spec.ts
 **Test first (characterization tests — the rules already hold after TASK-206/TASK-207; a failure is a real leak:
 fix the leak, never the test):**
@@ -6306,7 +6306,7 @@ fix the leak, never the test):**
 **TDD exception:** none (characterization tests, convention 13)
 
 ### TASK-209 — Eval options: provider, key check and report names
-**Phase:** 7 · **Requirements:** REQ-93 · **Status:** todo · **Revision:** 2
+**Phase:** 7 · **Requirements:** REQ-93 · **Status:** done · **Revision:** 2
 **Files:** evals/event-parser/options.ts, evals/event-parser/options.test.ts
 **Interface:** C12 `EvalOptions`, `parseEvalOptions`, `reportLabel`, `reportFileName` (red stubs throw
 `Error('not implemented')`)
@@ -6393,7 +6393,7 @@ export function reportFileName(date: string, provider: AiProviderName, model: st
   test cases rewritten for the new default and for `--provider anthropic`.
 
 ### TASK-210 — Eval runner runs through the chosen provider
-**Phase:** 7 · **Requirements:** REQ-93 · **Status:** todo · **Revision:** 2
+**Phase:** 7 · **Requirements:** REQ-93 · **Status:** done · **Revision:** 2
 **Files:** evals/event-parser/run.ts, evals/event-parser/run.test.ts
 **Test first** (add both tests in a new `describe('eval runner provider (REQ-93)', …)` in `run.test.ts`, each with
 Vitest timeout `30_000`, same shape as the existing REQ-91 test: `const env = { ...process.env }; delete
@@ -6443,7 +6443,7 @@ The import of `parseArgs` is removed. The updated REQ-91 test keeps passing (`--
   the REQ-91 runner test passes `--provider anthropic`.
 
 ### TASK-211 — Env file helpers
-**Phase:** 7 · **Requirements:** REQ-98 · **Status:** todo · **Revision:** 1
+**Phase:** 7 · **Requirements:** REQ-98 · **Status:** done · **Revision:** 1
 **Files:** scripts/openrouter-keys/env-file.ts, scripts/openrouter-keys/env-file.test.ts
 **Interface:** C12 `readEnvValue`, `upsertEnvValue` (red stubs throw `Error('not implemented')`)
 **Test first:**
@@ -6487,7 +6487,7 @@ export function upsertEnvValue(content: string, name: string, value: string): st
 **TDD exception:** none
 
 ### TASK-212 — OpenRouter keys API: list, errors and the fake HTTP layer
-**Phase:** 7 · **Requirements:** REQ-98 · **Status:** todo · **Revision:** 1
+**Phase:** 7 · **Requirements:** REQ-98 · **Status:** done · **Revision:** 1
 **Files:** scripts/openrouter-keys/keys-api.ts, scripts/openrouter-keys/fake-http.ts,
 scripts/openrouter-keys/keys-api.test.ts
 **Contract verified** against OpenRouter's API reference on 2026-09-24 ("List API keys", "Create a new API key",
@@ -6579,7 +6579,7 @@ const info = (name: string, extra: Partial<KeyInfo> = {}): KeyInfo => ({ hash: `
 **TDD exception:** none
 
 ### TASK-213 — OpenRouter keys API: create, update, delete
-**Phase:** 7 · **Requirements:** REQ-98 · **Status:** todo · **Revision:** 1
+**Phase:** 7 · **Requirements:** REQ-98 · **Status:** done · **Revision:** 1
 **Files:** scripts/openrouter-keys/keys-api.ts, scripts/openrouter-keys/keys-api.test.ts
 **Test first** (fixture of TASK-212):
 - `REQ-98: create sends the name and spend limit and returns the new key` — `POST ${BASE}/keys` → 201
@@ -6613,7 +6613,7 @@ async remove(hash) {
 **TDD exception:** none
 
 ### TASK-214 — Provisioning decisions: create, reuse, update the limit, rotate
-**Phase:** 7 · **Requirements:** REQ-98 · **Status:** todo · **Revision:** 1
+**Phase:** 7 · **Requirements:** REQ-98 · **Status:** done · **Revision:** 1
 **Files:** scripts/openrouter-keys/provision.ts, scripts/openrouter-keys/provision.test.ts
 **Interface:** C12 `ProvisionAction`, `ProvisionInput`, `ProvisionResult`, `ProvisionError`, `provisionKey` (red stub
 throws `Error('not implemented')`). `ProvisionError`: `constructor(message: string) { super(message); this.name = 'ProvisionError'; }`.
@@ -6676,7 +6676,7 @@ export async function provisionKey(api: KeysApi, input: ProvisionInput): Promise
 **TDD exception:** none
 
 ### TASK-215 — Provisioning command line that never prints secrets
-**Phase:** 7 · **Requirements:** REQ-98, REQ-97 · **Status:** todo · **Revision:** 1
+**Phase:** 7 · **Requirements:** REQ-98, REQ-97 · **Status:** done · **Revision:** 1
 **Files:** scripts/openrouter-keys/cli.ts, scripts/openrouter-keys/cli.test.ts, scripts/provision-openrouter-key.ts,
 package.json
 **Interface:** C12 `CliDeps`, `runProvisionCli` (red stub rejects `Error('not implemented')`); `package.json` script
@@ -6755,7 +6755,7 @@ is unchanged — only a script was added).
 **TDD exception:** none (the entry point and the `package.json` script go in the `feat:` commit)
 
 ### TASK-216 — README and AI diagram mention the second provider
-**Phase:** 7 · **Requirements:** — · **Status:** todo · **Revision:** 5
+**Phase:** 7 · **Requirements:** — · **Status:** done · **Revision:** 5
 **Files:** README.md, docs/diagrams/ai-event-parsing.mmd, docs/diagrams/ai-event-parsing.svg
 **Steps:**
 1. README, section "Run locally": after the step that copies `.env.example`, add one bullet: "AI: set
@@ -6796,7 +6796,7 @@ is unchanged — only a script was added).
   `anthropic/claude-sonnet-5`. Docs only, no re-run: TASK-218 changes that README line.
 
 ### TASK-217 — Evaluate the 30 cases through OpenRouter
-**Phase:** 7 · **Requirements:** REQ-93, REQ-92, REQ-91 · **Status:** todo · **Revision:** 3
+**Phase:** 7 · **Requirements:** REQ-93, REQ-92, REQ-91 · **Status:** done · **Revision:** 3
 **Absorbs the former TASK-131** (Phase 4 real evaluation on Haiku and Sonnet), moved to Phase 7 by human decision on
 2026-09-24: the same Haiku-vs-Sonnet comparison now runs through OpenRouter, so this task needs no Anthropic key or
 credit (HUMAN-05 is not a prerequisite). Since 2026-09-25 OpenRouter is the default and only production provider
@@ -6868,7 +6868,7 @@ docs/evals/<date>-openrouter-anthropic-claude-sonnet-5.md, docs/evals/README.md
   task means the default before TASK-218 (`anthropic/claude-haiku-4.5`).
 
 ### TASK-218 — Code default models follow the eval
-**Phase:** 7 · **Requirements:** REQ-87, REQ-86, REQ-93 · **Status:** todo · **Revision:** 1
+**Phase:** 7 · **Requirements:** REQ-87, REQ-86, REQ-93 · **Status:** done · **Revision:** 1
 **Why:** orchestrator decision after the real eval (TASK-217, `docs/evals/README.md`), not a failure revision. Only
 `anthropic/claude-sonnet-5` passes the gate (100% / 100% / 100%); `anthropic/claude-haiku-4.5` fails must-not-invent
 (75%) and `openai/gpt-4o-mini` fails must-not-invent (50%) and prompt-injection (67%). The code defaults were still the
@@ -6961,7 +6961,7 @@ prints `0`; `git log --format=%s` shows the `test(ai): …` commit before the `f
 
 ### HUMAN-06 — OpenRouter key in Vercel
 **Phase:** 7 · **Owner:** human · **When:** steps 1–2 done; step 3 after TASK-218; step 4 after the Phase 7 merge.
-**Status:** steps 1–2 (`OPENROUTER_API_KEY` in Vercel) **done (human, 2026-09-25)**; steps 3–4 todo.
+**Status:** steps 1–4 **done (human, 2026-09-25)**.
 **Not needed for CI:** unit and integration tests use fakes, E2E uses the mock server with `test-key`; never add a key
 to GitHub secrets or to a workflow.
 1. ~~Create a separate production key (own limit, revocable on its own):
@@ -6969,14 +6969,14 @@ to GitHub secrets or to a workflow.
    (the file is ignored by git: `.env*.local`).~~ Done (human, 2026-09-25).
 2. ~~Vercel → Settings → Environment Variables (Production): add `OPENROUTER_API_KEY` with the value from
    `.env.vercel.local`; then delete `.env.vercel.local`.~~ Done (human, 2026-09-25).
-3. Add **no** other Vercel variable. `AI_PROVIDERS` defaults to `openrouter` (BR-119 amended 2026-09-25), which is what
+3. ~~Add **no** other Vercel variable. `AI_PROVIDERS` defaults to `openrouter` (BR-119 amended 2026-09-25), which is what
    production uses. `OPENROUTER_MODEL` is **not** needed: its code default is `anthropic/claude-sonnet-5`, the model
    chosen by TASK-217 (`docs/evals/README.md`, "Production models") and made the default by TASK-218; set it only to
    override that choice. Anthropic is optional and not part of this task: an operator who wants it sets
    `ANTHROPIC_API_KEY` and `AI_PROVIDERS` (e.g. `openrouter,anthropic`); `AI_MODEL` defaults to `claude-sonnet-5` and
-   needs no variable either (HUMAN-05).
-4. After the Phase 7 merge, redeploy (the deploy that includes Phase 7 is what reads `OPENROUTER_API_KEY`) and tell
-   the orchestrator the variables are in place (do not paste any key in the chat).
+   needs no variable either (HUMAN-05).~~ Done (human, 2026-09-25).
+4. ~~After the Phase 7 merge, redeploy (the deploy that includes Phase 7 is what reads `OPENROUTER_API_KEY`) and tell
+   the orchestrator the variables are in place (do not paste any key in the chat).~~ Done (human, 2026-09-25).
 **Changelog:**
 - human decision (OpenRouter default), not a failure revision: steps 1–2 marked done (human, 2026-09-25);
   `AI_PROVIDERS` needs no Vercel variable; `OPENROUTER_MODEL` only if TASK-217 picks a non-default model.

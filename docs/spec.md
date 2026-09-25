@@ -1282,7 +1282,7 @@ Terms used below:
 
 ### REQ-86 — AI providers are tried in the order set by `AI_PROVIDERS`
 **Rules:** BR-119
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - Default = OpenRouter only (BR-119 amended 2026-09-25): `parseAiProviders(undefined)`, `parseAiProviders('')` and
   `parseAiProviders('   ')` → `['openrouter']` (never `['anthropic', 'openrouter']`, the superseded default)
@@ -1304,7 +1304,7 @@ Terms used below:
 
 ### REQ-87 — A provider without an API key is skipped
 **Rules:** BR-120
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - Keys: `ANTHROPIC_API_KEY` (Anthropic), `OPENROUTER_API_KEY` (OpenRouter). A key that is missing or only whitespace
   counts as "no key"
@@ -1326,7 +1326,7 @@ Terms used below:
 
 ### REQ-88 — Failover to the next provider on an outage, within one 10-second budget
 **Rules:** BR-121, BR-64
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - Outage classification (`ProviderUnavailableError(reason)`):
 
@@ -1369,7 +1369,7 @@ Terms used below:
 
 ### REQ-89 — Invalid model output is never retried on another provider
 **Rules:** BR-122, BR-70
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - The first provider returns output that fails `aiRawOutputSchema` (e.g. `{ foo: 1 }`) → `AiUnavailableError`; the
   second provider is not called (confirmed by the human, "Resolved — A3")
@@ -1381,7 +1381,7 @@ Terms used below:
 
 ### REQ-94 — OpenRouter structured-output client
 **Rules:** BR-70, BR-121
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - `AI_OUTPUT_JSON_SCHEMA` (derived from `aiRawOutputSchema` with `z.toJSONSchema`, `$schema` removed) equals exactly
   `{ type: 'object', properties: { isEvent: { type: 'boolean' }, name: { type: ['string','null'] }, description:
@@ -1406,7 +1406,7 @@ Terms used below:
 
 ### REQ-95 — The result is the same whichever provider answered
 **Rules:** BR-123, BR-56, BR-57, BR-58, BR-96
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - The same raw model output gives an identical `ParseEventResult` whether the Anthropic provider answered or the
   OpenRouter provider answered after an Anthropic outage (one prompt, one schema, one `normalizeAiOutput`)
@@ -1419,7 +1419,7 @@ Terms used below:
 
 ### REQ-96 — One fill request counts once against the daily AI limit
 **Rules:** BR-124, BR-68
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - Given user `"u1"`, a fixed clock and a parser whose Anthropic provider always fails with an outage while OpenRouter
   answers: 20 requests resolve, the 21st rejects `AiLimitReachedError`; each provider was called exactly 20 times
@@ -1431,7 +1431,7 @@ Terms used below:
 
 ### REQ-97 — Provider keys never reach the browser or CI
 **Rules:** BR-125
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - Keys are read only by server code at call time: the Anthropic SDK reads `ANTHROPIC_API_KEY`; the OpenRouter client
   reads `OPENROUTER_API_KEY`; both are built only by `src/lib/container.ts` (`server-only`) and the eval runner
@@ -1446,7 +1446,7 @@ Terms used below:
 
 ### REQ-98 — The OpenRouter API key is provisioned with a spend limit, without printing secrets
 **Rules:** BR-126, BR-125
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - `npm run openrouter:key -- [--name <n>] [--limit <usd>] [--env-file <path>] [--rotate]` (defaults
   `event-rsvp-app`, `3`, `.env.local`, off) reads the management key from `OPENROUTER_MANAGMENT_KEY` (the human's
@@ -1540,7 +1540,7 @@ These requirements are code in the repository and are TDD'd like product code. T
 
 ### REQ-93 — Eval runner: provider selection
 **Rules:** none (tooling)
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - `--provider` defaults to `openrouter` (human decision 2026-09-25, "OpenRouter is the default now"): given
   `OPENROUTER_API_KEY` is set, when `npm run eval -- --model openai/gpt-4o-mini` runs (no `--provider`), then it runs
