@@ -19,10 +19,10 @@ export const PROVIDER_MODEL_ENV: Record<AiProviderName, string> = {
   anthropic: 'AI_MODEL',
   openrouter: 'OPENROUTER_MODEL',
 };
-/** Model used when the provider's model variable is unset or blank. */
+/** Model used when the provider's model variable is unset or blank (chosen by docs/evals/README.md). */
 export const DEFAULT_MODELS: Record<AiProviderName, string> = {
-  anthropic: 'claude-haiku-4-5',
-  openrouter: 'anthropic/claude-haiku-4.5',
+  anthropic: 'claude-sonnet-5',
+  openrouter: 'anthropic/claude-sonnet-5',
 };
 
 /** Reads the ordered provider list from AI_PROVIDERS: trimmed, lower-cased, known names only, first occurrence kept. */
