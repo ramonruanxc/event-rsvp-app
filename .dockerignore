@@ -1,0 +1,15 @@
+.git
+.github
+.husky
+.claude
+.idea
+.vscode
+.next
+node_modules
+coverage
+playwright-report
+test-results
+blob-report
+.env*
+*.log
+*.tsbuildinfo
