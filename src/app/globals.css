@@ -1,26 +1,111 @@
 @import 'tailwindcss';
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --font: var(--font-geist-sans), system-ui, sans-serif;
+  --mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --ease: cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+:root,
+[data-theme='dark'] {
+  color-scheme: dark;
+  --bg: oklch(0.17 0.018 277);
+  --surface: oklch(0.21 0.02 277);
+  --surface-2: oklch(0.25 0.022 277);
+  --border: oklch(0.34 0.02 277);
+  /* BEND: added. --border fails 3:1 vs --surface (1.51:1), so input/control boundaries use this. 3.80:1 vs surface. */
+  --border-input: oklch(0.56 0.03 277);
+  --text: oklch(0.95 0.006 277);
+  --text-muted: oklch(0.74 0.014 277);
+  /* BEND: DESIGN.md dark primary 0.62 gives 3.73:1 with --on-primary; 0.55 gives 5.01:1. Hover goes darker (5.9:1). */
+  --primary: oklch(0.55 0.19 277);
+  --primary-hover: oklch(0.51 0.19 277);
+  --on-primary: oklch(0.99 0.004 277);
+  --link: oklch(0.78 0.12 277);
+  --success: oklch(0.84 0.12 185);
+  --success-bg: oklch(0.3 0.05 185);
+  --warning: oklch(0.85 0.13 85);
+  --warning-bg: oklch(0.3 0.05 85);
+  --danger: oklch(0.72 0.17 25);
+  --danger-bg: oklch(0.3 0.06 25);
+  /* BEND: added. --on-primary on --danger is 2.60:1 in dark; --bg on --danger is 7.17:1. */
+  --on-danger: var(--bg);
+  --shadow-pop: 0 12px 32px oklch(0.08 0.02 277 / 0.55), 0 1px 2px oklch(0.08 0.02 277 / 0.4);
+}
+
+[data-theme='light'] {
+  color-scheme: light;
+  --bg: oklch(0.985 0.004 277);
+  --surface: oklch(0.995 0.003 277);
+  --surface-2: oklch(0.955 0.008 277);
+  --border: oklch(0.88 0.012 277);
+  --border-input: oklch(0.6 0.03 277); /* 3.91:1 vs surface */
+  --text: oklch(0.22 0.02 277);
+  --text-muted: oklch(0.46 0.018 277);
+  --primary: oklch(0.42 0.2 277);
+  --primary-hover: oklch(0.37 0.2 277);
+  --on-primary: oklch(0.99 0.004 277);
+  --link: oklch(0.45 0.2 277);
+  --success: oklch(0.5 0.1 185);
+  --success-bg: oklch(0.95 0.035 185);
+  --warning: oklch(0.52 0.12 70);
+  --warning-bg: oklch(0.96 0.04 85);
+  --danger: oklch(0.5 0.19 27);
+  --danger-bg: oklch(0.96 0.03 25);
+  --on-danger: var(--on-primary);
+  --shadow-pop: 0 12px 32px oklch(0.3 0.03 277 / 0.16), 0 1px 2px oklch(0.3 0.03 277 / 0.12);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-border: var(--border);
+  --color-border-input: var(--border-input);
+  --color-text: var(--text);
+  --color-text-muted: var(--text-muted);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-on-primary: var(--on-primary);
+  --color-link: var(--link);
+  --color-success: var(--success);
+  --color-success-bg: var(--success-bg);
+  --color-warning: var(--warning);
+  --color-warning-bg: var(--warning-bg);
+  --color-danger: var(--danger);
+  --color-danger-bg: var(--danger-bg);
+  --color-on-danger: var(--on-danger);
+  --font-sans: var(--font-geist-sans), system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font: 400 1rem/1.55 var(--font);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
   }
-}
-
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  a {
+    color: var(--link);
+    text-underline-offset: 3px;
+  }
+  :focus-visible {
+    outline: 2px solid var(--link);
+    outline-offset: 2px;
+  }
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+    color: inherit;
+  }
+  fieldset {
+    border: 0;
+    padding: 0;
+    margin: 0;
+    min-width: 0;
+  }
 }

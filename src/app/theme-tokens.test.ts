@@ -63,7 +63,10 @@ function failures(theme: 'dark' | 'light', pairs: Array<[string, string]>, min: 
 
 describe('theme tokens', () => {
   it('REQ-65: text pairs are at least 4.5:1 in the dark and the light theme', () => {
-    expect({ dark: failures('dark', TEXT_PAIRS, 4.5), light: failures('light', TEXT_PAIRS, 4.5) }).toEqual({
+    expect({
+      dark: failures('dark', TEXT_PAIRS, 4.5),
+      light: failures('light', TEXT_PAIRS, 4.5),
+    }).toEqual({
       dark: [],
       light: [],
     });
