@@ -30,7 +30,7 @@ export default async function LocaleLayout({
     >
       <body>
         <NextIntlClientProvider>
-          <SiteHeader locale={locale} />
+          <SiteHeader locale={locale} theme={theme} />
           {children}
         </NextIntlClientProvider>
       </body>
