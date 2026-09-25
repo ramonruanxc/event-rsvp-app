@@ -21,8 +21,9 @@
 | 8 | `phase-8/eval-hardening` | Harder AI evaluation + reasoning control (A4): `OPENROUTER_REASONING_EFFORT` (default `low`) sent as `reasoning: { effort }`; 3 runs per case (every answered run must pass); availability and p95 latency (< 8 s) reported apart from correctness; description-invention check; every category ≥ 80%; hidden hold-out split (⅓); +30 hard cases; real run on four models; code default model follows the new gate. **Outcome:** no model passes; delivered as a measurement (human decision, option A): default stays `anthropic/claude-sonnet-5`, production sets `OPENROUTER_REASONING_EFFORT=omit` (HUMAN-07) | REQ-99–REQ-107 (+ amended REQ-91, REQ-92, REQ-93, REQ-94) | 19 + 1 human (TASK-220–TASK-238, HUMAN-07) |
 | 9 | `phase-9/containerize` | One-command local run (A5): `docker compose up --build` starts Postgres and the app, which migrates, seeds and serves on `APP_PORT` (default 3000). `.env.local` is optional (`AUTH_SECRET` is generated when it is absent). Node 22 image with the full build, and no secret in the image. `docker compose up -d db` for development and tests. A non-required CI smoke job. README | REQ-108–REQ-113 | 8 (TASK-239–TASK-246), no human task |
 | 10 | `phase-10/password-auth` | Email and password sign-in alongside Google (A6): register, sign in (one generic error, failed attempts limited per email and IP), set or change a password on a new Account page; Google links to an existing email only when verified, clears the unverified password and shows a notice; JWT sessions; scrypt from `node:crypto`; en/fr/pt-BR, WCAG 2.2 AA; README | REQ-114–REQ-130 (+ amended REQ-01, REQ-02, REQ-39, REQ-80, REQ-81) | 23 (TASK-247–TASK-269), no human task |
+| 11 | `phase-11/date-time-picker` | Fix incident 26: the date and time pickers open again (click on the field, or a labelled icon button) while REQ-66's hidden Chromium indicator stays hidden | REQ-131 | 1 (TASK-270), no human task |
 
-Totals: 130 requirements (118 product + 12 tooling), 236 agent tasks, 6 human tasks.
+Totals: 131 requirements (119 product + 12 tooling), 237 agent tasks, 6 human tasks.
 
 **Adjustments to the suggested phases (with reasons):**
 - *All Prisma repositories move to Phase 1* (including the RSVP repository and its unique-constraint test REQ-27):
@@ -12645,3 +12646,233 @@ Commit `docs: email and password sign-in in the README`.
 **Done when:** `npm run format:check` passes; every changed line is at most 120 characters, except table rows (the
 existing rows are longer too); `git diff main -- README.md` touches only the sections listed above.
 **TDD exception:** docs
+
+---
+
+## Phase 11 — Date and time pickers reachable again (`phase-11/date-time-picker`, incident 26)
+
+Goal: the organizer can pick the event date and time from the browser's picker again, not only type them
+(REQ-131). REQ-66 hid Chromium's `::-webkit-calendar-picker-indicator` to remove an untabbable, ring-less focus stop,
+and nothing then opened the picker. That CSS stays. The picker now opens on a click on the field
+(`HTMLInputElement.showPicker()`) and from a labelled icon button inside each field, which has the normal focus ring.
+
+Order: TASK-270 only. No human task, no new dependency (`lucide-react` is already installed), no migration.
+
+**Phase 11 notes** (none changes a business rule; the analyst backfills the rule at doc-sync, see REQ-131):
+1. **Button names avoid the word "date".** Playwright's `getByLabel('Date')` (used in `e2e/events.spec.ts`) is a
+   case-insensitive substring match that also reads `aria-label`, so a button named "Open date picker" would make it
+   match two elements. Hence "Open calendar". `getByLabel('Time', { exact: true })` is already exact.
+2. **Focus, then open.** The button focuses the input first, so where `showPicker` is missing or refused the organizer
+   can still type straight away.
+3. **Local E2E port.** Run the E2E suite with `E2E_PORT=3100`: port 3000 is used by an unrelated app on this machine.
+
+### TASK-270 — Open the native date and time pickers from the field and from an icon button
+**Phase:** 11 · **Requirements:** REQ-131 · **Status:** todo · **Revision:** 1
+**Files:** src/components/event-form.tsx, src/components/event-form.test.tsx, src/app/globals.css,
+messages/en.json, messages/fr.json, messages/pt-BR.json
+**Interface:** no exported symbol changes. Two module-level helpers in `src/components/event-form.tsx`:
+`function openPicker(input: HTMLInputElement | null): void` and
+`function focusAndOpenPicker(input: HTMLInputElement | null): void`.
+
+**Test first** — in `src/components/event-form.test.tsx`, change the vitest import to
+`import { afterEach, describe, expect, test, vi } from 'vitest';` and append this block at the end of the file:
+```tsx
+describe('EventForm date and time pickers (REQ-131)', () => {
+  /** Installs a mock `showPicker` on every input (jsdom has none) and returns it. */
+  function mockShowPicker(impl: () => void = () => {}) {
+    const showPicker = vi.fn(impl);
+    Object.defineProperty(HTMLInputElement.prototype, 'showPicker', {
+      configurable: true,
+      writable: true,
+      value: showPicker,
+    });
+    return showPicker;
+  }
+
+  afterEach(() => {
+    Reflect.deleteProperty(HTMLInputElement.prototype, 'showPicker');
+  });
+
+  test('REQ-131: clicking the date field opens its picker', () => {
+    const showPicker = mockShowPicker();
+    renderWithIntl(<EventForm submit={vi.fn()} />);
+    const dateInput = screen.getByLabelText('Date');
+
+    fireEvent.click(dateInput);
+
+    expect(showPicker).toHaveBeenCalledTimes(1);
+    expect(showPicker.mock.contexts[0]).toBe(dateInput);
+  });
+
+  test('REQ-131: clicking the time field opens its picker', () => {
+    const showPicker = mockShowPicker();
+    renderWithIntl(<EventForm submit={vi.fn()} />);
+    const timeInput = screen.getByLabelText('Time');
+
+    fireEvent.click(timeInput);
+
+    expect(showPicker).toHaveBeenCalledTimes(1);
+    expect(showPicker.mock.contexts[0]).toBe(timeInput);
+  });
+
+  test('REQ-131: the calendar button focuses the date field and opens its picker', () => {
+    const showPicker = mockShowPicker();
+    renderWithIntl(<EventForm submit={vi.fn()} />);
+    const dateInput = screen.getByLabelText('Date');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open calendar' }));
+
+    expect(document.activeElement).toBe(dateInput);
+    expect(showPicker).toHaveBeenCalledTimes(1);
+    expect(showPicker.mock.contexts[0]).toBe(dateInput);
+  });
+
+  test('REQ-131: the clock button focuses the time field and opens its picker', () => {
+    const showPicker = mockShowPicker();
+    renderWithIntl(<EventForm submit={vi.fn()} />);
+    const timeInput = screen.getByLabelText('Time');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open time picker' }));
+
+    expect(document.activeElement).toBe(timeInput);
+    expect(showPicker).toHaveBeenCalledTimes(1);
+    expect(showPicker.mock.contexts[0]).toBe(timeInput);
+  });
+
+  test('REQ-131: a showPicker that throws breaks nothing', () => {
+    const showPicker = mockShowPicker(() => {
+      throw new DOMException('The picker is already open.', 'InvalidStateError');
+    });
+    renderWithIntl(<EventForm submit={vi.fn()} />);
+    const dateInput = screen.getByLabelText('Date') as HTMLInputElement;
+
+    fireEvent.click(dateInput);
+    fireEvent.click(screen.getByRole('button', { name: 'Open calendar' }));
+    fireEvent.change(dateInput, { target: { value: '2099-01-01' } });
+
+    expect(showPicker).toHaveBeenCalledTimes(2);
+    expect(document.activeElement).toBe(dateInput);
+    expect(dateInput.value).toBe('2099-01-01');
+  });
+
+  test('REQ-131: without showPicker the button still focuses its field', () => {
+    renderWithIntl(<EventForm submit={vi.fn()} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open time picker' }));
+
+    expect(document.activeElement).toBe(screen.getByLabelText('Time'));
+  });
+
+  test('REQ-131: both picker buttons are translated plain buttons in the When group', () => {
+    renderWithIntl(<EventForm submit={vi.fn()} />);
+    const when = within(screen.getByRole('group', { name: 'When' }));
+    const calendar = when.getByRole('button', { name: 'Open calendar' });
+    const clock = when.getByRole('button', { name: 'Open time picker' });
+
+    expect(calendar.getAttribute('type')).toBe('button');
+    expect(clock.getAttribute('type')).toBe('button');
+    expect(when.getAllByRole('button')).toHaveLength(2);
+  });
+});
+```
+Run `npx vitest run --project unit src/components/event-form.test.tsx`: all seven new tests fail (the first two on
+`toHaveBeenCalledTimes(1)`, the others because no button named "Open calendar" / "Open time picker" exists); every
+older test in the file still passes. No stub is needed (no new export). Commit
+`test(event-form): date and time pickers open from the field and an icon button`.
+
+**Implementation:**
+1. `messages/en.json`, inside `"eventForm"`, after `"timezoneHint"` (add a comma to that line):
+   `"openDatePicker": "Open calendar",` and `"openTimePicker": "Open time picker"`.
+   `messages/fr.json`: `"openDatePicker": "Ouvrir le calendrier",` `"openTimePicker": "Ouvrir le sélecteur d'heure"`.
+   `messages/pt-BR.json`: `"openDatePicker": "Abrir calendário",` `"openTimePicker": "Abrir seletor de horário"`.
+   Do not use the word "date" in the English date name (Phase 11 note 1).
+2. `src/components/event-form.tsx`:
+   - imports: `import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';` and
+     `import { CalendarDays, Check, ChevronDown, Clock, Sparkles } from 'lucide-react';`
+   - after the `EventFormProps` interface, before `export function EventForm`, add:
+     ```ts
+     /**
+      * Opens the native picker of a date or time input (REQ-131). `showPicker` is missing in older
+      * browsers and throws without user activation or when the picker is already open; both cases are
+      * ignored, so the field still accepts typing.
+      */
+     function openPicker(input: HTMLInputElement | null): void {
+       if (!input || typeof input.showPicker !== 'function') return;
+       try {
+         input.showPicker();
+       } catch {
+         // Unsupported here, refused, or already open: typing still works.
+       }
+     }
+
+     /** Focuses a date or time input, then opens its picker (the icon buttons, REQ-131). */
+     function focusAndOpenPicker(input: HTMLInputElement | null): void {
+       if (!input) return;
+       input.focus();
+       openPicker(input);
+     }
+     ```
+   - after `const [filledCount, setFilledCount] = useState<number | null>(null);` add
+     `const dateRef = useRef<HTMLInputElement>(null);` and `const timeRef = useRef<HTMLInputElement>(null);`
+   - replace the date `<input … id="date" … />` element (keep every existing attribute) with:
+     ```tsx
+     <div className="picker-wrap">
+       <input
+         ref={dateRef}
+         className="input"
+         id="date"
+         type="date"
+         value={date}
+         onChange={(e) => setDate(e.target.value)}
+         onClick={(e) => openPicker(e.currentTarget)}
+         aria-invalid={ariaInvalid('date')}
+         aria-describedby={ariaDescribedBy('date')}
+       />
+       <button
+         type="button"
+         className="icon-btn picker-btn"
+         aria-label={t('eventForm.openDatePicker')}
+         onClick={() => focusAndOpenPicker(dateRef.current)}
+       >
+         <Icon icon={CalendarDays} />
+       </button>
+     </div>
+     ```
+   - do the same for the time `<input … id="time" … />`: `ref={timeRef}`, `type="time"`, `value={time}`, `setTime`,
+     `ariaInvalid('time')`, `ariaDescribedBy('time')`, button `aria-label={t('eventForm.openTimePicker')}`,
+     `onClick={() => focusAndOpenPicker(timeRef.current)}`, icon `Clock`.
+   - the `FieldLabel`, `FieldError` and `FieldHint` siblings stay exactly where they are (outside `.picker-wrap`).
+3. `src/app/globals.css`:
+   - in the REQ-66 BEND comment above `input[type='date']::-webkit-clear-button`, append the sentence
+     `The picker stays reachable by clicking the field or its icon button (REQ-131).` Do not change the rule itself.
+   - in `@layer components`, directly after the `.select-wrap .i { … }` block, add:
+     ```css
+     /* Date/time field with its picker button inside the right edge (REQ-131). */
+     .picker-wrap {
+       position: relative;
+     }
+     .picker-wrap .input {
+       padding-right: 44px;
+     }
+     .picker-btn {
+       position: absolute;
+       top: 4px;
+       right: 4px;
+       width: 32px;
+       height: 32px;
+     }
+     ```
+     It comes after `.icon-btn` in the same layer, so its 32 px size wins; the focus ring is the global
+     `:focus-visible` rule (2 px `--link`, 2 px offset).
+4. Run `npx prettier --write` on the changed files (the snippets above are not at their final indentation), then the
+   unit file again: all tests pass. Commit `fix(event-form): open the date and time pickers again`.
+
+**Verification** (before the task is done):
+- `npm run test:unit`, `npm run lint`, `npm run typecheck`, `npm run format:check`, `npm run trace`
+- `docker compose up -d db`, then with `E2E_PORT=3100` set in the shell (port 3000 belongs to another app; do not edit
+  any file for it):
+  `E2E_PORT=3100 npm run test:e2e -- e2e/a11y.spec.ts e2e/events.spec.ts e2e/ai.spec.ts e2e/i18n-layout.spec.ts`.
+  All pass unchanged; do not edit these specs. If one fails, return the failure; do not adapt the test.
+**Done when:** the seven REQ-131 tests pass, every existing unit and E2E test listed above passes unchanged, and lint,
+typecheck, format and trace pass.
+**TDD exception:** none
