@@ -214,8 +214,32 @@ describe('EventForm — Fill with AI (REQ-51)', () => {
     describeAndFill(container);
 
     const alert = await screen.findByRole('alert');
-    expect(alert.textContent).toBe("Couldn't fill automatically — please fill the form.");
+    expect(alert.textContent).toBe(
+      'The AI service is unavailable right now — try again later, or fill the form below.',
+    );
     expect((screen.getByLabelText('Name') as HTMLInputElement).value).toBe('Old name');
+  });
+
+  test('REQ-132: each AI failure shows its own message and keeps Fill with AI', async () => {
+    const cases: [string, string][] = [
+      ['AI_NOT_CONFIGURED', "AI fill isn't set up on this server — fill the form below."],
+      ['AI_TIMEOUT', 'The AI took too long to answer — try again, or fill the form below.'],
+      [
+        'AI_UNAVAILABLE',
+        'The AI service is unavailable right now — try again later, or fill the form below.',
+      ],
+    ];
+    for (const [code, message] of cases) {
+      const aiFill = vi.fn().mockResolvedValue({ ok: false, code });
+      const { container, unmount } = renderWithIntl(
+        <EventForm submit={vi.fn()} aiFill={aiFill} />,
+      );
+      describeAndFill(container);
+
+      expect((await screen.findByRole('alert')).textContent).toBe(message);
+      expect(screen.getByRole('button', { name: 'Fill with AI' })).toBeTruthy();
+      unmount();
+    }
   });
 
   test('REQ-51: the daily limit message keeps the Fill with AI button visible', async () => {

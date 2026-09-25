@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { AiUnavailableError } from '@/domain/errors';
+import { AiNotConfiguredError, AiUnavailableError } from '@/domain/errors';
 import { AiEventParser } from '@/services/ai-event-parser';
 import { ProviderUnavailableError } from './errors';
 import {
@@ -93,7 +93,7 @@ describe('buildAiProviders', () => {
         formTimezone: null,
         now: new Date('2026-09-24T15:00:00.000Z'),
       }),
-    ).rejects.toBeInstanceOf(AiUnavailableError);
+    ).rejects.toBeInstanceOf(AiNotConfiguredError);
   });
 
   it('REQ-87: model variables override the defaults and blank means default', () => {

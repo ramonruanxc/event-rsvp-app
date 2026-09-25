@@ -65,6 +65,12 @@ describe('classifyRun (REQ-101)', () => {
     ];
     for (const [run, status] of table) expect(classifyRun(run), `${run.latencyMs} ms`).toBe(status);
   });
+
+  it('REQ-132: an AI_TIMEOUT failure is a timeout whatever its latency', () => {
+    expect(
+      classifyRun({ outcome: { error: 'AI_TIMEOUT' }, latencyMs: 1_500, clientError: undefined }),
+    ).toBe('timeout');
+  });
 });
 
 const CASE: EvalCase = {

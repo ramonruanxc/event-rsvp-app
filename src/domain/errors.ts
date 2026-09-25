@@ -9,6 +9,8 @@ export type ErrorCode =
   | 'RATE_LIMITED'
   | 'AI_LIMIT_REACHED'
   | 'AI_UNAVAILABLE'
+  | 'AI_TIMEOUT'
+  | 'AI_NOT_CONFIGURED'
   | 'UNAUTHENTICATED'
   | 'INTERNAL_ERROR'
   | 'INVALID_CREDENTIALS'
@@ -97,11 +99,25 @@ export class AiLimitReachedError extends DomainError {
     super('AI_LIMIT_REACHED');
   }
 }
-/** Raised when the AI provider is unavailable or times out. */
+/** Raised when the AI provider is down or its output is unusable (not a timeout, REQ-132, BR-65). */
 export class AiUnavailableError extends DomainError {
   readonly code = 'AI_UNAVAILABLE' as const;
   constructor() {
     super('AI_UNAVAILABLE');
+  }
+}
+/** Raised when no AI provider answered within the request budget (REQ-132, BR-172). */
+export class AiTimeoutError extends DomainError {
+  readonly code = 'AI_TIMEOUT' as const;
+  constructor() {
+    super('AI_TIMEOUT');
+  }
+}
+/** Raised when no AI provider is configured, so none was attempted (REQ-132, BR-137). */
+export class AiNotConfiguredError extends DomainError {
+  readonly code = 'AI_NOT_CONFIGURED' as const;
+  constructor() {
+    super('AI_NOT_CONFIGURED');
   }
 }
 /** Raised when an action requires a signed-in user and none is present. */
