@@ -129,8 +129,9 @@ latency under 8 seconds.
 | `anthropic/claude-haiku-4.5` | 90% | 67% | 100% | 9.5 s | Fail |
 | `anthropic/claude-sonnet-5` | 88% | 56% | 89% | 4.4 s | Fail |
 
-No model passes the Phase 8 gate; the code default stays `anthropic/claude-sonnet-5` until the human decides.
-Measured cost of the round: USD 1.1968. Full reports: [docs/evals/README.md](docs/evals/README.md).
+Phase 8 (harder AI evaluation) is delivered as a measurement: no model passes the stricter gate. Sonnet 5 is kept
+as the code default; production sets the reasoning effort to `omit` (Vercel). Next step: prompt hardening on
+must-not-invent. Measured cost of the round: USD 1.1968. Full reports: [docs/evals/README.md](docs/evals/README.md).
 
 ```bash
 npm run eval -- --model anthropic/claude-sonnet-5                # OpenRouter (default), needs OPENROUTER_API_KEY

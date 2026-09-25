@@ -6,6 +6,30 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- `OPENROUTER_REASONING_EFFORT` setting (default `low`, `omit` sends no reasoning parameter), read fresh on every
+  OpenRouter call, like the key (REQ-99; BR-64 amended).
+- Harder eval gate: each case runs 3 times and passes only if every answered run passes; availability and p95
+  latency (< 8 s) are reported apart from correctness; a description-invention check; every category needs at
+  least 80%; a hidden ⅓ hold-out split never used to tune the prompt (REQ-100, REQ-101, REQ-102, REQ-103, REQ-104,
+  REQ-105).
+- 30 hard eval cases (vague times, dates contradicting their weekday, daylight-saving gaps, ambiguous timezone
+  abbreviations, injections hidden in fields, fake JSON or base64), for 60 cases total (REQ-106).
+- `--runs` and `--reasoning-effort` options on the eval runner (REQ-107).
+
+### Changed
+
+- OpenRouter request `max_tokens` raised from 1024 to 2048 (REQ-99, amends REQ-94).
+
+### Notes
+
+- Phase 8 evaluation outcome: none of the four evaluated models (`openai/gpt-4o-mini`, `google/gemini-3.8-flash`,
+  `anthropic/claude-haiku-4.5`, `anthropic/claude-sonnet-5`) passes the stricter gate; delivered as a measurement
+  (human decision, incident #22 in `docs/pipeline/failures.md`). The code default stays `anthropic/claude-sonnet-5`;
+  production sets `OPENROUTER_REASONING_EFFORT=omit` in Vercel (HUMAN-07). Next step: prompt hardening on
+  must-not-invent.
+
 ### Security
 
 - Dependabot alerts for postcss (inside next@15) and vitest triaged and dismissed as tolerable risk; upgrade path

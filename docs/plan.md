@@ -7136,7 +7136,7 @@ Order: TASK-220 → TASK-238 in document order, then HUMAN-07. Only TASK-237 cal
 `scripts/secrets-hygiene.test.ts` and `e2e/ai.spec.ts` (the mock ignores the `reasoning` field).
 
 ### TASK-220 — Phase 8 shared contracts
-**Phase:** 8 · **Requirements:** REQ-99, REQ-100, REQ-101, REQ-103, REQ-104, REQ-106 · **Status:** todo · **Revision:** 1
+**Phase:** 8 · **Requirements:** REQ-99, REQ-100, REQ-101, REQ-103, REQ-104, REQ-106 · **Status:** done · **Revision:** 1
 **Files:** src/lib/ai/reasoning.ts, evals/event-parser/types.ts, evals/event-parser/format.ts,
 evals/event-parser/report.ts
 **Steps:**
@@ -7167,7 +7167,7 @@ evals/event-parser/report.ts
 `seconds` is covered by the tests of TASK-231 and TASK-233.
 
 ### TASK-221 — Resolve the reasoning effort setting
-**Phase:** 8 · **Requirements:** REQ-99 · **Status:** todo · **Revision:** 1
+**Phase:** 8 · **Requirements:** REQ-99 · **Status:** done · **Revision:** 1
 **Files:** src/lib/ai/reasoning.ts, src/lib/ai/reasoning.test.ts
 **Interface:** `export function resolveReasoningEffort(value: string | undefined): ReasoningEffortSetting`
 (red stub: parameter named `_value`, body `throw new Error('not implemented');`)
@@ -7195,7 +7195,7 @@ export function resolveReasoningEffort(value: string | undefined): ReasoningEffo
 **TDD exception:** none
 
 ### TASK-222 — The OpenRouter client sends the reasoning effort
-**Phase:** 8 · **Requirements:** REQ-99, REQ-94 · **Status:** todo · **Revision:** 1
+**Phase:** 8 · **Requirements:** REQ-99, REQ-94 · **Status:** done · **Revision:** 1
 **Files:** src/lib/ai/openrouter-model-client.ts, src/lib/ai/openrouter-model-client.test.ts, .env.example, README.md
 **Test first** (same test file; its helpers `RAW`, `completion`, `reply`, `fakeFetch`, `client`, `REQ`, `callOf`
 already exist at the top):
@@ -7255,7 +7255,7 @@ passes; `npm run typecheck` and `npm run lint` pass; `git log --format=%s` shows
 **TDD exception:** none (the `.env.example` / README commit is docs)
 
 ### TASK-223 — Case schema: hard tag, hold-out flag, forbidden description patterns
-**Phase:** 8 · **Requirements:** REQ-106, REQ-104, REQ-102 · **Status:** todo · **Revision:** 1
+**Phase:** 8 · **Requirements:** REQ-106, REQ-104, REQ-102 · **Status:** done · **Revision:** 1
 **Files:** evals/event-parser/cases.schema.ts, evals/event-parser/cases.schema.test.ts
 **Test first** (new file `cases.schema.test.ts`; imports `describe, expect, it` from `vitest` and `evalCaseSchema`
 from `./cases.schema`; fixture
@@ -7296,7 +7296,7 @@ Update the TSDoc of `evalCaseSchema` to `/** Validates one eval case (REQ-92, RE
 **TDD exception:** none
 
 ### TASK-224 — scoreCase checks the description for facts absent from the input
-**Phase:** 8 · **Requirements:** REQ-102 · **Status:** todo · **Revision:** 1
+**Phase:** 8 · **Requirements:** REQ-102 · **Status:** done · **Revision:** 1
 **Files:** evals/event-parser/score.ts, evals/event-parser/score.test.ts
 **Test first** (new `describe('scoreCase description facts (REQ-102)', …)` in `score.test.ts`, using its existing
 `baseCase` and `baseResult`; fixture:
@@ -7333,7 +7333,7 @@ Update the TSDoc of `scoreCase` to `/** Scores one eval case against a parser ou
 **TDD exception:** none
 
 ### TASK-225 — p95 latency by nearest rank
-**Phase:** 8 · **Requirements:** REQ-101 · **Status:** todo · **Revision:** 1
+**Phase:** 8 · **Requirements:** REQ-101 · **Status:** done · **Revision:** 1
 **Files:** evals/event-parser/stats.ts, evals/event-parser/stats.test.ts
 **Interface:** C13 `percentile95` (red stub: parameter `_values`, body `throw new Error('not implemented');`)
 **Test first** (new file):
@@ -7358,7 +7358,7 @@ export function percentile95(values: readonly number[]): number {
 **TDD exception:** none
 
 ### TASK-226 — Classify each run
-**Phase:** 8 · **Requirements:** REQ-101 · **Status:** todo · **Revision:** 1
+**Phase:** 8 · **Requirements:** REQ-101 · **Status:** done · **Revision:** 1
 **Files:** evals/event-parser/runs.ts, evals/event-parser/runs.test.ts
 **Interface:** C13 `classifyRun` (red stub: parameter `_run`, body `throw new Error('not implemented');`)
 **Test first** (new file `runs.test.ts`; imports `describe, expect, it` from `vitest`,
@@ -7422,7 +7422,7 @@ export function classifyRun(run: {
 **TDD exception:** none
 
 ### TASK-227 — A case passes only if every answered run passes
-**Phase:** 8 · **Requirements:** REQ-100, REQ-101 · **Status:** todo · **Revision:** 1
+**Phase:** 8 · **Requirements:** REQ-100, REQ-101 · **Status:** done · **Revision:** 1
 **Files:** evals/event-parser/runs.ts, evals/event-parser/runs.test.ts
 **Interface:** C13 `aggregateRuns` (red stub: parameters `_evalCase`, `_runs`, body `throw new Error('not implemented');`)
 **Test first** (same file; add imports `aggregateRuns` from `./runs` and types `EvalCase, RunResult` from `./types`;
@@ -7463,7 +7463,7 @@ export function aggregateRuns(evalCase: EvalCase, runs: RunResult[]): CaseRuns {
 **TDD exception:** none
 
 ### TASK-228 — Run a case several times through a recording client
-**Phase:** 8 · **Requirements:** REQ-100, REQ-101 · **Status:** todo · **Revision:** 1
+**Phase:** 8 · **Requirements:** REQ-100, REQ-101 · **Status:** done · **Revision:** 1
 **Files:** evals/event-parser/runs.ts, evals/event-parser/runs.test.ts
 **Interface:** C13 `recordingClient`, `RunCaseDeps`, `runCase` (red stubs: both functions
 `throw new Error('not implemented');`, parameters prefixed with `_`)
@@ -7575,7 +7575,7 @@ delay, so a client timeout is recorded before `parse` rejects; a parser-side tim
 **TDD exception:** none
 
 ### TASK-229 — The gate needs every category at 80%
-**Phase:** 8 · **Requirements:** REQ-103 · **Status:** todo · **Revision:** 1
+**Phase:** 8 · **Requirements:** REQ-103 · **Status:** done · **Revision:** 1
 **Files:** evals/event-parser/score.ts, evals/event-parser/score.test.ts
 **Test first** (new `describe('gate (REQ-103)', …)` using the existing `r` and `many` helpers of `score.test.ts`; add
 `GATE_CATEGORY, GATE_OVERALL` to the `./score` import; the red commit also adds the constants `export const GATE_OVERALL = 0.9;` and `export const GATE_CATEGORY = 0.8;` to
@@ -7604,7 +7604,7 @@ passes; typecheck passes.
 **TDD exception:** none
 
 ### TASK-230 — Summaries of all, tuning and hold-out cases, with run statistics
-**Phase:** 8 · **Requirements:** REQ-101, REQ-104 · **Status:** todo · **Revision:** 1
+**Phase:** 8 · **Requirements:** REQ-101, REQ-104 · **Status:** done · **Revision:** 1
 **Files:** evals/event-parser/score.ts, evals/event-parser/score.test.ts
 **Interface:** C13 `summarizeEval` (red stub: parameter `_cases`, body `throw new Error('not implemented');`); in the
 same red commit widen `summarize`'s parameter to `results: readonly { category: Category; passed: boolean }[]` (a type
@@ -7664,7 +7664,7 @@ export function summarizeEval(cases: readonly CaseRuns[]): EvalSummary {
 **TDD exception:** none
 
 ### TASK-231 — Named gate checks and the Phase 8 gate
-**Phase:** 8 · **Requirements:** REQ-103 · **Status:** todo · **Revision:** 1
+**Phase:** 8 · **Requirements:** REQ-103 · **Status:** done · **Revision:** 1
 **Files:** evals/event-parser/score.ts, evals/event-parser/score.test.ts
 **Interface:** C13 `gateChecks`, `gateEval` (red stubs throwing `not implemented`) and the constant
 `export const P95_LIMIT_MS = 8_000;` (part of the red commit)
@@ -7720,7 +7720,7 @@ export function gateEval(summary: EvalSummary): boolean {
 **TDD exception:** none
 
 ### TASK-232 — Runner options: `--runs` and `--reasoning-effort`
-**Phase:** 8 · **Requirements:** REQ-107, REQ-100 · **Status:** todo · **Revision:** 1
+**Phase:** 8 · **Requirements:** REQ-107, REQ-100 · **Status:** done · **Revision:** 1
 **Files:** evals/event-parser/options.ts, evals/event-parser/options.test.ts
 **Test first** (`options.test.ts`; the tests use `toEqual`/`toMatchObject`, so the red commit type-checks before
 `EvalOptions` gains its fields):
@@ -7770,7 +7770,7 @@ passes; `npm run typecheck` passes (`run.ts` ignores the new fields until TASK-2
 **TDD exception:** none
 
 ### TASK-233 — The Phase 8 report
-**Phase:** 8 · **Requirements:** REQ-105, REQ-104, REQ-101, REQ-103 · **Status:** todo · **Revision:** 1
+**Phase:** 8 · **Requirements:** REQ-105, REQ-104, REQ-101, REQ-103 · **Status:** done · **Revision:** 1
 **Files:** evals/event-parser/report.ts, evals/event-parser/report.test.ts
 **Interface:** C13 `renderEvalReport` (red stub throwing `not implemented`); the Phase 4 `renderReport` stays until
 TASK-234
@@ -7994,7 +7994,7 @@ typecheck and lint pass.
 **TDD exception:** none
 
 ### TASK-234 — The runner runs every case `--runs` times and writes the Phase 8 report
-**Phase:** 8 · **Requirements:** REQ-100, REQ-101, REQ-103, REQ-105, REQ-107 · **Status:** todo · **Revision:** 1
+**Phase:** 8 · **Requirements:** REQ-100, REQ-101, REQ-103, REQ-105, REQ-107 · **Status:** done · **Revision:** 1
 **Files:** evals/event-parser/run.ts, evals/event-parser/run.test.ts, evals/event-parser/report.ts,
 evals/event-parser/report.test.ts
 **Test first** (`run.test.ts`; the import line becomes `import { spawn, spawnSync } from 'node:child_process';` and
@@ -8149,7 +8149,7 @@ pass; `git grep -nw renderReport -- evals` prints nothing.
 **TDD exception:** none
 
 ### TASK-235 — The hard dataset: 30 hard cases, hold-out split and description checks
-**Phase:** 8 · **Requirements:** REQ-106, REQ-104, REQ-102 · **Status:** todo · **Revision:** 1
+**Phase:** 8 · **Requirements:** REQ-106, REQ-104, REQ-102 · **Status:** done · **Revision:** 1
 **Files:** evals/event-parser/cases.json, evals/event-parser/cases.test.ts
 **Test first** (`cases.test.ts`; add `HARD_TAGS` to the import from `./types`; new
 `describe('hard eval dataset (REQ-106)', …)`, each test starting with
@@ -8243,7 +8243,7 @@ must-not-invent 7 + 2, multilingual 5 + 3, non-event 3 + 1, prompt-injection 6 +
 **TDD exception:** none
 
 ### TASK-236 — Document the evaluation and the hold-out rule
-**Phase:** 8 · **Requirements:** REQ-104, REQ-103 · **Status:** todo · **Revision:** 1
+**Phase:** 8 · **Requirements:** REQ-104, REQ-103 · **Status:** done · **Revision:** 1
 **Files:** evals/event-parser/README.md
 **Steps:** create `evals/event-parser/README.md` with exactly:
 ```md
@@ -8279,7 +8279,7 @@ to its own test; it does not hide the cases from a reader.
 **TDD exception:** docs
 
 ### TASK-237 — Evaluate four models with the Phase 8 gate
-**Phase:** 8 · **Requirements:** REQ-107, REQ-106, REQ-105, REQ-103 · **Status:** todo · **Revision:** 2
+**Phase:** 8 · **Requirements:** REQ-107, REQ-106, REQ-105, REQ-103 · **Status:** done · **Revision:** 2
 **Files:** docs/evals/phase-8/<date>-openrouter-<model>.md (one per model run), docs/evals/README.md, README.md
 **Preconditions:** TASK-220 … TASK-236 are committed on `phase-8/eval-hardening`; `npm run test:unit` passes.
 **Runtime:** a full run is 60 cases × 3 runs = 180 calls of up to 10 s each — up to 30 minutes per model. Start each
@@ -8418,7 +8418,7 @@ src/lib/ai/providers-config.ts .env.example` prints nothing; the `test(ai): …`
 ### HUMAN-07 — Reasoning effort `omit` in Vercel
 **Phase:** 8 · **Owner:** human · **When:** now (2026-09-25, after TASK-237). Any time before or after the Phase 8
 merge works; the setting takes effect with the first deploy that runs after it is saved.
-**Status:** todo
+**Status:** done (human, 2026-09-25)
 **Why:** TASK-237 measured `anthropic/claude-sonnet-5` at effort `low` (the code default, REQ-99) at 88% overall,
 must-not-invent 56% and prompt-injection 89% — below the gate. The Phase 7 client sent no `reasoning` field, and
 Sonnet 5 passed the Phase 7 gate with that provider-default reasoning. `omit` makes the Phase 8 client send no

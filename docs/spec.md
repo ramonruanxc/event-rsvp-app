@@ -1524,7 +1524,7 @@ test fixture of the traceability check and is unaffected by REQ-99 existing.
 
 ### REQ-99 — OpenRouter reasoning effort
 **Rules:** BR-64
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - `OPENROUTER_REASONING_EFFORT` is read by the OpenRouter client on **each call** (like the key, REQ-94), trimmed and
   lower-cased by `resolveReasoningEffort(value)` (`src/lib/ai/reasoning.ts`)
@@ -1652,7 +1652,7 @@ These requirements are code in the repository and are TDD'd like product code. T
 
 ### REQ-100 — Eval: each case runs several times; it passes only if every answered run passes
 **Rules:** none (tooling)
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - The runner sends every case `runs` times (option `--runs`, default `3`, REQ-107), one run after the other, each
   through `AiEventParser.parse({ text: input.text, formTimezone: input.timezone, now: new Date(input.now) })`
@@ -1669,7 +1669,7 @@ These requirements are code in the repository and are TDD'd like product code. T
 
 ### REQ-101 — Eval: availability and latency are reported apart from correctness
 **Rules:** none (tooling)
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - Latency of a run = milliseconds from just before `parse` is called to its settlement, measured by the runner with
   `performance.now()`; every run has one, whether it answered or not
@@ -1691,7 +1691,7 @@ These requirements are code in the repository and are TDD'd like product code. T
 
 ### REQ-102 — Eval: the description may not contain facts absent from the input
 **Rules:** none (tooling)
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - A case may set `expected.forbiddenInDescription: string[]`. Each entry is a JavaScript regular-expression source,
   tested with `new RegExp(entry, 'i')` against the result's `description`
@@ -1708,7 +1708,7 @@ These requirements are code in the repository and are TDD'd like product code. T
 
 ### REQ-103 — Eval gate (Phase 8)
 **Rules:** none (tooling)
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - Computed over **all** cases (tuning and hold-out, REQ-104). A model passes iff all five checks pass:
   1. overall `>= 90%`; 2. every category `>= 80%` (a category without cases counts as 100%); 3. must-not-invent
@@ -1725,7 +1725,7 @@ These requirements are code in the repository and are TDD'd like product code. T
 
 ### REQ-104 — Eval: hidden hold-out split
 **Rules:** none (tooling)
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - A case with `"holdout": true` is a **hold-out** case; every other case is a **tuning** case. About one third of the
   dataset is hold-out (REQ-106)
@@ -1748,7 +1748,7 @@ These requirements are code in the repository and are TDD'd like product code. T
 
 ### REQ-105 — Eval report (Phase 8)
 **Rules:** none (tooling)
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - `renderEvalReport(summary, cases, { model, date, runs, reasoningEffort })` returns, joined with `\n`:
   ```
@@ -1803,7 +1803,7 @@ These requirements are code in the repository and are TDD'd like product code. T
 
 ### REQ-106 — Hard eval dataset
 **Rules:** none (tooling)
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - `evals/event-parser/cases.json` has at least 60 cases (the 30 of REQ-92 plus 30 hard cases). A case may carry
   `tag` (one of `HARD_TAGS`, C13), `holdout: true` and `expected.forbiddenInDescription` (REQ-102); the schema keeps
@@ -1823,7 +1823,7 @@ These requirements are code in the repository and are TDD'd like product code. T
 
 ### REQ-107 — Eval runner options and the Phase 8 model choice
 **Rules:** none (tooling)
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - `--runs <n>`: default `3`; the trimmed value must match `^[1-9]\d*$`, else exit 2 with `--runs must be a positive
   integer`
