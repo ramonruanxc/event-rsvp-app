@@ -18,7 +18,7 @@ Event times are taken from session timestamps. All times in America/Fortaleza (U
 | 8 | Post-delivery: harder AI evaluation + reasoning control (amendment A4) | 2026-09-25 10:51:53 | 2026-09-25 13:38:28 |
 | 9 | Post-delivery: containerized one-command local run (amendment A5) | 2026-09-25 14:02:26 | 2026-09-25 14:56:51 |
 | 10 | Post-delivery: email and password sign-in alongside Google (amendment A6) | 2026-09-25 14:56:51 | 2026-09-25 17:40:17 |
-| 11 | Post-delivery: date/time pickers usable again + clearer AI-fill errors (feedback) | 2026-09-25 18:00:50 | — |
+| 11 | Post-delivery: date/time pickers usable again + clearer AI-fill errors (feedback) | 2026-09-25 18:00:50 | 2026-09-25 19:10:29 |
 
 ## Pauses
 
@@ -129,6 +129,10 @@ Pipeline agents working autonomously. Reported separately from human active time
 | Analyst: BR-171–172, BR-64/65/121/137 amended | sonnet | 2026-09-25 18:13:00 | 2026-09-25 18:16:51 | 3m 51s | AI error causes + 20 s budget |
 | Spec-writer: REQ-132–133, TASK-271–272 | opus | 2026-09-25 18:17:10 | 2026-09-25 18:28:17 | 11m 07s | dry-run verified |
 | Implementer TASK-270–272 | sonnet | 2026-09-25 18:28:33 | 2026-09-25 18:42:40 | 14m 07s | 3/3 first attempt |
+| Reviewer PR #18 | sonnet | 2026-09-25 18:43:00 | 2026-09-25 18:50:12 | 7m 12s | REQUEST CHANGES: 1 CODE (incident #27) |
+| Implementer: review fix (maxDuration) | sonnet | 2026-09-25 18:50:50 | 2026-09-25 18:53:46 | 2m 56s | fixed, attempt 1 |
+| Reviewer PR #18 (re-review) | sonnet | 2026-09-25 18:54:00 | 2026-09-25 18:57:12 | 3m 12s | APPROVE, 1 nit (Vercel compute mode unverifiable from the repo) |
+| Analyst: doc-sync PR #18 | sonnet | 2026-09-25 18:57:30 | 2026-09-25 19:07:24 | 9m 54s | statuses, README counts, DESIGN.md, AI diagram |
 
 ## Events
 
@@ -225,6 +229,12 @@ Pipeline agents working autonomously. Reported separately from human active time
 | 2026-09-25 17:49:00 | Human registered with email and password, signed out and signed in again on that local container: all worked |
 | 2026-09-25 18:00:50 | External reviewer feedback relayed by the human: the date and time controls could not open a picker, values had to be typed. Human asked for a quick fix (Phase 11) |
 | 2026-09-25 18:12:51 | Human reported an unclear AI-fill error ("Couldn't fill automatically"). Orchestrator reproduced the text 3× against the production model: all correct, 6.7–8.0 s (close to the 10 s budget); the same message is shown for a missing key, a timeout and an outage. Human decided: one message per cause, AI timeout 10 s → 20 s |
+| 2026-09-25 18:44:00 | Human pre-authorized the Phase 11 merge |
+| 2026-09-25 18:56:00 | Human, away from home, pre-authorized every spec and merge until return; human also required the orchestrator to run every kind of E2E check itself before closing |
+| 2026-09-25 19:10:15 | Orchestrator ran the suites on the PR head: unit 484/484 (Node 22), integration 27/27, E2E 83/83 |
+| 2026-09-25 19:10:29 | PR #18 merged by the orchestrator (human pre-authorized); Phase 11 closed |
+| 2026-09-25 19:12:30 | Orchestrator, fresh clone of `main` with an empty database and no `.env.local`: `docker compose up --build` healthy, smoke 3/3; scripted browser journey on that container 14/14 (register → dashboard; date/time picker buttons focus their field and open the picker; AI fill without a key shows "AI fill isn't set up on this server"; create event; guest RSVP from a separate browser context; organizer sees the guest; `.ics`; sign out; wrong password shows the generic error; sign in; Account page; fr/pt-BR pages) |
+| 2026-09-25 19:14:20 | Orchestrator smoke-tested production after the Phase 11 deploy (063d50d, Vercel status success): public pages in three locales, organizer routes redirect to sign-in, demo event, `.ics`, security headers. Open for the human: confirm Fluid Compute is enabled in the Vercel project so `maxDuration = 30` applies (incident #27) |
 
 ## Time report
 
