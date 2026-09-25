@@ -13,4 +13,9 @@ export class PrismaRateLimitRepository implements RateLimitRepository {
       RETURNING "count"`;
     return Number(rows[0].count);
   }
+
+  /** Current count of (key, windowStart); 0 when there is no row. */
+  async count(_key: string, _windowStart: Date): Promise<number> {
+    throw new Error('not implemented');
+  }
 }

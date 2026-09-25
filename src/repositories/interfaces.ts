@@ -71,6 +71,8 @@ export interface RsvpRepository {
 export interface RateLimitRepository {
   /** Atomically increments the counter of (key, windowStart) and returns the new count (first call → 1). */
   increment(key: string, windowStart: Date): Promise<number>;
+  /** Current count of (key, windowStart); 0 when there is no row. */
+  count(key: string, windowStart: Date): Promise<number>;
 }
 
 /** Fields required to persist a new password user. */

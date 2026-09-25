@@ -19,4 +19,14 @@ describe('PrismaRateLimitRepository', () => {
     const otherWindow = await repo.increment('rsvp:h1', new Date(ws.getTime() + 600_000));
     expect(otherWindow).toBe(1);
   });
+
+  it('REQ-119: count reads the current counter and never creates a row', async () => {
+    const repo = new PrismaRateLimitRepository(prisma);
+    const ws = new Date('2026-09-25T12:00:00.000Z');
+    expect(await repo.count('signin-ip:h1', ws)).toBe(0);
+    expect(await prisma.rateLimit.count()).toBe(0);
+    await repo.increment('signin-ip:h1', ws);
+    await repo.increment('signin-ip:h1', ws);
+    expect(await repo.count('signin-ip:h1', ws)).toBe(2);
+  });
 });
