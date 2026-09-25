@@ -95,10 +95,11 @@ npm run dev
 - AI: set `OPENROUTER_API_KEY` in `.env.local` (`npm run openrouter:key` creates the OpenRouter key with a USD 3 spend
   limit from the system variable `OPENROUTER_MANAGMENT_KEY` and writes it there). OpenRouter is the default and only
   provider (`AI_PROVIDERS` defaults to `openrouter`; `OPENROUTER_MODEL` defaults to `anthropic/claude-sonnet-5`, the
-  model chosen by the [evaluation](docs/evals/README.md)). Anthropic is optional: to use it, set `ANTHROPIC_API_KEY` and
-  list it in `AI_PROVIDERS`, e.g. `AI_PROVIDERS=openrouter,anthropic` — providers are tried in the listed order and
-  failover needs more than one. A listed provider without a key is skipped; with no key "Fill with AI" shows its
-  fallback message and the manual form still works.
+  model chosen by the [evaluation](docs/evals/README.md)). `OPENROUTER_REASONING_EFFORT` (default `low`) sets how much
+  the model reasons before answering; `omit` sends no reasoning parameter. Anthropic is optional: to use it, set
+  `ANTHROPIC_API_KEY` and list it in `AI_PROVIDERS`, e.g. `AI_PROVIDERS=openrouter,anthropic` — providers are tried in
+  the listed order and failover needs more than one. A listed provider without a key is skipped; with no key "Fill with
+  AI" shows its fallback message and the manual form still works.
 
 The app serves on `http://localhost:3000`. If port 3000 is already in use, set `E2E_PORT` and run
 `npm run dev -- -p 3100` instead.
