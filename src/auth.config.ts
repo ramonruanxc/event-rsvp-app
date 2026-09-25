@@ -8,6 +8,7 @@ import Google from 'next-auth/providers/google';
 export const authConfig = {
   providers: [Google({ allowDangerousEmailAccountLinking: true })],
   session: { strategy: 'jwt' },
+  pages: { signIn: '/sign-in', error: '/sign-in' },
   trustHost: true,
   callbacks: {
     session({ session, token }) {
