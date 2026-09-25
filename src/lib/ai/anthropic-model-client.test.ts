@@ -53,4 +53,28 @@ describe('createAnthropicModelClient', () => {
       model.complete({ system: 'sys', user: 'user', model: 'claude-haiku-4-5' }),
     ).rejects.toThrow('model returned no structured output');
   });
+
+  it('REQ-88: passes the time left in the budget as the SDK timeout', async () => {
+    const localParse = vi.fn().mockResolvedValue({
+      parsed_output: {
+        isEvent: true,
+        name: 'x',
+        description: null,
+        date: null,
+        time: null,
+        timezone: null,
+        location: null,
+      },
+    });
+    const local = { messages: { parse: localParse } } as unknown as Anthropic;
+
+    await createAnthropicModelClient(local).complete({
+      system: 'sys',
+      user: 'user',
+      model: 'claude-haiku-4-5',
+      timeoutMs: 4_000,
+    });
+
+    expect(localParse.mock.calls[0][1]).toEqual({ timeout: 4_000, maxRetries: 0 });
+  });
 });
