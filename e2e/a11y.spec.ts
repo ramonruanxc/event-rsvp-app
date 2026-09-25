@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { resetDatabase } from './helpers/db';
+import { db, resetDatabase } from './helpers/db';
 import { signInAs } from './helpers/auth';
 import { createOwner, createEvent, createRsvp } from './helpers/factories';
 import { tabTo, focusRings } from './helpers/keyboard';
@@ -243,5 +243,42 @@ test.describe('REQ-68, REQ-71, REQ-78: labels, hidden icons and target sizes', (
 
     await page.goto('/en/events/new');
     expect(await targetSizeOffenders(page)).toEqual([]);
+  });
+});
+
+/** Label, target-size, hidden-icon and focus-ring checks for the current page (REQ-129). */
+async function checkAccessiblePage(page: Page) {
+  expect(await labelOffenders(page)).toEqual([]);
+  expect(await targetSizeOffenders(page)).toEqual([]);
+  expect(await exposedSvgCount(page)).toBe(0);
+  const rings = await focusRings(page);
+  expect(rings.length).toBeGreaterThan(3);
+  expect(rings.filter((r) => r.style !== 'solid' || r.width !== '2px')).toEqual([]);
+}
+
+test.describe('REQ-129: sign-in, register and account pages', () => {
+  test('REQ-129: labels, target sizes, hidden icons and focus rings in both themes', async ({
+    page,
+    context,
+  }) => {
+    for (const theme of ['dark', 'light'] as const) {
+      await context.clearCookies();
+      await context.addCookies([{ name: 'theme', value: theme, domain: 'localhost', path: '/' }]);
+      for (const path of ['/en/sign-in', '/en/register']) {
+        await page.goto(path);
+        await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
+        await checkAccessiblePage(page);
+      }
+
+      const email = `ally-${theme}@example.com`;
+      await db.user.create({ data: { email, name: 'Ally', passwordNotice: true } });
+      await signInAs(context, { email, name: 'Ally' });
+      await page.goto('/en/account');
+      await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
+      await expect(
+        page.getByRole('status').filter({ hasText: 'password on this account was removed' }),
+      ).toBeVisible();
+      await checkAccessiblePage(page);
+    }
   });
 });

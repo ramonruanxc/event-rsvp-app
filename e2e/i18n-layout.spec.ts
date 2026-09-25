@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { resetDatabase } from './helpers/db';
+import { db, resetDatabase } from './helpers/db';
 import { signInAs } from './helpers/auth';
 import { createOwner, createEvent, createRsvp } from './helpers/factories';
 
@@ -76,6 +76,26 @@ test.describe('REQ-77: French layout at 375 and 1280 px', () => {
 
       await page.goto('/fr/events/new');
       expect(await layoutProblems(page)).toEqual([]);
+    }
+  });
+
+  test('REQ-129: French sign-in, register and account pages have no clipped text and no horizontal scrolling', async ({
+    page,
+    context,
+  }) => {
+    await db.user.create({
+      data: { email: 'fr-layout@example.com', name: 'Ana', passwordNotice: true },
+    });
+    for (const width of [375, 1280]) {
+      await page.setViewportSize({ width, height: 800 });
+      await context.clearCookies();
+      for (const path of ['/fr/sign-in', '/fr/register']) {
+        await page.goto(path);
+        expect(await layoutProblems(page), `${path} @ ${width}px`).toEqual([]);
+      }
+      await signInAs(context, { email: 'fr-layout@example.com', name: 'Ana' });
+      await page.goto('/fr/account');
+      expect(await layoutProblems(page), `/fr/account @ ${width}px`).toEqual([]);
     }
   });
 });
