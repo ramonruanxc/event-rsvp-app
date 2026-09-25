@@ -268,9 +268,9 @@ describe('SubmitRsvpService — REQ-56 rate limit', () => {
       await service.execute({ ...base, values: going('Guest ' + i) });
     }
 
-    await expect(
-      service.execute({ ...base, values: going('Guest 11') }),
-    ).rejects.toBeInstanceOf(RateLimitedError);
+    await expect(service.execute({ ...base, values: going('Guest 11') })).rejects.toBeInstanceOf(
+      RateLimitedError,
+    );
     expect(store.rsvps).toHaveLength(10);
 
     const result = await service.execute({
@@ -289,13 +289,13 @@ describe('SubmitRsvpService — REQ-56 rate limit', () => {
     const going = (name: string) => ({ name, status: 'GOING', partySize: 1 });
 
     for (let i = 1; i <= 10; i++) {
-      await expect(
-        service.execute({ ...base, values: going('') }),
-      ).rejects.toBeInstanceOf(ValidationError);
+      await expect(service.execute({ ...base, values: going('') })).rejects.toBeInstanceOf(
+        ValidationError,
+      );
     }
 
-    await expect(
-      service.execute({ ...base, values: going('Ana') }),
-    ).rejects.toBeInstanceOf(RateLimitedError);
+    await expect(service.execute({ ...base, values: going('Ana') })).rejects.toBeInstanceOf(
+      RateLimitedError,
+    );
   });
 });
