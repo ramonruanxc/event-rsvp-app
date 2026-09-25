@@ -121,7 +121,8 @@ Pipeline agents working autonomously. Reported separately from human active time
 | Implementer TASK-247–258 (batch A) | sonnet | 2026-09-25 15:41:20 | 2026-09-25 16:11:39 | 30m 19s | 12/12 first attempt; E2E 68/68 |
 | Implementer TASK-259–263 (batch B, part 1) | sonnet | 2026-09-25 16:12:00 | 2026-09-25 16:29:29 | 17m 29s | SPEC failure on TASK-263 (incident #24) |
 | Spec-writer: TASK-263 revision 1/2 | opus | 2026-09-25 16:29:35 | 2026-09-25 16:31:30 | 1m 55s | keep `type="email"`, assert trimmed value |
-| Implementer TASK-263–269 (batch B, part 2) | sonnet | 2026-09-25 16:31:40 | 2026-09-25 16:52:17 | — | 11/11 done; unit 469, E2E 83/83 |
+| Implementer TASK-263–269 (batch B, part 2) | sonnet | 2026-09-25 16:31:40 | 2026-09-25 16:51:59 | 20m 19s | 11/11 done; unit 469, E2E 83/83 |
+| Reviewer PR #16 | sonnet | 2026-09-25 16:52:40 | 2026-09-25 17:03:11 | 10m 31s | APPROVE, 0 findings, 1 nit; incident #25 |
 
 ## Events
 
