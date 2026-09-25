@@ -85,6 +85,16 @@ Decided by the human on 2026-09-24 and recorded in `docs/business-rules.md`.
      - **next step** (recorded, not planned as tasks): harden the prompt on must-not-invent using tuning cases only
        (the hold-out stays untouched, REQ-104), then re-run the gate and apply REQ-107's production-choice rule.
      No BR changes.
+- **DOC-Q5 and DOC-Q6** (Phase 10, decided 2026-09-25; the human pre-authorized the analyst's recommendation) →
+  1. DOC-Q5: failed email/password sign-ins are limited to 5 per email and 20 per client IP per 15 minutes → BR-156
+     (amended). Applied in REQ-119.
+  2. DOC-Q6: when a Google sign-in clears a password, the user sees an in-app banner right after that sign-in and a
+     notice on the Account page until a new password is set or the notice is dismissed; no email → BR-164 (amended).
+     Applied in REQ-123.
+- **Resolved — A6 enumeration trade-off** (approved with A6, recorded in `business-rules.md`) → the registration
+  refusal names Google (BR-157, BR-158) and so tells whoever types an email that it has an account. Accepted. The
+  mitigation the analyst recorded is applied: registration refusals for an existing email count against the per-IP
+  sign-in limit (REQ-117, REQ-119), and the README states the trade-off (TASK-269).
 
 ---
 
@@ -102,10 +112,13 @@ to `{ ok: false, code }` and the UI shows the translated message for the code (`
 | `NOT_OWNER` | `NotOwnerError` | The signed-in user is not the event's owner | "Only the organizer can do this." |
 | `EVENT_ENDED` | `EventEndedError` | The event's start time has passed | "This event has ended" |
 | `DUPLICATE_NAME` | `DuplicateNameError` | Name already on the list and not the caller's own RSVP | "This name is already on the list. Use a different name or ask the organizer." |
-| `RATE_LIMITED` | `RateLimitedError` | RSVP submissions from this IP exceeded 10 per 10 minutes | "Too many submissions — please try again in a few minutes." |
+| `RATE_LIMITED` | `RateLimitedError` | RSVP submissions from this IP exceeded 10 per 10 minutes; from Phase 10 also failed sign-ins over the limits of REQ-119 (the sign-in and register forms show `auth.tooManyAttempts` instead of this text) | "Too many submissions — please try again in a few minutes." |
 | `AI_LIMIT_REACHED` | `AiLimitReachedError` | User exceeded 20 "Fill with AI" calls in the current UTC day | "Daily AI limit reached — fill the form manually." |
 | `AI_UNAVAILABLE` | `AiUnavailableError` | AI call timed out, errored, or returned unusable output | "Couldn't fill automatically — please fill the form." |
 | `UNAUTHENTICATED` | `UnauthenticatedError` | Action requires a signed-in organizer | "Please sign in to continue." |
+| `INVALID_CREDENTIALS` | `InvalidCredentialsError` | Email/password sign-in failed: unknown email, wrong password, or an account without a password. Never says which (BR-155) | "Email or password is incorrect." |
+| `EMAIL_TAKEN` | `EmailTakenError` | Registration email already belongs to an account that has a password | "An account with this email already exists. Sign in instead." |
+| `GOOGLE_ACCOUNT_EXISTS` | `GoogleAccountExistsError` | Registration email belongs to an account without a password, i.e. Google-only (BR-157, BR-158) | "This email already has an account that uses Google. Sign in with Google, then set a password in Account." |
 | `INTERNAL_ERROR` | — (any unmapped error) | Unexpected failure; logged server-side, never detailed to the user | "Something went wrong. Please try again." |
 
 #### Form-level validation errors
@@ -140,6 +153,10 @@ and "Please fix the highlighted fields." would mislead. Today the only source is
 | `inPast` | "The date and time cannot be in the past." |
 | `partySizeRange` | "Enter a number from 1 to 10." |
 | `invalidStatus` | "Choose Going or Not going." |
+| `invalidEmail` | "Enter a valid email address." (Phase 10) |
+| `passwordLength` | "Use 8 to 128 characters." (Phase 10) |
+| `passwordMismatch` | "The passwords do not match." (Phase 10) |
+| `currentPasswordIncorrect` | "The current password is incorrect." (Phase 10) |
 
 ### Time and clock
 
@@ -162,15 +179,20 @@ Every test title starts with the requirement ID it proves: `it('REQ-26: blocks "
 
 ### E2E authentication
 
-E2E tests never go through Google. The helper `e2e/helpers/auth.ts` `signInAs(context, { email, name })`:
+E2E tests never go through Google. From Phase 10 (amendment A6) sessions are JWTs (REQ-124). The helper
+`e2e/helpers/auth.ts` `signInAs(context, { email, name })`:
 
 1. upserts a `User` row with that email (Prisma, `DATABASE_URL` from `.env.test`);
-2. inserts a `Session` row `{ sessionToken: randomUUID(), userId, expires: now + 1 day }`;
-3. adds the cookie `authjs.session-token=<sessionToken>` (domain `localhost`, path `/`, `httpOnly`, `sameSite: 'Lax'`)
-   to the Playwright browser context.
+2. encrypts the token `{ sub: <user id>, name, email }` with `encode` from `next-auth/jwt`, the secret `AUTH_SECRET`
+   from `.env.test` (the same value the E2E app uses) and the salt `authjs.session-token` (Auth.js uses the cookie
+   name as the salt);
+3. adds the cookie `authjs.session-token=<token>` (domain `localhost`, path `/`, `httpOnly`, `sameSite: 'Lax'`, one
+   day) to the Playwright browser context.
 
-Auth.js uses database sessions (`session.strategy = "database"`), so the app resolves that cookie exactly as it would a
-real Google sign-in. **There is no fake or test-only auth provider in production code.**
+The app decodes that cookie exactly as it would after a real sign-in. The token has no `pwdAt` claim, so it behaves
+like a Google session (REQ-122). The email/password journeys (TASK-267) go through the real Register and Sign in
+pages. **There is no fake or test-only auth provider in production code.** (Until Phase 9 the helper inserted a
+`Session` row, for the database strategy.)
 
 ### AI in E2E
 
@@ -188,28 +210,42 @@ Both mocks answer the same event; the marker `[[mock-error]]` in the text makes 
 
 ### Identity & access
 
-### REQ-01 — Google is the only sign-in method
-**Rules:** BR-01
+### REQ-01 — Sign-in methods: Google and email/password
+**Rules:** BR-01, BR-165
 **Status:** done
 **Acceptance criteria:**
 - Given the Auth.js configuration exported as `authConfig` from `src/auth.config.ts`
 - When its `providers` are inspected
-- Then there is exactly one provider and its id is `"google"`, and `session.strategy` is `"database"`
+- Then there is exactly one provider, its id is `"google"` and its `options.allowDangerousEmailAccountLinking` is
+  `true` (REQ-121), and `session.strategy` is `"jwt"`
+- `src/auth.ts` adds the Credentials provider (id `"credentials"`, fields `email` and `password`) whose `authorize` is
+  `createAuthCallbacks(…).authorize` (REQ-118). It lives in `src/auth.ts`, not in `src/auth.config.ts`, because it
+  reaches Prisma and `node:crypto` (Phase 10 note 1)
+**Amended (A6):** a second sign-in method and JWT sessions (BR-01, BR-165); test rewritten in TASK-257.
 **Test level:** unit
 
-### REQ-02 — Signed-out visitors to organizer routes go to Google sign-in and come back
+### REQ-02 — Signed-out visitors to organizer routes go to the sign-in page and come back
 **Rules:** BR-95
 **Status:** done
 **Acceptance criteria:**
 - Given a signed-out visitor
-- When they request `/en/dashboard`, `/en/events/new`, or `/en/e/<slug>/edit`
-- Then they are redirected to `/api/login?callbackUrl=<the requested path, URL-encoded>`, and `/api/login` starts the
-  Google OAuth flow with `redirectTo` equal to that path
-- Given `sanitizeCallbackUrl("/en/dashboard")` → `"/en/dashboard"`; `sanitizeCallbackUrl("https://evil.com")` → `"/"`;
-  `sanitizeCallbackUrl("//evil.com")` → `"/"`; `sanitizeCallbackUrl(null)` → `"/"`
-- Given `signInRedirectPath("/fr/events/new")` → `"/api/login?callbackUrl=%2Ffr%2Fevents%2Fnew"`
-- E2E: a signed-out browser opening `/en/dashboard` issues a request to a URL starting with
-  `https://accounts.google.com/` whose `redirect_uri` query parameter ends with `/api/auth/callback/google`
+- When they request `/en/dashboard`, `/en/events/new`, `/en/e/<slug>/edit` or `/en/account`
+- Then they are redirected to `/en/sign-in?callbackUrl=<the requested path, URL-encoded>` (the locale is the first
+  segment of the path), which offers both methods (REQ-126); after either sign-in they land on that path
+- `sanitizeCallbackUrl` is unchanged: `"/en/dashboard"` → `"/en/dashboard"`; `"https://evil.com"`, `"//evil.com"`,
+  `"/\evil.com"` and `null` → `"/"`
+- `signInRedirectPath("/fr/events/new")` → `"/fr/sign-in?callbackUrl=%2Ffr%2Fevents%2Fnew"`;
+  `signInRedirectPath("/pt-BR/dashboard")` → `"/pt-BR/sign-in?callbackUrl=%2Fpt-BR%2Fdashboard"`;
+  `signInRedirectPath("/dashboard")` → `"/en/sign-in?callbackUrl=%2Fdashboard"` (no locale segment → `en`);
+  `signInRedirectPath("https://evil.com")` → `"/en/sign-in?callbackUrl=%2F"`
+- `/api/login?callbackUrl=<path>` is unchanged: it starts the Google OAuth flow with `redirectTo` equal to the
+  sanitized path. The sign-in page's "Continue with Google" link points to it
+- E2E: a signed-out browser opening `/en/dashboard` ends on `/en/sign-in?callbackUrl=%2Fen%2Fdashboard`; there,
+  "Continue with Google" has `href="/api/login?callbackUrl=%2Fen%2Fdashboard"`, and clicking it issues a request to a
+  URL starting with `https://accounts.google.com/` whose `redirect_uri` ends with `/api/auth/callback/google`.
+  `/en/account` redirects to `/en/sign-in?callbackUrl=%2Fen%2Faccount`
+**Amended (A6):** the redirect goes to the sign-in page instead of straight to Google (BR-95 amended); tests updated
+in TASK-266.
 **Test level:** unit + e2e
 
 ### REQ-03 — Role is derived per event by ownership
@@ -685,10 +721,11 @@ TASK-172, TASK-180 and TASK-181.
 **Acceptance criteria:**
 - Given a signed-out visitor on `/en`
 - Then one screen shows: the heading "Plan an event. Share one link. See who's coming.", a short explanation, a
-  "Sign in with Google" link to `/api/login?callbackUrl=%2Fen%2Fdashboard`, and a "See the demo event" link to
+  "Sign in" link to `/en/sign-in?callbackUrl=%2Fen%2Fdashboard`, and a "See the demo event" link to
   `/en/e/demoPicnic` (A2: was "See a demo event"; layout in REQ-81; E2E updated in TASK-169)
-- Given a signed-in organizer on `/en` → the "Sign in with Google" link is replaced by "My events" linking to
-  `/en/dashboard`
+- Given a signed-in organizer on `/en` → the "Sign in" link is replaced by "My events" linking to `/en/dashboard`
+**Amended (A6):** the sign-in link leads to the sign-in page (both methods) and reads "Sign in" (BR-52 amended); E2E
+updated in TASK-266.
 **Test level:** e2e
 
 ### REQ-40 — Public demo event seed
@@ -1213,23 +1250,29 @@ the default already applied in this spec (REQ-31, REQ-84, TASK-176).
 - The `banner` holds, left, the link "Event RSVP" (logo + wordmark, REQ-75); right, in this order: the language select
   (globe icon, current language name, `aria-label="Language"` and no `<label>` element — BR-105 exception, REQ-68;
   options "English", "Français", "Português (Brasil)"), the theme toggle (REQ-64), then the auth area
-- Below 480 px wide the language select is 40 px wide (globe only; the native list still shows full names) and the
-  sign-in link reads "Sign in" (`nav.signInShort`); from 480 px it reads "Sign in with Google"; it links to
-  `/api/login?callbackUrl=%2F<locale>%2Fdashboard`
+- Below 480 px wide the language select is 40 px wide (globe only; the native list still shows full names). The
+  sign-in link reads "Sign in" (`nav.signIn`) at every width and links to
+  `/<locale>/sign-in?callbackUrl=%2F<locale>%2Fdashboard` (A6: it read "Sign in with Google" from 480 px and linked to
+  `/api/login`; `nav.signInShort` is removed)
 - Signed in: an account menu (`<details>`) whose summary is named "Account menu" and shows the avatar initial; open,
-  it shows "Signed in as Ana", the link "My events" (`/<locale>/dashboard`) and the button "Sign out"
+  it shows "Signed in as Ana", the link "My events" (`/<locale>/dashboard`), the link "Account"
+  (`/<locale>/account`, A6, REQ-128) and the button "Sign out"
 - `userInitial('ana', null)` → `'A'`; `userInitial(null, 'zoe@example.com')` → `'Z'`; `userInitial('  élise ', null)`
   → `'É'`; `userInitial(null, null)` and `userInitial('', '')` → `'?'`
+**Amended (A6):** one "Sign in" label leading to the sign-in page, and the "Account" menu link; tests updated in
+TASK-264 (menu) and TASK-266 (header).
 **Test level:** unit + unit (component) + e2e
 
 ### REQ-81 — Home page
 **Rules:** BR-52
 **Status:** done
 **Acceptance criteria:**
-- One column below 768 px, two from 768 px: headline (display style), explanation, a primary "Sign in with Google"
-  link with the Google mark (or "My events" when signed in) and a secondary "See the demo event" link to
+- One column below 768 px, two from 768 px: headline (display style), explanation, a primary "Sign in" link to the
+  sign-in page, without the Google mark (or "My events" when signed in), and a secondary "See the demo event" link to
   `/<locale>/e/demoPicnic`; beside them a `figure` previewing the guest page (content `aria-hidden`) captioned
   "What a guest sees after tapping your link. One page, one answer."
+**Amended (A6):** "Sign in with Google" with the Google mark became "Sign in" (BR-52 amended); E2E updated in
+TASK-266.
 **Test level:** e2e
 
 ### REQ-82 — Dashboard
@@ -1693,6 +1736,367 @@ variable, and the stack answers the three smoke checks of REQ-113.
   The existing jobs do not change
 **Test level:** unit (fake `fetch`; static CI check) + the CI job itself
 
+### Email and password sign-in (amendment A6)
+
+A second sign-in method next to Google: register with name, email and password, sign in with email and password,
+set or change a password on a new Account page. Sessions switch from database rows to JWTs. The decisions taken while
+writing these requirements are listed in `docs/plan.md`, "Phase 10", notes; none changes a business rule. Auth.js
+behavior was checked in the installed sources (`next-auth` 5.0.0-beta.32, `@auth/core` 0.41.3) on 2026-09-25:
+
+- a Credentials provider requires `session.strategy = "jwt"`;
+- the `signIn` callback runs before Auth.js links or creates anything, and `events.linkAccount` runs after the
+  `Account` row is written, both for a new Google user and when a Google account is linked to an existing email;
+- without `allowDangerousEmailAccountLinking` an existing email fails with `OAuthAccountNotLinked`; with it, the
+  Google account is linked to that user; when a session already exists, Auth.js links the Google account to the
+  *signed-in* user whatever its email;
+- server-side `signIn('credentials', { redirect: false })` rethrows the `CredentialsSignin` error (and its `code`)
+  that `authorize` caused, and sets the session cookie itself;
+- a `jwt` callback that returns `null` makes Auth.js delete the session cookie.
+
+### REQ-114 — Passwords are hashed with scrypt, a per-user salt and a constant-time check
+**Rules:** BR-151, BR-152
+**Status:** todo
+**Acceptance criteria:**
+- `hashPassword(password)` (`src/lib/password.ts`, C15) returns `scrypt$32768$8$1$<salt>$<key>`: `scrypt` from
+  `node:crypto` with N = 32768, r = 8, p = 1 and `maxmem` 64 MiB (Node's default of 32 MiB rejects these parameters;
+  checked 2026-09-25), a 16-byte salt from `randomBytes` and a 64-byte key, both base64url. No new dependency
+- The password is NFKC-normalized before hashing and before verifying: `"café"` and `"café"` verify against
+  the same hash
+- Hashing `"correct horse"` twice gives two different strings (a new salt each time), and each verifies
+- `verifyPassword("correct horse", hash)` → `true`; `verifyPassword("correct horsE", hash)` → `false`
+- The derived key is compared with `timingSafeEqual` from `node:crypto`, called once per verify of a well-formed hash
+- A malformed stored value returns `false` without throwing and without calling `scrypt`: `""`, `"plain"`, another
+  cost (`scrypt$16384$8$1$…`), a salt that is not 16 bytes, a key that is not 64 bytes
+- `DUMMY_PASSWORD_HASH` is well formed (`parsePasswordHash` returns its parts), so verifying against it costs one full
+  scrypt (REQ-118)
+- One hash takes about 60 ms on the development machine; service unit tests use a fake hasher
+  (`src/test/fake-hasher.ts`)
+**Test level:** unit
+
+### REQ-115 — Registration input: normalized email, 8–128 character password, matching confirmation
+**Rules:** BR-145, BR-147, BR-148, BR-149, BR-150
+**Status:** todo
+**Acceptance criteria:**
+- `normalizeEmail("  Ana@Example.COM ")` → `"ana@example.com"`
+- `emailSchema`: `"  Ana@Example.COM "` → `"ana@example.com"`; `""` and a missing value → `required`; `"nope"` and
+  `"a@b"` → `invalidEmail`; `"a".repeat(250) + "@example.com"` (262 characters, over 254) → `tooLong`
+- `passwordSchema`: `""` → `required`; `"1234567"` → `passwordLength`; `"12345678"` and `"a".repeat(128)` → valid;
+  `"a".repeat(129)` → `passwordLength`. Length is counted in code points: `"😀".repeat(100)` (200 UTF-16 units) →
+  valid. No composition rule: `"aaaaaaaa"` → valid. Passwords are not trimmed: eight spaces → valid
+- `registerInputSchema`: `{ name: "  Ana Lima ", email: " Ana@Example.com", password: "correct horse",
+  confirmPassword: "correct horse" }` → `{ name: "Ana Lima", email: "ana@example.com", password: "correct horse" }`
+  (the confirmation is dropped). `name` is required and at most 80 characters (`tooLong`). `confirmPassword:
+  "correct horsE"` → `confirmPassword: "passwordMismatch"`; `confirmPassword: ""` → `required`. The mismatch is reported
+  together with other field errors: `{ name: "", email: "ana@example.com", password: "correct horse",
+  confirmPassword: "other" }` → `{ name: "required", confirmPassword: "passwordMismatch" }`
+- `signInInputSchema`: `{ email: " Ana@Example.com ", password: "x" }` → `{ email: "ana@example.com", password:
+  "x" }` (a sign-in password only needs to be non-empty: it is only compared with stored hashes); `password: ""` →
+  `required`
+- `setPasswordInputSchema`: `{ newPassword: "new horse 12", confirmPassword: "new horse 12" }` → `{ currentPassword:
+  "", newPassword: "new horse 12" }`; a given `currentPassword` is kept as typed; `newPassword` follows
+  `passwordSchema`; a different confirmation → `confirmPassword: "passwordMismatch"`
+**Test level:** unit
+
+### REQ-116 — Registering creates a password account and signs in at once
+**Rules:** BR-01, BR-145, BR-146, BR-147
+**Status:** todo
+**Acceptance criteria:**
+- `RegisterUserService.execute({ values: { name: "Ana Lima", email: "  Ana@Example.COM ", password: "correct horse",
+  confirmPassword: "correct horse" }, ipHash: "h1" })` stores one user `{ name: "Ana Lima", email: "ana@example.com",
+  passwordHash: <hasher.hash("correct horse")>, passwordClearedAt: null, passwordNotice: false }` and returns exactly
+  `{ id, name: "Ana Lima", email: "ana@example.com" }`
+- Invalid values → `ValidationError` with REQ-115's keys; nothing is stored and nothing is counted
+- `registerAction(values, callbackUrl)` validates with `registerInputSchema` (field errors come back as
+  `VALIDATION_ERROR` without calling the service), calls the service with `ipHash = hashIp(clientIp(headers),
+  AUTH_SECRET)`, then signs in with `signIn('credentials', { email, password, redirect: false })` and returns
+  `{ ok: true, data: { redirectTo: sanitizeCallbackUrl(callbackUrl) } }`. There is no verification email and no
+  second step (BR-146)
+- The user row is stored in PostgreSQL (`User.passwordHash`), like Google users (BR-166)
+- E2E: `/en/register` → Name "Ana Lima", Email "  Ana@Example.com ", Password and Confirm password "correct horse",
+  "Create account" → `/en/dashboard` with the account menu showing "A"; the database has user `ana@example.com` whose
+  `passwordHash` starts with `scrypt$32768$8$1$`; after "Sign out", `ana@example.com` / `correct horse` on
+  `/en/sign-in` → `/en/dashboard`
+**Test level:** unit (service, action) + e2e
+
+### REQ-117 — Registration is refused for an email that already has an account
+**Rules:** BR-157, BR-158
+**Status:** todo
+**Acceptance criteria:**
+- Given user `gil@example.com` without a password (a Google-only account), registering `"GIL@example.com"` →
+  `GoogleAccountExistsError` (`GOOGLE_ACCOUNT_EXISTS`: "This email already has an account that uses Google. Sign in
+  with Google, then set a password in Account."). No user is created and the existing user is unchanged (name,
+  `passwordHash` null)
+- Given user `ana@example.com` with a password → `EmailTakenError` (`EMAIL_TAKEN`: "An account with this email already
+  exists. Sign in instead.")
+- A user is "without a password" when `passwordHash` is null; this also covers the seeded demo user
+- Two concurrent `create` calls for the same new email: exactly one succeeds, the other throws `EmailTakenError` from
+  the unique constraint on `User.email` (integration)
+- Each refusal for an existing email consumes 1 on the client IP's sign-in counter (`SIGNIN_IP_RULE`, REQ-119). When
+  that counter is at its limit, registration fails with `RATE_LIMITED` before the email is looked up
+- The register form shows the refusal in its `role="alert"` area and keeps the typed values
+- E2E: with a Google-only user `gil@example.com`, registering `GIL@example.com` shows the `GOOGLE_ACCOUNT_EXISTS` text;
+  the database still has one user, named "Gil", without a password
+**Test level:** unit (service, action, component) + integration (unique constraint) + e2e
+
+### REQ-118 — Email/password sign-in with one generic error
+**Rules:** BR-01, BR-147, BR-155
+**Status:** todo
+**Acceptance criteria:**
+- `SignInWithPasswordService.execute({ values: { email: " ANA@example.com ", password: "correct horse" }, ipHash })`
+  for user `ana@example.com` whose hash matches → returns exactly `{ id, name: "Ana", email: "ana@example.com" }`
+- Unknown email, wrong password, and an account without a password (Google-only) each throw a new
+  `InvalidCredentialsError` (`INVALID_CREDENTIALS`: "Email or password is incorrect."), which carries nothing else
+- Equal work: when the account is unknown or has no password, the password is still verified once, against
+  `DUMMY_PASSWORD_HASH`, so the three failures cost the same scrypt
+- Values that fail `signInInputSchema` → `InvalidCredentialsError`, not counted (the action returns field errors before
+  reaching Auth.js, so only a hand-made request gets here)
+- `createAuthCallbacks(deps).authorize(credentials, request)` (C15) calls the service with `{ values: { email:
+  credentials.email, password: credentials.password }, ipHash: hashIp(clientIp(request.headers), deps.ipSalt()) }`
+  (`ipSalt` is `AUTH_SECRET`). `InvalidCredentialsError` → returns `null` (Auth.js then throws `CredentialsSignin`);
+  `RateLimitedError` → throws `RateLimitedSignIn` (a `CredentialsSignin` whose `code` is `"rate_limited"`); any other
+  error is rethrown
+- `signInWithPasswordAction(values, callbackUrl)`: values failing `signInInputSchema` → `VALIDATION_ERROR` with field
+  errors (`{ email: "nope", password: "" }` → `{ email: "invalidEmail", password: "required" }`) and `signIn` is not
+  called; otherwise `signIn('credentials', { email: <normalized>, password, redirect: false })` → `{ ok: true, data:
+  { redirectTo: sanitizeCallbackUrl(callbackUrl) } }`. Errors go through `signInFailure` (C15): `CredentialsSignin` →
+  `INVALID_CREDENTIALS`, `RateLimitedSignIn` → `RATE_LIMITED`, anything else → `toActionError`
+- E2E: a wrong password for an existing account, an unknown email, and the email of a Google-only account each show
+  exactly "Email or password is incorrect." and stay on the sign-in page
+**Test level:** unit + e2e
+
+### REQ-119 — Failed sign-ins are limited per email and per client IP
+**Rules:** BR-156, BR-80
+**Status:** todo
+**Acceptance criteria:**
+- Rules (C15): `SIGNIN_EMAIL_RULE = { name: "signin-email", limit: 5, windowMs: 900_000 }`, `SIGNIN_IP_RULE =
+  { name: "signin-ip", limit: 20, windowMs: 900_000 }`. Windows are fixed as in REQ-55: 12:00:00.000–12:14:59.999 UTC
+  is one window
+- `RateLimiter.isBlocked(rule, subject)` → `true` when the current window's count for `"<rule.name>:<subject>"` is
+  ≥ `rule.limit`; it never increments. `RateLimitRepository.count(key, windowStart)` → the stored count, `0` when there
+  is no row
+- Before verifying a password, the service checks both subjects: the email subject is `hashToken(<normalized email>)`
+  (SHA-256 hex) and the IP subject is the salted `ipHash` of REQ-56. If either is blocked → `RateLimitedError`; the
+  password is not verified and nothing is counted
+- Every failed attempt (REQ-118's three causes alike) consumes 1 on both rules. A successful sign-in consumes nothing
+  and resets nothing
+- Examples, clock `2026-09-25T12:00:00.000Z`: 5 wrong passwords for `ana@example.com` → the 6th attempt, with the right
+  password, → `RATE_LIMITED`, and the hasher verified only 5 times. 20 failures from ipHash `"h1"` with 20 different
+  emails → a 21st attempt from `"h1"` → `RATE_LIMITED`, while the same email from `"h2"` gets its normal result. At
+  `2026-09-25T12:15:00.000Z` (the next window) → allowed again
+- The `RateLimit` table holds only `signin-email:<64 hex>` and `signin-ip:<64 hex>` keys for sign-in: never the raw
+  email or the raw IP (BR-80)
+- The check and the count are not one atomic step, so a few concurrent attempts may pass the limit (accepted)
+- UI: `RATE_LIMITED` on the sign-in and register forms shows `auth.tooManyAttempts` ("Too many attempts — please try
+  again in a few minutes.") in the `role="alert"` area
+**Test level:** unit + integration (`count`)
+
+### REQ-120 — Account: set a password, or change it with the current one
+**Rules:** BR-148, BR-150, BR-159, BR-160, BR-161
+**Status:** todo
+**Acceptance criteria:**
+- `SetPasswordService.execute({ userId, values })`:
+  - `userId` null, or no such user → `UnauthenticatedError`
+  - values failing `setPasswordInputSchema` → `ValidationError` (`newPassword: "passwordLength"`,
+    `confirmPassword: "passwordMismatch"`, …)
+  - a user without a password: stores `hasher.hash(newPassword)`; `currentPassword` is ignored
+  - a user with a password: `currentPassword` `""` → `ValidationError({ currentPassword: "required" })`; a wrong one →
+    `ValidationError({ currentPassword: "currentPasswordIncorrect" })` and the hash is unchanged; the right one → the
+    new hash is stored
+  - storing a password also sets `passwordNotice` to false (REQ-123)
+- `setPasswordAction(values)` passes the session's user id and maps errors with `toActionError`; success →
+  `{ ok: true, data: null }`
+- After a Google-only user sets a password, the same user (same id, same events) signs in with Google or with that
+  email and password (BR-161)
+- E2E: a Google-only user (seeded with a Google `Account` row) opens `/en/account`, sees "Set a password" and no
+  "Current password" field, saves "gil password 1" twice → "Password saved."; after "Sign out", `gil@example.com` /
+  `gil password 1` on `/en/sign-in` → `/en/dashboard`. A password user sees "Change password"; a wrong current
+  password → "The current password is incorrect."; the right one → "Password saved."
+- Wrong current passwords are not rate-limited: the caller already holds a session (Phase 10 note 18)
+**Test level:** unit + e2e
+
+### REQ-121 — Google links to an existing account only after proving the email
+**Rules:** BR-162
+**Status:** todo
+**Acceptance criteria:**
+- The Google provider sets `allowDangerousEmailAccountLinking: true`, so Auth.js links a Google sign-in to the existing
+  user with the same email instead of failing with `OAuthAccountNotLinked`
+- The `signIn` callback (`createAuthCallbacks`) returns `true` for every provider other than `"google"`, without
+  reading the session. For Google it returns `allowGoogleSignIn({ emailVerified: profile.email_verified, googleEmail:
+  profile.email, sessionEmail: <email of the current session, or null> })` (`src/domain/account-policy.ts`):
+  - `{ emailVerified: true, googleEmail: "ana@example.com", sessionEmail: null }` → `true`
+  - `emailVerified` `false`, `undefined` or the string `"true"` → `false`
+  - `googleEmail` `null`, `undefined` or `"  "` → `false`
+  - `sessionEmail: " Ana@Example.com"` with `googleEmail: "ana@example.com"` → `true` (both normalized);
+    `sessionEmail: "bob@example.com"` → `false`
+- Why the session check: Auth.js links a new Google account to the *signed-in* user whatever its email. Without it,
+  someone signed in with a password could attach their own Google account and keep access after REQ-122 clears the
+  password (Phase 10 note 3)
+- A refused Google sign-in ends on `/<locale>/sign-in?error=AccessDenied` with the generic alert of REQ-126
+- No test talks to Google; the callback logic is unit-tested and the linking itself is integration-tested (REQ-122)
+**Test level:** unit
+
+### REQ-122 — Linking Google clears the password and ends the sessions it opened
+**Rules:** BR-163
+**Status:** todo
+**Acceptance criteria:**
+- `events.linkAccount` calls `LinkGoogleAccountService.execute({ userId: user.id, provider: account.provider })`
+- For provider `"google"` and a user with a password, the service sets `passwordHash` to null, `passwordClearedAt` to
+  now and `passwordNotice` to true, and returns `true`. For a user without a password (e.g. a new Google user) or any
+  other provider it changes nothing and returns `false`
+- After clearing, the old password fails like any wrong password (`INVALID_CREDENTIALS`)
+- Integration: a database user with a password; `PrismaAdapter(prisma).linkAccount({ provider: "google", … })`, then
+  `callbacks.linkAccount(…)` → the row has `passwordHash` null, `passwordNotice` true, `passwordClearedAt` equal to the
+  injected now and one `google` account; signing in with the old password → `InvalidCredentialsError`
+- Password sessions opened before the clearing end. The `jwt` callback sets `token.pwdAt = now` (ms) when a credentials
+  sign-in creates the token (`trigger` `"signIn"`, account provider `"credentials"`). On every later call, a token
+  with a numeric `pwdAt` is checked with `ValidatePasswordSessionService`; when the check fails the callback returns
+  `null`, which makes Auth.js delete the session cookie. `passwordSessionValid(pwdAt, user)`: `pwdAt` not a number →
+  `true` (Google sessions, no database read); user `null` → `false`; `passwordClearedAt` null → `true`;
+  `passwordClearedAt` = 1 000 ms with `pwdAt` 999 or 1 000 → `false`, with `pwdAt` 1 001 → `true`
+**Test level:** unit + integration
+
+### REQ-123 — The user is told when Google cleared their password
+**Rules:** BR-164
+**Status:** todo
+**Acceptance criteria:**
+- `GetAccountService.execute({ userId })` → `{ email, hasPassword, passwordNotice }` (`AccountView`, C15).
+  `DismissPasswordNoticeService.execute({ userId })` sets `passwordNotice` to false. Both throw `UnauthenticatedError`
+  for a null or unknown user
+- The locale layout renders `PasswordNoticeSlot` right under the header. For a signed-in user whose `passwordNotice` is
+  true it renders `PasswordNotice`: an element with `role="status"` and class `notice` containing "You signed in with
+  Google, so the password on this account was removed to keep it safe. Set a new password in Account to sign in with
+  your email again." (`account.passwordClearedNotice`), a link "Go to Account" (`/<locale>/account`) and a button
+  "Dismiss". Signed-out visitors and users without the notice get nothing; a session whose user row no longer exists
+  gets nothing and no error
+- So the notice shows on the first page after the linking Google sign-in (the banner) and on the Account page (the
+  persistent notice), and on every other page, until the user sets a new password (REQ-120) or presses "Dismiss"
+- "Dismiss" calls `dismissPasswordNoticeAction()`; on `ok` the notice disappears at once and stays gone after a reload
+- No email is sent (no email capability exists)
+**Test level:** unit (services, action, component) + e2e
+
+### REQ-124 — Sessions are JWTs; users and accounts stay in PostgreSQL
+**Rules:** BR-165, BR-166, BR-167, BR-168
+**Status:** todo
+**Acceptance criteria:**
+- `authConfig.session.strategy` is `"jwt"`. The Prisma adapter stays configured in `src/auth.ts`, so `User` and
+  `Account` rows are still written by Google sign-in and registration. The `Session` table stays (additive migration)
+  but is no longer written
+- The `session` callback copies `token.sub` (the user id, which Auth.js sets on sign-in) to `session.user.id`: given
+  `{ session: { user: { id: "", name: "Ana", email: "ana@example.com" }, expires: "2026-10-25T00:00:00.000Z" },
+  token: { sub: "u1" } }` it returns that session with `user.id` `"u1"`. `getCurrentUserId`, `getCurrentUser` and
+  `requireUserId` (`src/lib/session.ts`) do not change
+- The token holds Auth.js's defaults (`sub`, `name`, `email`, `picture`, `iat`, `exp`, `jti`) plus `pwdAt` for password
+  sessions (REQ-122), and nothing else
+- A cookie left by the old database sessions (a UUID in `authjs.session-token`) is not a valid JWT: the visitor is
+  signed out and the page answers 200. So every old session ends once, at deploy (BR-167)
+- E2E: after "Sign out" the browser has no `authjs.session-token` cookie and the header shows no account menu (BR-168)
+**Test level:** unit + e2e
+
+### REQ-125 — The password hash never leaves the server
+**Rules:** BR-153
+**Status:** todo
+**Acceptance criteria:**
+- Services return `AuthUser` (`id`, `name`, `email`) and `AccountView` (`email`, `hasPassword`, `passwordNotice`) only.
+  `authorize` returns the `AuthUser` as it is, so the hash never reaches the token or the session
+- `PrismaUserRepository` never lets a Prisma error message out: P2002 on `create` → `EmailTakenError`; any other error →
+  `new Error("PrismaUserRepository.<method> failed (<the Prisma error code, or unknown>)")`. A Prisma message that
+  quotes the query data, and so the hash, is therefore never logged by `toActionError`
+- The new modules contain no logging (no `console.*`)
+- E2E: after registering, `GET /api/auth/session` returns a `user` with exactly the keys `email`, `id`, `name`, and the
+  body does not contain `scrypt`
+**Test level:** unit + e2e
+
+### REQ-126 — Sign-in page with Google and email/password
+**Rules:** BR-154, BR-95
+**Status:** todo
+**Acceptance criteria:**
+- `/<locale>/sign-in?callbackUrl=<path>` shows, in a panel: the heading "Sign in" (`h1`); a "Continue with Google"
+  link (Google mark, secondary, `lg`) to `/api/login?callbackUrl=<encoded path>`; a divider; the email/password form;
+  the text "New here?" and a "Create an account" link (secondary button style) to
+  `/<locale>/register?callbackUrl=<encoded path>`
+- `callbackUrl`: absent → `/<locale>/dashboard`; otherwise `sanitizeCallbackUrl(value)` (`https://evil.com` → `/`)
+- `authConfig.pages` is `{ signIn: "/sign-in", error: "/sign-in" }`, so Auth.js never shows its own pages; the locale
+  middleware adds the locale and keeps the query. With an `error` parameter the page shows the alert "Sign-in couldn't
+  be completed. Please try again." (`auth.signInFailed`); the error type itself is never shown
+- A signed-in visitor is redirected to the callback path at once
+- `PasswordSignInForm`: "Email" (`type="email"`, `autocomplete="email"`) and "Password" (`type="password"`,
+  `autocomplete="current-password"`) with visible labels, and the submit "Sign in" (primary, loading while pending).
+  Client validation with `signInInputSchema`: empty fields → "This field is required." under each, and the action is
+  not called. `ok` → `navigate(data.redirectTo)` (default `window.location.assign`: a full load, so the header shows
+  the session). `INVALID_CREDENTIALS` → the alert "Email or password is incorrect.", the password field is emptied and
+  the email kept. `RATE_LIMITED` → `auth.tooManyAttempts`. Any other code → `errors.<code>`
+- E2E: `/sign-in?error=AccessDenied` → `/en/sign-in?error=AccessDenied` with the alert; a signed-in visitor opening
+  `/en/sign-in?callbackUrl=%2Fen%2Fevents%2Fnew` ends on `/en/events/new`; a signed-out visitor to `/en/events/new`
+  signs in with a password and ends on `/en/events/new` (BR-95)
+**Test level:** unit (component, config) + e2e
+
+### REQ-127 — Register page
+**Rules:** BR-145, BR-146, BR-158
+**Status:** todo
+**Acceptance criteria:**
+- `/<locale>/register?callbackUrl=<path>` shows, in a panel: the heading "Create an account" (`h1`), the register
+  form, a divider, the text "Already have an account?" and a "Sign in" link (secondary button style) to
+  `/<locale>/sign-in?callbackUrl=<encoded path>`. `callbackUrl` handling and the signed-in redirect are as in REQ-126
+- `RegisterForm`: "Name" (`autocomplete="name"`), "Email" (`type="email"`, `autocomplete="email"`), "Password" and
+  "Confirm password" (`type="password"`, `autocomplete="new-password"`), all with visible labels. The Password field
+  has the hint "8 to 128 characters." (`auth.passwordHint`, referenced by its `aria-describedby`). Submit "Create
+  account"
+- Client validation with `registerInputSchema` (e.g. a different confirmation → "The passwords do not match." under
+  Confirm password; the action is not called). `ok` → `navigate(data.redirectTo)`. `GOOGLE_ACCOUNT_EXISTS` and
+  `EMAIL_TAKEN` → alert with `errors.<code>` (the BR-158 guidance for Google). `RATE_LIMITED` →
+  `auth.tooManyAttempts`. Typed values are kept after a failure
+**Test level:** unit (component) + e2e
+
+### REQ-128 — Account page and its menu entry
+**Rules:** BR-159, BR-160
+**Status:** todo
+**Acceptance criteria:**
+- `/<locale>/account` requires a session (signed out → REQ-02). It shows the heading "Account" (`h1`), "Signed in as
+  ana@example.com" (`account.signedInEmail`, only when the user has an email) and, in a panel, the set-password form
+  with `hasPassword` from `GetAccountService`. A session whose user row is gone is sent to the sign-in page
+- `SetPasswordForm` with `hasPassword=false`: heading "Set a password" (`h2`), hint "Add a password to also sign in
+  with your email.", fields "New password" (hint "8 to 128 characters.") and "Confirm new password" (both
+  `autocomplete="new-password"`), submit "Save password". With `hasPassword=true`: heading "Change password", no hint,
+  and a first field "Current password" (`autocomplete="current-password"`)
+- Client validation: `setPasswordInputSchema`, plus "This field is required." under Current password when
+  `hasPassword` and it is empty. Server `VALIDATION_ERROR` field errors show under their fields ("The current password
+  is incorrect.")
+- `ok` → a `role="status"` line "Password saved.", all fields emptied, and `router.refresh()` (the page re-renders as
+  "Change password" and REQ-123's notice goes away)
+- The account menu (REQ-80) has the link "Account" (`/<locale>/account`) between "My events" and "Sign out"
+**Test level:** unit (component) + e2e
+
+### REQ-129 — Sign-in, register and account pages: three languages and WCAG 2.2 AA in both themes
+**Rules:** BR-169
+**Status:** todo
+**Acceptance criteria:**
+- Every new message key exists in `en`, `fr` and `pt-BR` with the texts of C16 (REQ-52's parity test enforces it)
+- The pages use only existing classes, primitives and tokens (no new color value). The only CSS added is the spacing
+  rule `.site-notice` (TASK-265). REQ-65's contrast checks therefore cover them in both themes
+- Field and form errors are announced (`role="alert"`, REQ-69); success lines use `role="status"`
+- E2E, in the dark theme and in the light theme: `/en/sign-in`, `/en/register` and `/en/account` (with REQ-123's
+  notice showing) have no input without a visible label (REQ-68), no control smaller than 24×24 px (REQ-71), no exposed
+  `svg` (REQ-78), and a 2 px solid focus ring on every focusable element (REQ-66)
+- E2E: `/fr/sign-in`, `/fr/register` and `/fr/account` at 375 and 1280 px have no clipped text and no horizontal
+  scrolling (REQ-77's check)
+**Test level:** unit + e2e
+
+### REQ-130 — Email/password needs no Google credentials and no `.env.local`
+**Rules:** BR-170, BR-136
+**Status:** todo
+**Acceptance criteria:**
+- Registration and password sign-in use only the database and `AUTH_SECRET` (it encrypts the JWT and salts the IP
+  hash). They read no Google or AI variable
+- The E2E app runs with Google credentials that cannot sign in (`test-google-client-id`), and REQ-116's journey
+  registers, signs out and signs in again with a password
+- In the containerized run without `.env.local`, `AUTH_SECRET` is generated at start (REQ-109), which is all this path
+  needs. Accounts survive a container restart (they are in PostgreSQL); sessions do not (a new secret, BR-134). The
+  container smoke check (REQ-113) is unchanged
+- The README says an evaluator can register with email and password instead of being added as a Google test user
+  (TASK-269)
+**Test level:** e2e (a `describe` block around REQ-116's journey). The container path is not re-tested (Phase 10 note
+16)
+
 ---
 
 ## Tooling requirements
@@ -2000,7 +2404,7 @@ These requirements are code in the repository and are TDD'd like product code. T
 
 | BR | Covered by |
 |---|---|
-| BR-01 | REQ-01, REQ-80 |
+| BR-01 | REQ-01, REQ-80, REQ-116, REQ-118 |
 | BR-02 | REQ-23, REQ-31 |
 | BR-03 | REQ-03 |
 | BR-04 | REQ-04, REQ-14 |
@@ -2051,7 +2455,7 @@ These requirements are code in the repository and are TDD'd like product code. T
 | BR-49 | REQ-37, REQ-82 |
 | BR-50 | REQ-37 |
 | BR-51 | REQ-34, REQ-38, REQ-85 |
-| BR-52 | REQ-39, REQ-40, REQ-81 |
+| BR-52 | REQ-39, REQ-40, REQ-81 (amended by A6: the link leads to the sign-in page) |
 | BR-53 | REQ-51 |
 | BR-54 | REQ-45 |
 | BR-55 | REQ-44, REQ-45 |
@@ -2079,7 +2483,7 @@ These requirements are code in the repository and are TDD'd like product code. T
 | BR-77 | REQ-31 |
 | BR-78 | REQ-52 |
 | BR-79 | REQ-55, REQ-56 |
-| BR-80 | REQ-56 |
+| BR-80 | REQ-56, REQ-119 (sign-in counters keep only hashes) |
 | BR-81 | REQ-58 |
 | BR-82 | REQ-61 |
 | BR-83 | REQ-15, REQ-58, REQ-59 |
@@ -2094,7 +2498,7 @@ These requirements are code in the repository and are TDD'd like product code. T
 | BR-92 | REQ-30 |
 | BR-93 | REQ-18 |
 | BR-94 | REQ-16, REQ-17 |
-| BR-95 | REQ-02 |
+| BR-95 | REQ-02 (amended by A6), REQ-126 |
 | BR-96 | REQ-45, REQ-51 (+ eval category `non-event`, REQ-91, REQ-92) |
 | BR-97 | REQ-62 |
 | BR-98 | REQ-64 |
@@ -2135,7 +2539,7 @@ These requirements are code in the repository and are TDD'd like product code. T
 | BR-133 | REQ-109, REQ-112 (the REQ-113 CI job runs with no `.env.local`) |
 | BR-134 | REQ-109 |
 | BR-135 | REQ-113 (event page and `.ics` in the stack without `.env.local`), REQ-109 (secret for Auth.js and the RSVP IP hash); RSVP submission: REQ-23 |
-| BR-136 | REQ-01; non-functional: without `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` Google rejects the sign-in; stated in the README (TASK-246) |
+| BR-136 | REQ-01, REQ-130 (email/password does not depend on it); non-functional: without `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` Google rejects the sign-in; stated in the README (TASK-246, TASK-269) |
 | BR-137 | REQ-87 (a provider without a key is skipped), REQ-47 (fallback message) |
 | BR-138 | REQ-109 (a supplied `AUTH_SECRET` is kept), REQ-112 (`env_file` `.env.local`) |
 | BR-139 | REQ-111 |
@@ -2144,9 +2548,37 @@ These requirements are code in the repository and are TDD'd like product code. T
 | BR-142 | REQ-113 |
 | BR-143 | REQ-113; non-functional: the required checks are a GitHub setting (HUMAN-03), not changed by Phase 9 |
 | BR-144 | REQ-111 |
+| BR-145 | REQ-115, REQ-116, REQ-127 |
+| BR-146 | REQ-116, REQ-127 |
+| BR-147 | REQ-115, REQ-116, REQ-118 |
+| BR-148 | REQ-115, REQ-120 |
+| BR-149 | REQ-115 |
+| BR-150 | REQ-115, REQ-120 |
+| BR-151 | REQ-114 |
+| BR-152 | REQ-114 |
+| BR-153 | REQ-125 |
+| BR-154 | REQ-126 |
+| BR-155 | REQ-118 |
+| BR-156 | REQ-119 |
+| BR-157 | REQ-117 |
+| BR-158 | REQ-117, REQ-127 |
+| BR-159 | REQ-120, REQ-128 |
+| BR-160 | REQ-120, REQ-128 |
+| BR-161 | REQ-120 |
+| BR-162 | REQ-121 |
+| BR-163 | REQ-122 |
+| BR-164 | REQ-123 |
+| BR-165 | REQ-01, REQ-124 |
+| BR-166 | REQ-124, REQ-116 (the user row is in PostgreSQL) |
+| BR-167 | REQ-124 |
+| BR-168 | REQ-124 |
+| BR-169 | REQ-129 |
+| BR-170 | REQ-130; the container path itself is not re-tested (REQ-109 already proves the generated secret) |
 
-144 business rules, 144 covered (BR-12 additionally non-functional; BR-126 partly non-functional for the Anthropic
-key; BR-136 and BR-143 partly non-functional). BR-97 … BR-118 added by amendment A2 (REQ-62 … REQ-85). BR-119 …
+170 business rules, 170 covered (BR-12 additionally non-functional; BR-126 partly non-functional for the Anthropic
+key; BR-136 and BR-143 partly non-functional). BR-145 … BR-170 added by amendment A6 (REQ-114 … REQ-130), which also
+amends BR-01, BR-52, BR-95 and BR-136 (REQ-01, REQ-02, REQ-39, REQ-80, REQ-81 amended).
+BR-97 … BR-118 added by amendment A2 (REQ-62 … REQ-85). BR-119 …
 BR-126 added by amendment A3 (REQ-86 … REQ-89, REQ-94 … REQ-98). Amendment A4 adds no business rule: REQ-99 (BR-64)
 and tooling REQ-100 … REQ-107. BR-127 … BR-144 added by amendment A5 (REQ-108 … REQ-113).
 Tooling: REQ-90, REQ-91, REQ-92, REQ-93, REQ-100 … REQ-107.
