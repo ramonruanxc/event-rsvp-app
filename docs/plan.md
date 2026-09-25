@@ -14,10 +14,10 @@
 | 1 | `phase-1/events-core` | Domain, all repositories, event create/edit/delete, dashboard basics | REQ-02, REQ-03, REQ-05–REQ-19, REQ-27, REQ-32, REQ-33 (service), REQ-35, REQ-36, REQ-54, REQ-59 | 38 |
 | 2 | `phase-2/rsvp-flow` | Guest RSVP, edit cookie, duplicates, cancel, ended events, role views | REQ-20–REQ-26, REQ-28–REQ-31, REQ-33, REQ-34, REQ-56 (IP hashing only), REQ-57 | 20 |
 | 3 | `phase-3/share-and-demo` | Sample event, invite link, .ics, home, demo seed | REQ-37–REQ-42 | 11 |
-| 4 | `phase-4/ai-fill` | AI event creation, rate limiter, eval runner and cases, eval run | REQ-43–REQ-51, REQ-55, REQ-91, REQ-92 | 24 + 1 human |
+| 4 | `phase-4/ai-fill` | AI event creation, rate limiter, eval runner and cases (eval run moved to TASK-217) | REQ-43–REQ-51, REQ-55, REQ-91, REQ-92 | 23 + 1 human (TASK-131 moved) |
 | 5 | `phase-5/hardening` | RSVP rate limit, honeypot, headers, XSS check, journeys | REQ-56, REQ-58, REQ-60, REQ-61 | 8 |
 | 6 | `phase-6/ui-ux` | UI/UX redesign (A2): tokens and themes, primitives, header and logo, every screen, accessibility checks, README | REQ-62–REQ-85 (+ amended REQ-19, REQ-30, REQ-34, REQ-36, REQ-38, REQ-39) | 36 (TASK-150–TASK-184 + TASK-148) |
-| 7 | `phase-7/openrouter` | Second AI provider (A3): provider list and failover in one 10 s budget, OpenRouter client, OpenAI-compatible E2E mock, key hygiene, eval `--provider`, key-provisioning script, OpenRouter eval run | REQ-86–REQ-89, REQ-93–REQ-98 | 28 + 1 human (TASK-190–TASK-217, HUMAN-06) |
+| 7 | `phase-7/openrouter` | Second AI provider (A3): provider list and failover in one 10 s budget, OpenRouter client, OpenAI-compatible E2E mock, key hygiene, eval `--provider`, key-provisioning script, OpenRouter eval run on 3 models (absorbs TASK-131) | REQ-86–REQ-89, REQ-93–REQ-98 | 28 + 1 human (TASK-190–TASK-217, HUMAN-06) |
 
 Totals: 98 requirements (94 product + 4 tooling), 185 agent tasks, 6 human tasks.
 
@@ -678,7 +678,9 @@ export interface AiProvider {
 }
 
 // src/lib/ai/errors.ts (classes: TASK-190; outageReasonForStatus: TASK-191)
-export type OutageReason = 'network' | 'server' | 'rate-limit' | 'timeout' | 'credit';
+// Status → reason (BR-121, amended 2026-09-24): 401, 403 → 'auth'; 402 → 'credit'; 408 → 'timeout';
+// 429 → 'rate-limit'; 500–599 → 'server'; anything else (e.g. 400, 404, 422) → null = not an outage.
+export type OutageReason = 'network' | 'server' | 'rate-limit' | 'timeout' | 'credit' | 'auth';
 export class ProviderUnavailableError extends Error { constructor(readonly reason: OutageReason) }
 export class InvalidModelOutputError extends Error { constructor(message: string) }
 export function outageReasonForStatus(status: number): OutageReason | null;
@@ -2770,11 +2772,13 @@ link, and the demo link `/${locale}/e/${DEMO_SLUG}`. (The header keeps its own l
 ## Phase 4 — AI event creation and evaluation (`phase-4/ai-fill`)
 
 Order: TASK-110 → TASK-114, TASK-132, TASK-115 → TASK-123, TASK-133, TASK-124 → TASK-128, TASK-130, TASK-129, then
-HUMAN-05, then TASK-131. (TASK-132 and TASK-133 were added for BR-96 and are listed in the document right after the
+HUMAN-05. (TASK-131, the real evaluation, moved to Phase 7 and is absorbed by TASK-217 — human decision,
+2026-09-24.) (TASK-132 and TASK-133 were added for BR-96 and are listed in the document right after the
 task they follow. TASK-130 runs **before** TASK-129 because the runner imports `evalCasesSchema` from TASK-130; the
 document lists them in execution order.) No task in this phase needs a real API key: unit and integration tests use
-fake clients, E2E uses the mock server (TASK-124) with the dummy key `test-key` from `.env.test`. Only TASK-131 calls
-the real API (HUMAN-05).
+fake clients, E2E uses the mock server (TASK-124) with the dummy key `test-key` from `.env.test`. No Phase 4 task
+calls the real API any more (the real evaluation is TASK-217, Phase 7, through OpenRouter); HUMAN-05's key is for
+production "Fill with AI".
 
 ### TASK-110 — Fixed-window rate limiter
 **Phase:** 4 · **Requirements:** REQ-55 · **Status:** todo · **Revision:** 1
@@ -3530,10 +3534,10 @@ Red: the stub `run.ts` is the single line `throw new Error('not implemented');` 
   `DomainError.code`; allowed imports, Vitest timeout and red reason stated.
 
 ### HUMAN-05 — Anthropic API key
-**Phase:** 4 · **Owner:** human · **When:** on the Phase 4 branch after TASK-129, before TASK-131 (steps 1–4); step 5
-after TASK-131.
-**Needed for exactly two things:** (a) TASK-131, the real evaluation run on your machine (`npm run eval` reads
-`.env.local`); (b) "Fill with AI" in production (Vercel). **Not needed** for anything else: unit and integration
+**Phase:** 4 · **Owner:** human · **When:** on the Phase 4 branch after TASK-129 (steps 1–4); step 5 after TASK-217
+(Phase 7).
+**Needed for exactly one thing:** "Fill with AI" in production (Vercel) through Anthropic. (The real evaluation,
+former TASK-131, is now TASK-217 and runs through OpenRouter, so it does not need this key.) **Not needed** for anything else: unit and integration
 tests use fake clients, E2E uses the mock server (TASK-124) with the dummy `ANTHROPIC_API_KEY=test-key` from
 `.env.test`, and CI never receives the real key — do **not** add it to GitHub secrets or to any workflow. Until step 3
 reaches Vercel, production "Fill with AI" shows "Couldn't fill automatically — please fill the form." and the rest of
@@ -3543,14 +3547,19 @@ the app works (the SDK is only created on the first AI call, TASK-119).
 3. Put the key in `.env.local` as `ANTHROPIC_API_KEY=…` (never commit it) and in Vercel → Settings → Environment
    Variables (Production) as `ANTHROPIC_API_KEY`. Redeploy.
 4. Tell the orchestrator the key is in place (do not paste it in the chat).
-5. After TASK-131: if `docs/evals/README.md` chose a model other than `claude-haiku-4-5` (the container's default),
+5. After TASK-217: if `docs/evals/README.md` chose an `AI_MODEL` other than `claude-haiku-4-5` (the container's default),
    set `AI_MODEL` to it in Vercel (Production) and redeploy; otherwise nothing to do.
 **Changelog:**
 - preventive review (lessons #9–#13), not a failure revision: states when the key is needed (TASK-131 and production
   only) and that CI/E2E never need it; `AI_MODEL` moved to step 5, after TASK-131 has chosen the model.
+- human decision (Phase 7 approval), not a failure revision: TASK-131 is absorbed by TASK-217, so the key is only
+  for production and step 5 follows TASK-217.
 
 ### TASK-131 — Run the evaluation on Haiku and Sonnet
-**Phase:** 4 · **Requirements:** REQ-91, REQ-92 · **Status:** todo · **Revision:** 1
+**Phase:** 4 → 7 · **Requirements:** REQ-91, REQ-92 · **Status:** moved · **Revision:** 2
+**Moved:** absorbed by **TASK-217** (Phase 7) by human decision on 2026-09-24. Do not dispatch this task; the text
+below is kept only for history. TASK-217 runs the same Haiku-vs-Sonnet comparison through OpenRouter
+(`anthropic/claude-haiku-4.5`, `anthropic/claude-sonnet-5`, plus `openai/gpt-4o-mini`) and makes the `AI_MODEL` choice.
 **Files:** docs/evals/<date>-claude-haiku-4-5.md, docs/evals/<date>-claude-sonnet-5.md, docs/evals/README.md
 **Steps:** `npm run eval -- --model claude-haiku-4-5`, then `npm run eval -- --model claude-sonnet-5`. If a command
 exits 2, stop and return `ENV_FAILURE` (no key). Write `docs/evals/README.md` with a table
@@ -3560,6 +3569,9 @@ production model is the cheapest one that passes the gate (Haiku if it passes). 
 **Test first:** —
 **Done when:** both reports and the README are committed (`docs(eval): …`).
 **TDD exception:** docs — generated reports
+**Changelog:**
+- Rev 2 — human decision (Phase 7 approval), not a failure revision: moved to Phase 7 and absorbed by TASK-217
+  (decided 2026-09-24).
 
 ---
 
@@ -5316,7 +5328,7 @@ Order: TASK-190 → TASK-217 in document order, then HUMAN-06. Only TASK-217 cal
 `evals/event-parser/run.test.ts`, both REQ-51 tests of `e2e/ai.spec.ts` and `e2e/journeys.spec.ts`.
 
 ### TASK-190 — Provider contracts: types and error classes
-**Phase:** 7 · **Requirements:** REQ-86, REQ-88, REQ-89 · **Status:** todo · **Revision:** 1
+**Phase:** 7 · **Requirements:** REQ-86, REQ-88, REQ-89 · **Status:** todo · **Revision:** 2
 **Files:** src/lib/ai/types.ts, src/lib/ai/errors.ts
 **Steps:**
 1. `src/lib/ai/types.ts`: after `AI_TIMEOUT_MS` add `AI_PROVIDER_NAMES`, `AiProviderName` and `MIN_ATTEMPT_MS`
@@ -5324,8 +5336,8 @@ Order: TASK-190 → TASK-217 in document order, then HUMAN-06. Only TASK-217 cal
    `AiProvider` interface at the end of the file. Keep everything else unchanged.
 2. Create `src/lib/ai/errors.ts` with exactly:
    ```ts
-   /** Why a provider could not serve a request; every reason allows failover (BR-121). */
-   export type OutageReason = 'network' | 'server' | 'rate-limit' | 'timeout' | 'credit';
+   /** Why a provider could not serve a request; every reason allows failover (BR-121). `auth` = HTTP 401/403. */
+   export type OutageReason = 'network' | 'server' | 'rate-limit' | 'timeout' | 'credit' | 'auth';
 
    /** Outage-type failure of one provider: the next configured provider may be tried (BR-121). */
    export class ProviderUnavailableError extends Error {
@@ -5347,20 +5359,25 @@ Order: TASK-190 → TASK-217 in document order, then HUMAN-06. Only TASK-217 cal
 **Done when:** `npm run typecheck`, `npm run lint` and `npm run test:unit` pass (the existing clients still satisfy
 `AiModelClient`: `timeoutMs` is optional).
 **TDD exception:** chore — shared contracts used by TASK-191 … TASK-215 (lesson #9)
+**Changelog:**
+- Rev 2 — human decision (Phase 7 approval), not a failure revision: `OutageReason` gains `'auth'` (BR-121 amended).
 
 ### TASK-191 — HTTP status → outage reason
-**Phase:** 7 · **Requirements:** REQ-88 · **Status:** todo · **Revision:** 1
+**Phase:** 7 · **Requirements:** REQ-88 · **Status:** todo · **Revision:** 2
 **Files:** src/lib/ai/errors.ts, src/lib/ai/errors.test.ts
-**Interface:** `export function outageReasonForStatus(status: number): OutageReason | null`
+**Interface:** `export function outageReasonForStatus(status: number): OutageReason | null` (red stub:
+`return null;`)
 **Test first:**
 - `REQ-88: outage HTTP statuses map to a reason` — loop over
-  `[[402, 'credit'], [408, 'timeout'], [429, 'rate-limit'], [500, 'server'], [502, 'server'], [503, 'server'], [504, 'server'], [529, 'server'], [599, 'server']]`
-  → `expect(outageReasonForStatus(status)).toBe(reason)`.
-- `REQ-88: other statuses are not outages` — loop over `[200, 400, 401, 403, 404, 413, 422, 600]` → `toBeNull()`.
+  `[[401, 'auth'], [403, 'auth'], [402, 'credit'], [408, 'timeout'], [429, 'rate-limit'], [500, 'server'], [502, 'server'], [503, 'server'], [504, 'server'], [529, 'server'], [599, 'server']]`
+  → `expect(outageReasonForStatus(status)).toBe(reason)` (red: the stub returns `null`).
+- `REQ-88: other statuses are not outages` — loop over `[200, 400, 404, 413, 422, 600]` → `toBeNull()` (401 and 403
+  are **not** in this list any more: they are outages since BR-121 was amended).
 **Implementation:**
 ```ts
 /** Maps an HTTP status to an outage reason, or null when the status is not an outage (BR-121). */
 export function outageReasonForStatus(status: number): OutageReason | null {
+  if (status === 401 || status === 403) return 'auth'; // invalid, revoked or unauthorized key
   if (status === 402) return 'credit';
   if (status === 408) return 'timeout';
   if (status === 429) return 'rate-limit';
@@ -5370,6 +5387,9 @@ export function outageReasonForStatus(status: number): OutageReason | null {
 ```
 **Done when:** tests pass.
 **TDD exception:** none
+**Changelog:**
+- Rev 2 — human decision (Phase 7 approval), not a failure revision: 401 and 403 map to `'auth'` (BR-121 amended);
+  they move from the "not outages" loop to the outage loop; red stub stated.
 
 ### TASK-192 — AiEventParser takes a provider list
 **Phase:** 7 · **Requirements:** REQ-86 · **Status:** todo · **Revision:** 1
@@ -5458,6 +5478,13 @@ const provider = (name: AiProviderName, complete: AiModelClient['complete'], mod
   expect(second).not.toHaveBeenCalled();
   ```
   Red: before this task only the first provider is called → `AiUnavailableError`.
+- `REQ-88: an invalid or unauthorized key (auth) on the first provider lets the next provider answer` — two cases,
+  new fakes each time: (1) providers `[provider('anthropic', a, 'claude-haiku-4-5'), provider('openrouter', o, 'anthropic/claude-haiku-4.5')]`
+  with `a = vi.fn().mockRejectedValue(new ProviderUnavailableError('auth'))` (Anthropic 401) and
+  `o = vi.fn().mockResolvedValue(RAW)`; (2) the order reversed, `[provider('openrouter', o, 'anthropic/claude-haiku-4.5'), provider('anthropic', a, 'claude-haiku-4-5')]`
+  with `o` rejecting `new ProviderUnavailableError('auth')` (OpenRouter 403) and `a` resolving `RAW`. Each case:
+  `resolves.toEqual(EXPECTED)` and both fakes called exactly once. Red: before this task only the first provider is
+  called → `AiUnavailableError`.
 - `REQ-88: when every provider is down, the fill is unavailable` — `anthropic` rejects
   `new ProviderUnavailableError('credit')`, `openrouter` rejects `new ProviderUnavailableError('rate-limit')` →
   `rejects.toBeInstanceOf(AiUnavailableError)`; each called once (red: `openrouter` is called 0 times).
@@ -5480,16 +5507,19 @@ throw new AiUnavailableError();
 ```
 **Done when:** tests pass (including the four existing parser tests).
 **TDD exception:** none
+**Changelog:**
+- Rev 2 — human decision (Phase 7 approval), not a failure revision: new test for the `'auth'` outage in both
+  provider orders (BR-121 amended: 401/403 fail over).
 
 ### TASK-194 — Invalid output and non-outage errors are not retried
-**Phase:** 7 · **Requirements:** REQ-89 · **Status:** todo · **Revision:** 1
+**Phase:** 7 · **Requirements:** REQ-89 · **Status:** todo · **Revision:** 2
 **Files:** src/services/ai-event-parser.ts, src/services/ai-event-parser.test.ts
 **Test first** (in `describe('AiEventParser — providers')`; add `InvalidModelOutputError` to the test file's
 `@/lib/ai/errors` import; red because TASK-193 moves on after any failure):
 - `REQ-89: output that fails the schema is not retried on another provider` — `anthropic` resolves `{ foo: 1 }`,
   `openrouter` resolves `RAW` → `rejects.toBeInstanceOf(AiUnavailableError)`; `openrouter` not called.
 - `REQ-89: a client error that is not an outage is not retried` — for each `error` of
-  `[new InvalidModelOutputError('model returned no structured output'), new Error('OpenRouter HTTP 401')]`, with new
+  `[new InvalidModelOutputError('model returned no structured output'), new Error('OpenRouter HTTP 404')]`, with new
   fakes each time: `anthropic` rejects `error`, `openrouter` resolves `RAW` → `AiUnavailableError`; `openrouter` not
   called.
 **Implementation:** replace the loop body (import `ProviderUnavailableError` from `@/lib/ai/errors` and `TimeoutError`
@@ -5510,8 +5540,12 @@ for (const provider of this.deps.providers) {
 }
 throw new AiUnavailableError();
 ```
-**Done when:** tests pass (all parser tests).
+**Done when:** tests pass (all parser tests, including TASK-193's `'auth'` test: `'auth'` is a
+`ProviderUnavailableError`, so it still moves on).
 **TDD exception:** none
+**Changelog:**
+- Rev 2 — human decision (Phase 7 approval), not a failure revision: the non-outage example is now
+  `OpenRouter HTTP 404` (a 401 is an outage since BR-121 was amended).
 
 ### TASK-195 — One 10-second budget shared by every attempt
 **Phase:** 7 · **Requirements:** REQ-88 · **Status:** todo · **Revision:** 1
@@ -5583,7 +5617,7 @@ timeout and no retries` keeps passing (no `timeoutMs` → 10 000).
 **TDD exception:** none
 
 ### TASK-197 — Anthropic failures are classified
-**Phase:** 7 · **Requirements:** REQ-88, REQ-89 · **Status:** todo · **Revision:** 1
+**Phase:** 7 · **Requirements:** REQ-88, REQ-89 · **Status:** todo · **Revision:** 2
 **Files:** src/lib/ai/anthropic-model-client.ts, src/lib/ai/anthropic-model-client.test.ts
 **Test first** (helpers at the top of the new `describe('createAnthropicModelClient — failures')`; the SDK error
 classes are named exports of `@anthropic-ai/sdk` 0.128.0):
@@ -5599,14 +5633,16 @@ const failureOf = (parseImpl: unknown) =>
     .then(() => { throw new Error('expected a rejection'); }, (error: unknown) => error);
 ```
 - `REQ-88: Anthropic outages become ProviderUnavailableError with a reason` — loop over
-  `[[new APIConnectionTimeoutError(), 'timeout'], [new APIConnectionError({ message: 'Connection error.' }), 'network'], [apiError(529, 'overloaded_error', 'Overloaded'), 'server'], [apiError(500, 'api_error', 'Internal server error'), 'server'], [apiError(429, 'rate_limit_error', 'Rate limited'), 'rate-limit'], [apiError(402, 'billing_error', 'Billing issue'), 'credit'], [apiError(400, 'invalid_request_error', 'Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.'), 'credit']]`
+  `[[new APIConnectionTimeoutError(), 'timeout'], [new APIConnectionError({ message: 'Connection error.' }), 'network'], [apiError(529, 'overloaded_error', 'Overloaded'), 'server'], [apiError(500, 'api_error', 'Internal server error'), 'server'], [apiError(429, 'rate_limit_error', 'Rate limited'), 'rate-limit'], [apiError(402, 'billing_error', 'Billing issue'), 'credit'], [apiError(400, 'invalid_request_error', 'Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.'), 'credit'], [apiError(401, 'authentication_error', 'invalid x-api-key'), 'auth'], [apiError(403, 'permission_error', 'Your API key does not have permission to use the specified resource.'), 'auth']]`
   → `const e = await failureOf(vi.fn().mockRejectedValue(error)); expect(e).toBeInstanceOf(ProviderUnavailableError); expect((e as ProviderUnavailableError).reason).toBe(reason);`
+  (red: before this task every SDK error is rethrown unchanged, so none is a `ProviderUnavailableError`).
 - `REQ-89: unusable output is InvalidModelOutputError and other errors pass through unchanged` —
   (1) `failureOf(vi.fn().mockResolvedValue({ parsed_output: null }))` → instance of `InvalidModelOutputError` with
   message `'model returned no structured output'` (red: a plain `Error` today); (2)
   `new AnthropicError('Failed to parse structured output: bad json')` → `InvalidModelOutputError`; (3) for each of
-  `apiError(400, 'invalid_request_error', 'max_tokens: Field required')`, `apiError(401, 'authentication_error', 'invalid x-api-key')`,
-  `apiError(404, 'not_found_error', 'model: claude-x')` → `expect(await failureOf(vi.fn().mockRejectedValue(err))).toBe(err)`.
+  `apiError(400, 'invalid_request_error', 'max_tokens: Field required')`, `apiError(404, 'not_found_error', 'model: claude-x')`,
+  `apiError(422, 'invalid_request_error', 'unprocessable')` → `expect(await failureOf(vi.fn().mockRejectedValue(err))).toBe(err)`
+  (400 without "credit balance", 404 and 422 are not outages — BR-121).
 **Implementation** (in `anthropic-model-client.ts`; `APIConnectionTimeoutError` extends `APIConnectionError`, which
 extends `APIError`, so keep this order):
 ```ts
@@ -5619,7 +5655,7 @@ function toFailure(error: unknown): unknown {
   if (error instanceof APIConnectionError) return new ProviderUnavailableError('network');
   if (error instanceof APIError && typeof error.status === 'number') {
     if (error.status === 400 && /credit balance/i.test(error.message)) return new ProviderUnavailableError('credit');
-    const reason = outageReasonForStatus(error.status);
+    const reason = outageReasonForStatus(error.status); // 401/403 → 'auth' (TASK-191)
     return reason ? new ProviderUnavailableError(reason) : error;
   }
   if (error instanceof AnthropicError && error.message.startsWith('Failed to parse structured output')) {
@@ -5632,6 +5668,9 @@ and in `complete`: `const response = await sdk.messages.parse(…same arguments�
 then `if (response.parsed_output == null) throw new InvalidModelOutputError('model returned no structured output');`.
 **Done when:** tests pass (the three existing client tests unchanged).
 **TDD exception:** none
+**Changelog:**
+- Rev 2 — human decision (Phase 7 approval), not a failure revision: 401 and 403 are `'auth'` outages (BR-121
+  amended); the pass-through list is now 400 / 404 / 422.
 
 ### TASK-198 — JSON schema of the AI output for OpenAI-compatible APIs
 **Phase:** 7 · **Requirements:** REQ-94 · **Status:** todo · **Revision:** 1
@@ -5798,16 +5837,19 @@ and return `parseContent(envelope.choices?.[0]?.message?.content)`.
 **TDD exception:** none
 
 ### TASK-201 — OpenRouter client: outages and other failures
-**Phase:** 7 · **Requirements:** REQ-88, REQ-89, REQ-94 · **Status:** todo · **Revision:** 1
+**Phase:** 7 · **Requirements:** REQ-88, REQ-89, REQ-94 · **Status:** todo · **Revision:** 2
 **Files:** src/lib/ai/openrouter-model-client.ts, src/lib/ai/openrouter-model-client.test.ts
 **Test first** (fixture of TASK-199; import `ProviderUnavailableError` from `./errors`; helper
 `const failureOf = (fetchMock: unknown, request: { system: string; user: string; model: string; timeoutMs?: number } = REQ) => client(fetchMock).complete(request).then(() => { throw new Error('expected a rejection'); }, (error: unknown) => error);`):
 - `REQ-88: OpenRouter outages become ProviderUnavailableError with a reason` — for each
-  `[status, reason]` of `[[402, 'credit'], [408, 'timeout'], [429, 'rate-limit'], [500, 'server'], [502, 'server'], [503, 'server']]`
+  `[status, reason]` of `[[401, 'auth'], [403, 'auth'], [402, 'credit'], [408, 'timeout'], [429, 'rate-limit'], [500, 'server'], [502, 'server'], [503, 'server']]`
   with body `{ error: { code: status, message: 'x' } }`; plus HTTP 200 bodies `{ error: { code: 502, message: 'upstream failed' } }` →
-  `'server'` and `{ error: { code: 429, message: 'Rate limit exceeded' } }` → `'rate-limit'`; plus `reply(200, 'oops')`
+  `'server'`, `{ error: { code: 429, message: 'Rate limit exceeded' } }` → `'rate-limit'` and
+  `{ error: { code: 403, message: 'Key is disabled' } }` → `'auth'`; plus `reply(200, 'oops')`
   (not JSON) → `'server'`; plus `vi.fn().mockRejectedValue(new TypeError('fetch failed'))` → `'network'`. Each:
-  `instanceOf ProviderUnavailableError` and `.reason` as listed.
+  `instanceOf ProviderUnavailableError`, `.reason` as listed, and `.message` does not contain `'test-key'`.
+  (Red for 401/403 and the other statuses: before this task the status is ignored and the missing content becomes
+  `InvalidModelOutputError`.)
 - `REQ-88: a request longer than timeoutMs is aborted as a timeout` —
   ```ts
   vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
@@ -5822,7 +5864,7 @@ and return `parseContent(envelope.choices?.[0]?.message?.content)`.
   expect((error as ProviderUnavailableError).reason).toBe('timeout');
   ```
 - `REQ-89: other HTTP errors are neither outages nor invalid output, and never show the key` — for each status of
-  `[400, 401, 403, 404]` with body `{ error: { code: status, message: 'nope' } }` → an `Error` that is not a
+  `[400, 404, 422]` with body `{ error: { code: status, message: 'nope' } }` → an `Error` that is not a
   `ProviderUnavailableError` nor an `InvalidModelOutputError`, with message `` `OpenRouter HTTP ${status}` ``; HTTP 200
   body `{ error: { code: 400, message: 'bad' } }` → message `'OpenRouter error 400'`; no message contains `'test-key'`.
 **Implementation** — the final file (replaces the body of `complete`; `parseContent` from TASK-200 stays):
@@ -5861,8 +5903,12 @@ if (!envelope.success) throw new ProviderUnavailableError('server');
 if (envelope.data.error) throw failureForCode(envelope.data.error.code, 'error');
 return parseContent(envelope.data.choices?.[0]?.message?.content);
 ```
+(`failureForCode` turns 401/403 into `ProviderUnavailableError('auth')` through `outageReasonForStatus`, TASK-191.)
 **Done when:** tests pass (all TASK-199 and TASK-200 tests too).
 **TDD exception:** none
+**Changelog:**
+- Rev 2 — human decision (Phase 7 approval), not a failure revision: 401/403 (HTTP and 200-body) are `'auth'`
+  outages (BR-121 amended); the non-outage list is now 400 / 404 / 422.
 
 ### TASK-202 — `AI_PROVIDERS` parsing
 **Phase:** 7 · **Requirements:** REQ-86 · **Status:** todo · **Revision:** 1
@@ -6622,7 +6668,7 @@ is unchanged — only a script was added).
 **TDD exception:** none (the entry point and the `package.json` script go in the `feat:` commit)
 
 ### TASK-216 — README and AI diagram mention the second provider
-**Phase:** 7 · **Requirements:** — · **Status:** todo · **Revision:** 1
+**Phase:** 7 · **Requirements:** — · **Status:** todo · **Revision:** 2
 **Files:** README.md, docs/diagrams/ai-event-parsing.mmd, docs/diagrams/ai-event-parsing.svg
 **Steps:**
 1. README, section "Run locally": after the step that copies `.env.example`, add one bullet: "AI: set
@@ -6639,49 +6685,75 @@ is unchanged — only a script was added).
    `participant M as Claude Haiku<br/>(structured output)` by
    `participant M as AI providers<br/>Anthropic → OpenRouter<br/>(structured output)`; replace
    `<br/>timeout 10s` at the end of the `S->>M` line by `<br/>one 10 s budget for all providers`; right after that
-   line add `    Note over S,M: Outage (network, 5xx, 429, timeout, credit) → next provider if ≥ 1 s is left<br/>Invalid output → no retry`;
+   line add `    Note over S,M: Outage (network, 5xx, 429, 401/403, timeout, credit) → next provider if ≥ 1 s is left<br/>Invalid output, other 4xx → no retry`;
    replace `alt timeout or API error` by `alt every provider failed, or invalid output`.
 5. Regenerate the SVG with the command in `docs/diagrams/README.md` and commit `.mmd` and `.svg` together.
 **Test first:** —
 **Done when:** `npm run trace` passes; every link added resolves to an existing file.
 **TDD exception:** docs
+**Changelog:**
+- Rev 2 — human decision (Phase 7 approval), not a failure revision: the diagram note lists 401/403 among the
+  failover triggers (BR-121 amended).
 
 ### TASK-217 — Evaluate the 30 cases through OpenRouter
-**Phase:** 7 · **Requirements:** REQ-93, REQ-92 · **Status:** todo · **Revision:** 1
-**Files:** docs/evals/<date>-openrouter-anthropic-claude-haiku-4.5.md, docs/evals/<date>-openrouter-openai-gpt-4o-mini.md,
-docs/evals/README.md
-**Models and why:**
-- `anthropic/claude-haiku-4.5` — the same model as the production Anthropic default (`claude-haiku-4-5`), so the
-  failover path keeps the quality the prompt was written for; it also measures that quality while Anthropic credits
-  are pending (HUMAN-05). OpenRouter price on 2026-09-24: USD 1.00 in / 5.00 out per million tokens.
-- `openai/gpt-4o-mini` — the cheaper non-Anthropic candidate: native strict JSON-schema enforcement, about 7× cheaper
-  input and 8× cheaper output (USD 0.15 / 0.60), not a reasoning model (a reasoning model can spend `max_tokens` on
-  hidden reasoning and return empty content, and is slower inside the 10 s budget), and good at French and Portuguese.
-  Cheaper models (e.g. Mistral Small at USD 0.05 / 0.08) have endpoint-dependent schema enforcement; they can be tried
-  later with the same command.
-- Budget: about 30 × (700 input + 150 output) tokens per run → ≈ USD 0.05 (Haiku) and ≈ USD 0.01 (gpt-4o-mini); the
-  key's USD 3 limit covers many reruns.
+**Phase:** 7 · **Requirements:** REQ-93, REQ-92, REQ-91 · **Status:** todo · **Revision:** 2
+**Absorbs the former TASK-131** (Phase 4 real evaluation on Haiku and Sonnet), moved to Phase 7 by human decision on
+2026-09-24: the same Haiku-vs-Sonnet comparison now runs through OpenRouter, so this task needs no Anthropic key or
+credit (HUMAN-05 is not a prerequisite) and it also chooses the Anthropic production model (step 7).
+**Files:** docs/evals/<date>-openrouter-openai-gpt-4o-mini.md, docs/evals/<date>-openrouter-anthropic-claude-haiku-4.5.md,
+docs/evals/<date>-openrouter-anthropic-claude-sonnet-5.md, docs/evals/README.md
+**Models and why** (ids and prices checked on OpenRouter's live `GET https://openrouter.ai/api/v1/models` on
+2026-09-24, USD per million tokens, input / output; use exactly these ids, never a `:batch` variant):
+- `openai/gpt-4o-mini` — USD 0.15 / 0.60. The cheaper non-Anthropic candidate: native strict JSON-schema enforcement
+  (`structured_outputs`), not a reasoning model (a reasoning model can spend `max_tokens` on hidden reasoning and
+  return empty content, and is slower inside the 10 s budget), and good at French and Portuguese. Cheaper models
+  (e.g. Mistral Small at USD 0.05 / 0.08) have endpoint-dependent schema enforcement; they can be tried later with the
+  same command.
+- `anthropic/claude-haiku-4.5` — USD 1.00 / 5.00. The same model as the production Anthropic default
+  (`claude-haiku-4-5`), so the failover path keeps the quality the prompt was written for; it also measures that
+  quality while Anthropic credits are pending.
+- `anthropic/claude-sonnet-5` — USD 2.00 / 10.00. The current Claude Sonnet on OpenRouter (listed 2026-06-30,
+  supports `structured_outputs`; newer than `anthropic/claude-sonnet-4.6` at USD 3.00 / 15.00). It restores the
+  design brief's Haiku-vs-Sonnet comparison (the former TASK-131) and is the same model as the Anthropic id
+  `claude-sonnet-5`. The client sends no `reasoning` parameter, so it answers without extended thinking.
+- Cost estimate, about 30 × (700 input + 150 output) = 21 000 input + 4 500 output tokens per run:
+  gpt-4o-mini 0.00315 + 0.00270 ≈ USD 0.006; Haiku 4.5 0.0210 + 0.0225 ≈ USD 0.044; Sonnet 5 0.042 + 0.045 ≈
+  USD 0.087; **all three ≈ USD 0.14 per round**. The key's USD 3 limit covers about 21 full rounds (about 7 even if
+  real token counts are 3× the estimate, ≈ USD 0.41 per round), so one round plus a rerun is far inside the limit.
 **Steps** (Phase 7 rule 3 applies: never open `.env.local`):
 1. `npm run openrouter:key -- --limit 3`. Exit 2 → stop, return `ENV_FAILURE` ("set the system environment variable
    `OPENROUTER_MANAGMENT_KEY` and restart the shell"). Exit 1 with `… exists but OPENROUTER_API_KEY is not in the env
-   file …` → run `npm run openrouter:key -- --limit 3 --rotate` once.
-2. `npm run eval -- --provider openrouter --model anthropic/claude-haiku-4.5`
-3. `npm run eval -- --provider openrouter --model openai/gpt-4o-mini`
-   (exit 1 = gate failed, the report is still written; exit 2 → `ENV_FAILURE`. If a report shows `error:
-   AI_UNAVAILABLE` for more than half of the cases, it is an outage or credit problem, not the prompt → `ENV_FAILURE`
-   with the report path.)
-4. `npm run openrouter:key -- --limit 3` again (action `reused`) and note the printed `usage`.
-5. `docs/evals/README.md` — create it with the title `# Event-parser evaluation` if it does not exist; add a section
+   file …` → run `npm run openrouter:key -- --limit 3 --rotate` once. If the printed `usage` is above 2.50 (USD), stop
+   and return `ENV_FAILURE` ("the OpenRouter key has less than USD 0.50 left of its USD 3 limit").
+2. `npm run eval -- --provider openrouter --model openai/gpt-4o-mini`
+3. `npm run eval -- --provider openrouter --model anthropic/claude-haiku-4.5`
+4. `npm run eval -- --provider openrouter --model anthropic/claude-sonnet-5`
+   (for steps 2–4: exit 1 = gate failed, the report is still written, continue; exit 2 → `ENV_FAILURE`. If a report
+   shows `error: AI_UNAVAILABLE` for more than half of the cases, it is an outage or credit problem, not the prompt →
+   `ENV_FAILURE` with the report path.)
+5. `npm run openrouter:key -- --limit 3` again (action `reused`) and note the printed `usage`.
+6. `docs/evals/README.md` — create it with the title `# Event-parser evaluation` if it does not exist; add a section
    `## OpenRouter (Phase 7)` with the table
-   `| Provider | Model | Overall | must-not-invent | prompt-injection | Gate | USD per M tokens (in / out) |`, one row per
-   report (values copied from the reports), the line `Key usage after both runs: <usage> USD (limit 3 USD).`, and one
-   paragraph: the production `OPENROUTER_MODEL` is the cheapest model that passes the gate — `openai/gpt-4o-mini` if
-   it passes, otherwise `anthropic/claude-haiku-4.5`. If neither passes, stop and return `SPEC_FAILURE` listing the
-   failing case ids; do not edit the cases or the prompt.
+   `| Provider | Model | Overall | must-not-invent | prompt-injection | Gate | USD per M tokens (in / out) |` and
+   exactly three rows, in this order (cheapest first): `openai/gpt-4o-mini` (`0.15 / 0.60`),
+   `anthropic/claude-haiku-4.5` (`1.00 / 5.00`), `anthropic/claude-sonnet-5` (`2.00 / 10.00`); Provider is
+   `openrouter`; Overall, the two category rates and Gate are copied from the reports; prices are copied from this
+   task. Below the table: the line `Estimated cost of one round (3 models × 30 cases): ≈ USD 0.14.` and the line
+   `Key usage after the three runs: <usage> USD (limit 3 USD).`
+7. In the same section, one paragraph "Production models": the production `OPENROUTER_MODEL` is the cheapest model
+   that passes the gate — `openai/gpt-4o-mini` if it passes, otherwise `anthropic/claude-haiku-4.5` if it passes,
+   otherwise `anthropic/claude-sonnet-5`. Anthropic (former TASK-131): `AI_MODEL` stays `claude-haiku-4-5` if
+   `anthropic/claude-haiku-4.5` passes, otherwise `claude-sonnet-5` if `anthropic/claude-sonnet-5` passes. If none of
+   the three passes, stop and return `SPEC_FAILURE` listing the failing case ids per model; do not edit the cases or
+   the prompt.
 **Test first:** —
-**Done when:** both reports and the README are committed (`docs(eval): …`); no file with a key is staged
+**Done when:** the three reports and the README are committed (`docs(eval): …`); no file with a key is staged
 (`git status` shows no `.env*` file).
 **TDD exception:** docs — generated reports
+**Changelog:**
+- Rev 2 — human decision (Phase 7 approval), not a failure revision: adds `anthropic/claude-sonnet-5` (id and price
+  from the live `/models`), recomputed cost (≈ USD 0.14 per round vs the USD 3 limit), three-row README table,
+  absorbs the former TASK-131 (moved from Phase 4 on 2026-09-24) including the `AI_MODEL` choice.
 
 ### HUMAN-06 — OpenRouter key in Vercel
 **Phase:** 7 · **Owner:** human · **When:** after TASK-217 (steps 1–3), then after the Phase 7 merge (step 4).

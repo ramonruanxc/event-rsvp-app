@@ -1265,7 +1265,7 @@ REQ-94 after REQ-89.
 Terms used below:
 - **Provider list** — the ordered `AiProvider[]` (`{ name, client, model }`) given to `AiEventParser`.
 - **Outage** — a failure the client reports as `ProviderUnavailableError(reason)`; `reason` is one of `network`,
-  `server`, `rate-limit`, `timeout`, `credit`. Only an outage lets the next provider be tried (BR-121).
+  `server`, `rate-limit`, `timeout`, `credit`, `auth`. Only an outage lets the next provider be tried (BR-121).
 - **Budget** — the 10 000 ms of BR-64 (`AI_TIMEOUT_MS`), counted from the start of `AiEventParser.parse` and shared by
   every attempt of that call. A further provider is tried only if at least `MIN_ATTEMPT_MS` = 1 000 ms are left: this
   is what "the retry still fits within the same 10-second budget" (BR-121) means in this system.
@@ -1317,11 +1317,20 @@ Terms used below:
   | Server error | HTTP 500–599 (including 529 "overloaded") | HTTP 500–599; HTTP 200 whose body is not JSON | `server` |
   | Rate limit | HTTP 429 | HTTP 429 | `rate-limit` |
   | Insufficient credit | HTTP 402, or HTTP 400 whose message contains "credit balance" | HTTP 402 | `credit` |
+  | Invalid or unauthorized key | HTTP 401, HTTP 403 | HTTP 401, HTTP 403 | `auth` |
 
   An OpenRouter HTTP 200 body `{ "error": { "code": N, … } }` is classified by `N` with the same table. The parser's
   own `TimeoutError` (`withTimeout`) is also an outage.
-- Any other failure — e.g. HTTP 400 (other than the credit message), 401, 403, 404 — is **not** an outage: no other
-  provider is tried and the result is `AiUnavailableError` (BR-121 lists the outage types; nothing else fails over)
+- Given `AI_PROVIDERS=anthropic,openrouter` and both keys set, when the Anthropic API answers HTTP 401
+  `{ type: 'error', error: { type: 'authentication_error', message: 'invalid x-api-key' } }` (revoked or wrong key),
+  then the Anthropic client rejects `ProviderUnavailableError` with `reason: 'auth'`, OpenRouter is called and its
+  answer fills the form (BR-121, amended 2026-09-24)
+- Given `AI_PROVIDERS=openrouter,anthropic` and both keys set, when OpenRouter answers HTTP 403
+  `{ error: { code: 403, message: 'Key is disabled' } }` (or HTTP 200 with that body), then the OpenRouter client
+  rejects `ProviderUnavailableError` with `reason: 'auth'`, Anthropic is called and its answer fills the form
+- Any other failure — HTTP 400 (other than the credit message), 404, 422, or any other status not in the table — is
+  **not** an outage: no other provider is tried and the result is `AiUnavailableError` (BR-121 lists the outage
+  types; nothing else fails over)
 - Budget: the first provider is called with `timeoutMs: 10_000`. With a fake clock, a first provider that fails with
   an outage at t = 3 000 ms → the second is called with `timeoutMs: 7_000`; at t = 9 000 → called with
   `timeoutMs: 1_000`; at t = 9 001 → not called and the result is `AiUnavailableError`
@@ -1366,7 +1375,8 @@ Terms used below:
 - `OPENROUTER_BASE_URL` (trailing slashes removed) replaces `https://openrouter.ai/api/v1` — E2E uses it for the mock
 - Key and base URL are read on each call, never when the client is created; with no key the call rejects with
   `Error('OPENROUTER_API_KEY is not set')` and no request is sent
-- Failures are classified per REQ-88 and REQ-89; error messages never contain the key (e.g. `OpenRouter HTTP 401`)
+- Failures are classified per REQ-88 and REQ-89; error messages never contain the key (e.g. `OpenRouter HTTP 404`,
+  `AI provider unavailable: auth`)
 **Test level:** unit (fake `fetch`) + e2e (mock server)
 
 ### REQ-95 — The result is the same whichever provider answered
@@ -1517,7 +1527,9 @@ These requirements are code in the repository and are TDD'd like product code. T
   (e.g. `openrouter:openai/gpt-4o-mini`)
 - Report file: `<date>-<model>.md` for Anthropic (unchanged) and `<date>-openrouter-<model>.md` for OpenRouter, where
   every character of the model outside `[A-Za-z0-9._-]` becomes `-`: `2026-09-24-openrouter-anthropic-claude-haiku-4.5.md`
-- The production OpenRouter model is the cheapest model that passes the gate (same rule as REQ-91 / TASK-131)
+- The production OpenRouter model is the cheapest model that passes the gate (same rule as REQ-91). The Phase 7
+  evaluation (TASK-217, which absorbs the former TASK-131) runs the 30 cases on `openai/gpt-4o-mini`,
+  `anthropic/claude-haiku-4.5` and `anthropic/claude-sonnet-5` through OpenRouter
 **Test level:** unit
 
 ---
