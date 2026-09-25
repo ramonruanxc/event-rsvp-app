@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { describe, expect, test, vi } from 'vitest';
 import { renderWithIntl } from '@/test/render';
 import { detectBrowserTimeZone } from '@/lib/browser-timezone';
@@ -55,6 +55,48 @@ describe('EventForm', () => {
 
     const alert = await screen.findByRole('alert');
     expect(alert.textContent).toBe('Something went wrong. Please try again.');
+  });
+});
+
+describe('EventForm groups, announced errors and saving state (REQ-83, REQ-69)', () => {
+  test('REQ-83: fields are grouped under What, When and Where', () => {
+    renderWithIntl(<EventForm submit={vi.fn()} />);
+
+    expect(
+      within(screen.getByRole('group', { name: 'When' })).getByLabelText('Date'),
+    ).toBeTruthy();
+    expect(
+      within(screen.getByRole('group', { name: 'What' })).getByLabelText('Name'),
+    ).toBeTruthy();
+    expect(
+      within(screen.getByRole('group', { name: 'Where' })).getByLabelText('Location (optional)'),
+    ).toBeTruthy();
+  });
+
+  test('REQ-69: a required-field error is announced', async () => {
+    renderWithIntl(<EventForm submit={vi.fn()} />);
+    fireEvent.change(screen.getByLabelText('Description'), { target: { value: 'Pasta night' } });
+    fireEvent.change(screen.getByLabelText('Date'), { target: { value: '2099-01-01' } });
+    fireEvent.change(screen.getByLabelText('Time'), { target: { value: '10:00' } });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Save event' }));
+
+    expect((await screen.findByRole('alert')).textContent).toBe('This field is required.');
+    expect(screen.getByLabelText('Name').getAttribute('aria-describedby')).toBe('name-error');
+  });
+
+  test('REQ-83: while saving, Save event keeps its label and is busy', async () => {
+    const submit = vi.fn(() => new Promise<never>(() => {}));
+    renderWithIntl(<EventForm submit={submit} />);
+    fillValidFields();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Save event' }));
+
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Save event' }).getAttribute('aria-busy')).toBe(
+        'true',
+      ),
+    );
   });
 });
 
