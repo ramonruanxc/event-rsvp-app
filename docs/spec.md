@@ -29,8 +29,13 @@ Decided by the human on 2026-09-24 and recorded in `docs/business-rules.md`.
   3. The header language select is exempt from the visible-label rule (globe + current language name, globe only
      below 480 px, accessible name via `aria-label`) → BR-105 (amended). Applied in REQ-68, REQ-80 (TASK-165).
 - **Resolved — A3** (Phase 7 open questions, decided 2026-09-24) →
-  1. Default provider order `anthropic,openrouter` confirmed → BR-119 unchanged. Applied in REQ-86.
+  1. ~~Default provider order `anthropic,openrouter` confirmed → BR-119 unchanged.~~ Superseded on 2026-09-25, see
+     "Resolved — OpenRouter default" below.
   2. No retry on another provider after invalid model output confirmed → BR-122 unchanged. Applied in REQ-89.
+- **Resolved — OpenRouter default** (human decision, 2026-09-25) → `AI_PROVIDERS` defaults to `openrouter` only;
+  Anthropic is optional and used only when an operator lists it explicitly (either order) with its key configured;
+  failover has an effect only when more than one provider is configured → BR-119 and BR-121 (amended 2026-09-25).
+  Applied in REQ-86, REQ-87, REQ-88.
 
 ---
 
@@ -1257,7 +1262,8 @@ its last assertion; no other change.
 
 ### AI providers (amendment A3)
 
-OpenRouter is a second AI provider next to Anthropic. Both use the same prompt (`SYSTEM_PROMPT`, `buildUserMessage`),
+OpenRouter is the default AI provider; Anthropic is optional (used only when `AI_PROVIDERS` lists it and its key is
+set). Both use the same prompt (`SYSTEM_PROMPT`, `buildUserMessage`),
 the same output schema (`aiRawOutputSchema`) and the same normalization (`normalizeAiOutput`); only the transport
 differs. Numbering: REQ-90 … REQ-93 are tooling requirements (their own range), so product numbering continues at
 REQ-94 after REQ-89.
@@ -1274,14 +1280,20 @@ Terms used below:
 **Rules:** BR-119
 **Status:** todo
 **Acceptance criteria:**
-- `parseAiProviders(undefined)`, `parseAiProviders('')` and `parseAiProviders('   ')` → `['anthropic', 'openrouter']`
-  (default order confirmed by the human, "Resolved — A3")
-- `parseAiProviders('openrouter,anthropic')` → `['openrouter', 'anthropic']`;
+- Default = OpenRouter only (BR-119 amended 2026-09-25): `parseAiProviders(undefined)`, `parseAiProviders('')` and
+  `parseAiProviders('   ')` → `['openrouter']` (never `['anthropic', 'openrouter']`, the superseded default)
+- Given `AI_PROVIDERS` unset and **both** keys set (`ANTHROPIC_API_KEY=a`, `OPENROUTER_API_KEY=o`), when the provider
+  list is built, then it is only `[{ name: 'openrouter', model: 'anthropic/claude-haiku-4.5' }]` and the Anthropic
+  factory is never called: a configured Anthropic key alone does not enable Anthropic
+- Anthropic is enabled only by listing it, in either order: `parseAiProviders('openrouter,anthropic')` →
+  `['openrouter', 'anthropic']`; `parseAiProviders('anthropic,openrouter')` → `['anthropic', 'openrouter']`;
   `parseAiProviders(' OpenRouter , anthropic ,')` → `['openrouter', 'anthropic']` (trimmed, lower-cased, empty items
-  dropped); `parseAiProviders('anthropic,anthropic')` → `['anthropic']` (first occurrence kept);
-  `parseAiProviders('anthropic,mistral')` → `['anthropic']` (unknown names ignored); `parseAiProviders('mistral')` → `[]`
+  dropped); `parseAiProviders('openrouter')` → `['openrouter']`; `parseAiProviders('anthropic,anthropic')` →
+  `['anthropic']` (first occurrence kept); `parseAiProviders('anthropic,mistral')` → `['anthropic']` (unknown names
+  ignored); `parseAiProviders('mistral')` → `[]`
 - Given both keys set and `AI_PROVIDERS=openrouter,anthropic`, `buildAiProviders` returns
-  `[{ name: 'openrouter', … }, { name: 'anthropic', … }]`
+  `[{ name: 'openrouter', … }, { name: 'anthropic', … }]`; with `AI_PROVIDERS=anthropic,openrouter` it returns
+  `[{ name: 'anthropic', … }, { name: 'openrouter', … }]`
 - `AiEventParser` calls the providers in list order and returns the first usable answer; the providers after the one
   that answered are not called
 **Test level:** unit
@@ -1292,12 +1304,15 @@ Terms used below:
 **Acceptance criteria:**
 - Keys: `ANTHROPIC_API_KEY` (Anthropic), `OPENROUTER_API_KEY` (OpenRouter). A key that is missing or only whitespace
   counts as "no key"
-- `buildAiProviders({ OPENROUTER_API_KEY: 'o' }, factories)` → only `{ name: 'openrouter', model:
-  'anthropic/claude-haiku-4.5' }`; the Anthropic factory is never called (the provider is not attempted)
-- `buildAiProviders({}, factories)` → `[]`; `AiEventParser` with `[]` rejects with `AiUnavailableError` without any
-  model call, so the organizer sees "Couldn't fill automatically — please fill the form." (BR-65, BR-66)
-- Models: Anthropic uses `AI_MODEL` (default `claude-haiku-4-5`), OpenRouter uses `OPENROUTER_MODEL` (default
-  `anthropic/claude-haiku-4.5`); a blank value means the default
+- Given `AI_PROVIDERS=anthropic,openrouter` (Anthropic listed) and `OPENROUTER_API_KEY=o` with `ANTHROPIC_API_KEY`
+  missing or `'   '`, when the provider list is built, then it is only `{ name: 'openrouter', model:
+  'anthropic/claude-haiku-4.5' }`; the Anthropic factory is never called (the listed provider is skipped, not
+  attempted)
+- `buildAiProviders({}, factories)` (default list, no key) → `[]`; `AiEventParser` with `[]` rejects with
+  `AiUnavailableError` without any model call, so the organizer sees "Couldn't fill automatically — please fill the
+  form." (BR-65, BR-66)
+- Models: OpenRouter uses `OPENROUTER_MODEL` (default `anthropic/claude-haiku-4.5`); Anthropic, when listed, uses
+  `AI_MODEL` (default `claude-haiku-4-5`); a blank value means the default
 - Building the provider list creates no SDK or HTTP client and reads no key value beyond the presence check: the
   Anthropic SDK is created on the first call (REQ-47, TASK-119) and the OpenRouter client reads its key on each call
   (REQ-94)
@@ -1321,6 +1336,9 @@ Terms used below:
 
   An OpenRouter HTTP 200 body `{ "error": { "code": N, … } }` is classified by `N` with the same table. The parser's
   own `TimeoutError` (`withTimeout`) is also an outage.
+- Failover needs more than one configured provider (BR-121 amended 2026-09-25). Given `AI_PROVIDERS` unset (default
+  `openrouter` only) and both keys set, when OpenRouter fails with an outage (`ProviderUnavailableError('server')`),
+  then the result is `AiUnavailableError` and Anthropic is never called
 - Given `AI_PROVIDERS=anthropic,openrouter` and both keys set, when the Anthropic API answers HTTP 401
   `{ type: 'error', error: { type: 'authentication_error', message: 'invalid x-api-key' } }` (revoked or wrong key),
   then the Anthropic client rejects `ProviderUnavailableError` with `reason: 'auth'`, OpenRouter is called and its
@@ -1337,7 +1355,8 @@ Terms used below:
 - A first provider that never answers uses the whole budget: `AiUnavailableError` at 10 000 ms and the second
   provider is not called
 - Every provider failing with an outage → `AiUnavailableError` → "Couldn't fill automatically — please fill the form."
-- E2E (mocks): the text `[[anthropic-down]] Team dinner next Friday 7pm at Mario's` → the Anthropic mock answers 529,
+- E2E (mocks; `.env.test` sets `AI_PROVIDERS=anthropic,openrouter` explicitly, because the default has a single
+  provider and could not fail over): the text `[[anthropic-down]] Team dinner next Friday 7pm at Mario's` → the Anthropic mock answers 529,
   the OpenRouter mock answers, and the form shows Name "Team dinner", Location "Mario's", Date "2030-10-04", Time
   "19:00"; `[[mock-error]] party` → both fail and the fallback message is shown (REQ-51, unchanged)
 **Test level:** unit + e2e
