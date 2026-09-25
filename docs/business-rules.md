@@ -26,7 +26,7 @@
 | **Public demo event** | A seeded event linked from the signed-out home page so evaluators can see the app without signing in. |
 | **Missing field (AI)** | A form field the AI event-parsing feature could not determine from the organizer's free text; returned as missing rather than guessed. |
 | **Fill with AI** | The action that sends organizer free text to the AI parser and populates the event form; it never saves the event itself. |
-| **AI provider** | A configured backend (Anthropic or OpenRouter) able to serve a "Fill with AI" request. `AI_PROVIDERS` orders the providers tried for one request. |
+| **AI provider** | A configured backend (OpenRouter, or optionally also Anthropic) able to serve a "Fill with AI" request. `AI_PROVIDERS` orders the providers tried for one request; by default it lists OpenRouter only. |
 | **Theme** | The application's dark or light visual mode; user-selectable from the header and persisted across visits. |
 | **Reduced motion** | An operating-system-level user preference (`prefers-reduced-motion`) indicating that animated transitions should be minimized. |
 | **Target size** | The clickable or tappable area of an interactive control, measured in pixels. |
@@ -442,8 +442,11 @@ form continues to work as normal.
 
 #### BR-119 — AI providers are tried in a configured order
 **Rule:** The AI fill action attempts providers in the order given by the `AI_PROVIDERS` configuration (default:
-Anthropic, then OpenRouter), for one "Fill with AI" request.
+`openrouter` only) for one "Fill with AI" request. Anthropic is optional: an operator enables it by listing it
+explicitly in `AI_PROVIDERS`, in either order (e.g. `openrouter,anthropic` or `anthropic,openrouter`), with its
+API key configured.
 **Source:** design brief §6 amendment A3
+**Amended:** 2026-09-25 — human decision (OpenRouter default, Anthropic optional)
 
 #### BR-120 — A provider without a configured key is skipped
 **Rule:** A provider listed in `AI_PROVIDERS` with no API key configured is skipped without being attempted, and
@@ -458,9 +461,13 @@ within the same 10-second request budget (BR-64). Other 4xx responses — HTTP 4
 case), 404, and 422 — do not trigger failover.
 **Rationale:** These failure types indicate the provider itself is unavailable rather than a problem with the
 request, so another provider can reasonably serve the same request. A misconfigured or revoked key makes that
-provider unusable for every request, which is exactly the situation failover exists for.
+provider unusable for every request, which is exactly the situation failover exists for. This rule has an effect
+only when `AI_PROVIDERS` (BR-119) lists more than one provider; with the default single-provider configuration
+there is no second provider to fail over to.
 **Source:** design brief §6 amendment A3
 **Amended:** 2026-09-24 — human decision (Phase 7 approval)
+**Amended:** 2026-09-25 — human decision (OpenRouter default, Anthropic optional): noted that failover requires
+more than one configured provider, since the default configuration now has only one.
 
 #### BR-122 — Invalid model output is not retried on another provider
 **Rule:** When a provider's output fails schema validation (BR-70), the AI fill action does not retry the request
@@ -738,6 +745,10 @@ BR above.
 1. Default provider order `anthropic,openrouter` → BR-119 confirmed as written (no change).
 2. No cross-provider retry after invalid model output → BR-122 confirmed as written (no change).
 
+   **Revised 2026-09-25** — human decision (Ramon): the default provider order above is superseded. `AI_PROVIDERS`
+   defaults to `openrouter` only; Anthropic is optional and used only when an operator lists it explicitly. See
+   BR-119 (amended) and BR-121 (amended).
+
 **Resolved — Phase 7 approval** — decided by the human (Ramon) on 2026-09-24, while approving the Phase 7 spec:
 
 1. Failover on authentication errors → BR-121 (amended): HTTP 401 and 403 are added to the outage-type failures
@@ -746,6 +757,11 @@ BR above.
 2. Evaluation scope (process decision, not a product rule — no BR): the Phase 7 evaluation also covers Claude
    Sonnet via OpenRouter, in addition to `anthropic/claude-haiku-4.5` and `openai/gpt-4o-mini`, restoring the
    original Haiku-vs-Sonnet comparison from the design brief.
+
+**Revised 2026-09-25** — human decision (Ramon): OpenRouter is now the default provider and Anthropic is optional.
+The default `AI_PROVIDERS` is `openrouter` only; Anthropic is used only when an operator lists it explicitly (with
+its key configured). This supersedes the `anthropic,openrouter` default order confirmed above. See BR-119
+(amended) and BR-121 (amended).
 
 **Resolved** — decided by the human (Ramon) on 2026-09-24:
 
