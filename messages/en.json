@@ -41,7 +41,7 @@
     "noReplies": "No replies yet"
   },
   "totals": {
-    "summary": "Going: {going} · Declined: {declined} · People: {people}",
+    "summary": "{going} going · {declined} declined · {people, plural, one {# person} other {# people}}",
     "peopleGoing": "{count, plural, one {# person going} other {# people going}}"
   },
   "eventForm": {

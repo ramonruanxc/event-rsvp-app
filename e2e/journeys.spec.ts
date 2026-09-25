@@ -54,6 +54,6 @@ test.describe('REQ-34: organizer creates an event with AI and sees the guest lis
     const mariaRow = page.getByRole('row', { name: /Maria/ });
     await expect(mariaRow).toContainText('Going');
     await expect(mariaRow).toContainText('3');
-    await expect(page.getByText('Going: 1 · Declined: 0 · People: 3')).toBeVisible();
+    await expect(page.getByText('1 going · 0 declined · 3 people')).toBeVisible();
   });
 });

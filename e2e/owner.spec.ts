@@ -19,7 +19,7 @@ test.describe('REQ-34: the owner guest list', () => {
 
     await page.goto(`/en/e/${event.slug}`);
 
-    await expect(page.getByText('Going: 1 · Declined: 1 · People: 3')).toBeVisible();
+    await expect(page.getByText('1 going · 1 declined · 3 people')).toBeVisible();
     await expect(page.getByRole('columnheader', { name: 'Name' })).toBeVisible();
     await expect(page.getByRole('columnheader', { name: 'Response' })).toBeVisible();
     await expect(page.getByRole('columnheader', { name: 'People' })).toBeVisible();
@@ -63,7 +63,7 @@ test.describe('REQ-30: the owner removes an RSVP', () => {
     await page.getByRole('row', { name: /Maria/ }).getByRole('button', { name: 'Remove' }).click();
 
     await expect(page.getByText('Maria')).toHaveCount(0);
-    await expect(page.getByText('Going: 0 · Declined: 1 · People: 0')).toBeVisible();
+    await expect(page.getByText('0 going · 1 declined · 0 people')).toBeVisible();
   });
 });
 

@@ -41,7 +41,7 @@
     "noReplies": "Pas encore de réponses"
   },
   "totals": {
-    "summary": "Y vont : {going} · Déclinés : {declined} · Personnes : {people}",
+    "summary": "{going, plural, one {# vient} other {# viennent}} · {declined, plural, one {# décliné} other {# déclinés}} · {people, plural, one {# personne} other {# personnes}}",
     "peopleGoing": "{count, plural, one {# personne y va} other {# personnes y vont}}"
   },
   "eventForm": {

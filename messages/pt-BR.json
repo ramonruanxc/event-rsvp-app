@@ -41,7 +41,7 @@
     "noReplies": "Nenhuma resposta ainda"
   },
   "totals": {
-    "summary": "Confirmados: {going} · Recusados: {declined} · Pessoas: {people}",
+    "summary": "{going, plural, one {# confirmado} other {# confirmados}} · {declined, plural, one {# recusado} other {# recusados}} · {people, plural, one {# pessoa} other {# pessoas}}",
     "peopleGoing": "{count, plural, one {# pessoa confirmada} other {# pessoas confirmadas}}"
   },
   "eventForm": {
