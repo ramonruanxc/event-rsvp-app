@@ -154,14 +154,14 @@ Pipeline agents working autonomously. Reported separately from human active time
 | 2026-09-24 18:21:36 | PR #5 merged (human approved) — phase 1 in production; phase 2 (RSVP flow) starts |
 | 2026-09-24 18:29:43 | HUMAN-02 done: Google OAuth client; app kept in Testing with test users |
 | 2026-09-24 18:39:43 | SPEC failure #13 (TASK-78 green-first) routed to spec-writer; batch resumed 18:43 |
-| 2026-09-24 18:47:00 | HUMAN-01 done: stable production domain https://event-rsvp-app-flax.vercel.app; smoke test passed |
+| 2026-09-24 18:47:00 | HUMAN-01 done by the human (stable production domain https://event-rsvp-app-flax.vercel.app); smoke test of the live site run by the orchestrator |
 | 2026-09-24 18:47:59 | Human verified Google sign-in end-to-end in production |
 | 2026-09-24 19:18:52 | Phase 2 complete: 20/20 tasks (one SPEC failure, resolved) |
 | 2026-09-24 19:24:11 | Phase 3 started in a separate worktree (isolated test DB and port) while PR #6 was reviewed |
 | 2026-09-24 19:31:33 | PR #6 merged (pre-authorized by human) — phase 2 in production |
 | 2026-09-24 19:58:27 | Phase 3 complete: 11/11 tasks, first attempt each |
 | 2026-09-24 20:02:10 | Phase 4 (AI fill) started on the main working tree after a preventive plan review |
-| 2026-09-24 21:22:55 | PR #7 merged (human approved) — phase 3 in production; demo event, .ics and invite link verified live |
+| 2026-09-24 21:22:55 | PR #7 merged (human approved) — phase 3 in production; demo event, .ics and invite link verified live by the orchestrator |
 | 2026-09-24 21:28:38 | Human back: provisioning the Anthropic key (HUMAN-05); phase 5 starts in a worktree; phase 6 (UI/UX) requested |
 | 2026-09-24 21:28:00 | Phase 6 (UI/UX) requested; PRODUCT.md + DESIGN.md written; mockup built; contrast issues fixed in DESIGN.md |
 | 2026-09-24 21:50:00 | Human approved the visual direction; amendment A2; analyst BR-97–BR-118 |

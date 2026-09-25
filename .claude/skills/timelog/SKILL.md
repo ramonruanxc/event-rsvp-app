@@ -31,3 +31,8 @@ Agents may run while the human is paused; agent time is reported separately from
 
 Per phase: wall-clock (End − Start), pause count, paused time, **active time** (wall-clock − paused).
 Total active time = sum of active time for phases 1–6. Phase 0 is untimed.
+
+## Actor
+
+Every Events row states who performed the action (human, orchestrator, or the named agent). Claims such as "verified
+by hand" in the README may only cite events whose actor is the human. (Added after incident #20.)
