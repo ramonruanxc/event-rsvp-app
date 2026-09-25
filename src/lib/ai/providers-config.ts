@@ -1,4 +1,4 @@
-import type { AiProviderName } from './types';
+import { AI_PROVIDER_NAMES, type AiProviderName } from './types';
 
 /** Environment variables as read by the provider configuration. */
 export type ProviderEnv = Readonly<Record<string, string | undefined>>;
@@ -21,6 +21,12 @@ export const DEFAULT_MODELS: Record<AiProviderName, string> = {
 };
 
 /** Reads the ordered provider list from AI_PROVIDERS: trimmed, lower-cased, known names only, first occurrence kept. */
-export function parseAiProviders(_value: string | undefined): AiProviderName[] {
-  throw new Error('not implemented');
+export function parseAiProviders(value: string | undefined): AiProviderName[] {
+  if (value === undefined || value.trim() === '') return [...DEFAULT_AI_PROVIDERS];
+  const names: AiProviderName[] = [];
+  for (const item of value.split(',')) {
+    const name = item.trim().toLowerCase() as AiProviderName;
+    if ((AI_PROVIDER_NAMES as readonly string[]).includes(name) && !names.includes(name)) names.push(name);
+  }
+  return names;
 }
