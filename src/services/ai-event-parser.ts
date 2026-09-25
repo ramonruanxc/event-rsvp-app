@@ -2,7 +2,7 @@ import { AiUnavailableError } from '@/domain/errors';
 import { ProviderUnavailableError } from '@/lib/ai/errors';
 import { normalizeAiOutput } from '@/lib/ai/output';
 import { buildUserMessage, SYSTEM_PROMPT } from '@/lib/ai/prompt';
-import { AI_TIMEOUT_MS } from '@/lib/ai/types';
+import { AI_TIMEOUT_MS, MIN_ATTEMPT_MS } from '@/lib/ai/types';
 import type { AiProvider, EventTextParser, ParseEventResult } from '@/lib/ai/types';
 import { TimeoutError, withTimeout } from '@/lib/with-timeout';
 
@@ -18,13 +18,22 @@ export class AiEventParser implements EventTextParser {
   }): Promise<ParseEventResult> {
     const { text, formTimezone, now } = request;
     const user = buildUserMessage({ text, now, timezone: formTimezone });
+    const clock = this.deps.clock ?? (() => Date.now());
+    const deadline = clock() + AI_TIMEOUT_MS;
 
     for (const provider of this.deps.providers) {
+      const remaining = deadline - clock();
+      if (remaining < MIN_ATTEMPT_MS) break; // the retry would not fit in the budget (BR-121)
       let raw: unknown;
       try {
         raw = await withTimeout(
-          provider.client.complete({ system: SYSTEM_PROMPT, user, model: provider.model }),
-          AI_TIMEOUT_MS,
+          provider.client.complete({
+            system: SYSTEM_PROMPT,
+            user,
+            model: provider.model,
+            timeoutMs: remaining,
+          }),
+          remaining,
         );
       } catch (error) {
         if (error instanceof ProviderUnavailableError || error instanceof TimeoutError) continue; // outage (BR-121)
