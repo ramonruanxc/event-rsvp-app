@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { InvalidModelOutputError } from './errors';
+import { InvalidModelOutputError, ProviderUnavailableError } from './errors';
 import { AI_OUTPUT_JSON_SCHEMA } from './output';
 import { createOpenRouterModelClient } from './openrouter-model-client';
 
@@ -33,6 +33,18 @@ const client = (
 const REQ = { system: 'sys', user: 'user', model: 'openai/gpt-4o-mini' };
 const callOf = (fetchMock: { mock: { calls: unknown[][] } }, i = 0) =>
   fetchMock.mock.calls[i] as unknown as [string, RequestInit];
+const failureOf = (
+  fetchMock: unknown,
+  request: { system: string; user: string; model: string; timeoutMs?: number } = REQ,
+) =>
+  client(fetchMock)
+    .complete(request)
+    .then(
+      () => {
+        throw new Error('expected a rejection');
+      },
+      (error: unknown) => error,
+    );
 
 describe('createOpenRouterModelClient', () => {
   it('REQ-94: posts a strict JSON-schema chat completion to OpenRouter', async () => {
@@ -105,5 +117,66 @@ describe('createOpenRouterModelClient', () => {
     await expect(client(fakeFetch(() => reply(200, completion(bare)))).complete(REQ)).resolves.toEqual(
       RAW,
     );
+  });
+
+  it('REQ-88: OpenRouter outages become ProviderUnavailableError with a reason', async () => {
+    const cases: [() => ReturnType<typeof fakeFetch>, string][] = [
+      [() => fakeFetch(() => reply(401, { error: { code: 401, message: 'x' } })), 'auth'],
+      [() => fakeFetch(() => reply(403, { error: { code: 403, message: 'x' } })), 'auth'],
+      [() => fakeFetch(() => reply(402, { error: { code: 402, message: 'x' } })), 'credit'],
+      [() => fakeFetch(() => reply(408, { error: { code: 408, message: 'x' } })), 'timeout'],
+      [() => fakeFetch(() => reply(429, { error: { code: 429, message: 'x' } })), 'rate-limit'],
+      [() => fakeFetch(() => reply(500, { error: { code: 500, message: 'x' } })), 'server'],
+      [() => fakeFetch(() => reply(502, { error: { code: 502, message: 'x' } })), 'server'],
+      [() => fakeFetch(() => reply(503, { error: { code: 503, message: 'x' } })), 'server'],
+      [() => fakeFetch(() => reply(200, { error: { code: 502, message: 'upstream failed' } })), 'server'],
+      [() => fakeFetch(() => reply(200, { error: { code: 429, message: 'Rate limit exceeded' } })), 'rate-limit'],
+      [() => fakeFetch(() => reply(200, { error: { code: 403, message: 'Key is disabled' } })), 'auth'],
+      [() => fakeFetch(() => reply(200, 'oops')), 'server'],
+      [() => vi.fn().mockRejectedValue(new TypeError('fetch failed')), 'network'],
+    ];
+    for (const [makeFetchMock, reason] of cases) {
+      const error = await failureOf(makeFetchMock());
+      expect(error).toBeInstanceOf(ProviderUnavailableError);
+      expect((error as ProviderUnavailableError).reason).toBe(reason);
+      expect((error as Error).message).not.toContain('test-key');
+    }
+  });
+
+  it('REQ-88: a request longer than timeoutMs is aborted as a timeout', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    const hanging = vi.fn(
+      (_url: string, init: RequestInit) =>
+        new Promise<Response>((_resolve, reject) => {
+          init.signal?.addEventListener('abort', () =>
+            reject(new DOMException('The operation was aborted.', 'AbortError')),
+          );
+        }),
+    );
+    const pending = failureOf(hanging, { ...REQ, timeoutMs: 2_000 });
+    await vi.advanceTimersByTimeAsync(2_000);
+    const error = await pending;
+    vi.useRealTimers();
+    expect(error).toBeInstanceOf(ProviderUnavailableError);
+    expect((error as ProviderUnavailableError).reason).toBe('timeout');
+  });
+
+  it('REQ-89: other HTTP errors are neither outages nor invalid output, and never show the key', async () => {
+    for (const status of [400, 404, 422]) {
+      const error = await failureOf(
+        fakeFetch(() => reply(status, { error: { code: status, message: 'nope' } })),
+      );
+      expect(error).toBeInstanceOf(Error);
+      expect(error).not.toBeInstanceOf(ProviderUnavailableError);
+      expect(error).not.toBeInstanceOf(InvalidModelOutputError);
+      expect((error as Error).message).toBe(`OpenRouter HTTP ${status}`);
+      expect((error as Error).message).not.toContain('test-key');
+    }
+
+    const error200 = await failureOf(
+      fakeFetch(() => reply(200, { error: { code: 400, message: 'bad' } })),
+    );
+    expect((error200 as Error).message).toBe('OpenRouter error 400');
+    expect((error200 as Error).message).not.toContain('test-key');
   });
 });
