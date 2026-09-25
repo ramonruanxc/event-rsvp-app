@@ -4,7 +4,6 @@ import { Link } from '@/i18n/navigation';
 import { signInRedirectPath } from '@/lib/auth-redirect';
 import { getCurrentUserId } from '@/lib/session';
 import { buttonClass } from '@/components/ui/button';
-import { GoogleMark } from '@/components/google-mark';
 import { InvitePreview } from '@/components/invite-preview';
 
 /** The app's signed-out landing page and signed-in shortcut to the dashboard (REQ-39, REQ-81, BR-52). */
@@ -30,7 +29,6 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
                   className={buttonClass('primary', 'lg')}
                   href={signInRedirectPath(`/${locale}/dashboard`)}
                 >
-                  <GoogleMark />
                   {t('nav.signIn')}
                 </a>
               )}

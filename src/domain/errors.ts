@@ -10,7 +10,10 @@ export type ErrorCode =
   | 'AI_LIMIT_REACHED'
   | 'AI_UNAVAILABLE'
   | 'UNAUTHENTICATED'
-  | 'INTERNAL_ERROR';
+  | 'INTERNAL_ERROR'
+  | 'INVALID_CREDENTIALS'
+  | 'EMAIL_TAKEN'
+  | 'GOOGLE_ACCOUNT_EXISTS';
 
 export const VALIDATION_KEYS = [
   'required',
@@ -20,6 +23,10 @@ export const VALIDATION_KEYS = [
   'inPast',
   'partySizeRange',
   'invalidStatus',
+  'invalidEmail',
+  'passwordLength',
+  'passwordMismatch',
+  'currentPasswordIncorrect',
 ] as const;
 export type ValidationKey = (typeof VALIDATION_KEYS)[number];
 export type FieldErrors = Record<string, ValidationKey>;
@@ -102,5 +109,26 @@ export class UnauthenticatedError extends DomainError {
   readonly code = 'UNAUTHENTICATED' as const;
   constructor() {
     super('UNAUTHENTICATED');
+  }
+}
+/** Unknown email, wrong password or an account without a password; never says which (BR-155). */
+export class InvalidCredentialsError extends DomainError {
+  readonly code = 'INVALID_CREDENTIALS' as const;
+  constructor() {
+    super('INVALID_CREDENTIALS');
+  }
+}
+/** The registration email already belongs to an account that has a password (REQ-117). */
+export class EmailTakenError extends DomainError {
+  readonly code = 'EMAIL_TAKEN' as const;
+  constructor() {
+    super('EMAIL_TAKEN');
+  }
+}
+/** The registration email belongs to an account without a password, i.e. Google-only (BR-157, BR-158). */
+export class GoogleAccountExistsError extends DomainError {
+  readonly code = 'GOOGLE_ACCOUNT_EXISTS' as const;
+  constructor() {
+    super('GOOGLE_ACCOUNT_EXISTS');
   }
 }

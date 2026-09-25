@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { createMemoryRepositories } from '@/repositories/memory';
-import { AI_RULE, RateLimiter, RSVP_RULE, windowStart } from './rate-limiter';
+import {
+  AI_RULE,
+  RateLimiter,
+  RSVP_RULE,
+  SIGNIN_EMAIL_RULE,
+  SIGNIN_IP_RULE,
+  windowStart,
+} from './rate-limiter';
 
 describe('windowStart', () => {
   it('REQ-55: windowStart aligns to the window size', () => {
@@ -50,5 +57,30 @@ describe('RateLimiter', () => {
 
     expect(rsvpU1).toEqual({ allowed: true, count: 1 });
     expect(aiU2).toEqual({ allowed: true, count: 1 });
+  });
+});
+
+describe('sign-in rules (REQ-119)', () => {
+  it('REQ-119: the sign-in rules are 5 per email and 20 per IP per 15 minutes', () => {
+    expect(SIGNIN_EMAIL_RULE).toEqual({ name: 'signin-email', limit: 5, windowMs: 900_000 });
+    expect(SIGNIN_IP_RULE).toEqual({ name: 'signin-ip', limit: 20, windowMs: 900_000 });
+  });
+
+  it('REQ-119: isBlocked reports the limit without counting, per window', async () => {
+    const { rateLimits, store } = createMemoryRepositories();
+    let current = new Date('2026-09-25T12:00:00.000Z');
+    const limiter = new RateLimiter({ repo: rateLimits, now: () => current });
+
+    expect(await limiter.isBlocked(SIGNIN_EMAIL_RULE, 'e1')).toBe(false);
+    expect(store.rateLimits.size).toBe(0);
+    for (let i = 0; i < 4; i++) await limiter.consume(SIGNIN_EMAIL_RULE, 'e1');
+    expect(await limiter.isBlocked(SIGNIN_EMAIL_RULE, 'e1')).toBe(false);
+    await limiter.consume(SIGNIN_EMAIL_RULE, 'e1');
+    expect(await limiter.isBlocked(SIGNIN_EMAIL_RULE, 'e1')).toBe(true);
+    expect(await limiter.isBlocked(SIGNIN_EMAIL_RULE, 'e2')).toBe(false);
+    expect(store.rateLimits.get('signin-email:e1|2026-09-25T12:00:00.000Z')).toBe(5);
+
+    current = new Date('2026-09-25T12:15:00.000Z');
+    expect(await limiter.isBlocked(SIGNIN_EMAIL_RULE, 'e1')).toBe(false);
   });
 });

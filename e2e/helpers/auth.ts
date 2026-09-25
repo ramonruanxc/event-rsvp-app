@@ -1,31 +1,39 @@
 import type { BrowserContext } from '@playwright/test';
-import { randomUUID } from 'node:crypto';
+import { encode } from 'next-auth/jwt';
 import { db } from './db';
 
+/** Name of the Auth.js session cookie over plain http; Auth.js also uses it as the JWT salt. */
+export const SESSION_COOKIE = 'authjs.session-token';
+
 /**
- * Signs a user in by inserting an Auth.js database session and setting its cookie.
- *
- * E2E tests never go through Google: this upserts a `User` row, creates a matching
- * `Session` row, and adds the `authjs.session-token` cookie to the browser context so
- * the app resolves it exactly as it would a real Google sign-in (database sessions).
+ * Signs a user in without Google (REQ-124): upserts the `User` row and sets an Auth.js JWT session cookie encrypted
+ * with the app's AUTH_SECRET (from .env.test through `npm run test:e2e`). The token has no `pwdAt`, like a Google
+ * session.
  */
 export async function signInAs(
   context: BrowserContext,
   user: { email: string; name: string },
 ): Promise<{ id: string }> {
+  const secret = process.env.AUTH_SECRET;
+  if (!secret)
+    throw new Error('AUTH_SECRET is not set: run E2E with npm run test:e2e (it loads .env.test)');
   const u = await db.user.upsert({ where: { email: user.email }, update: {}, create: user });
-  const sessionToken = randomUUID();
-  const expires = new Date(Date.now() + 24 * 60 * 60 * 1000);
-  await db.session.create({ data: { sessionToken, userId: u.id, expires } });
+  const maxAge = 24 * 60 * 60;
+  const value = await encode({
+    token: { sub: u.id, name: user.name, email: user.email },
+    secret,
+    salt: SESSION_COOKIE,
+    maxAge,
+  });
   await context.addCookies([
     {
-      name: 'authjs.session-token',
-      value: sessionToken,
+      name: SESSION_COOKIE,
+      value,
       domain: 'localhost',
       path: '/',
       httpOnly: true,
       sameSite: 'Lax',
-      expires: Math.floor(expires.getTime() / 1000),
+      expires: Math.floor(Date.now() / 1000) + maxAge,
     },
   ]);
   return { id: u.id };

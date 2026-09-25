@@ -37,8 +37,7 @@ export async function SiteHeader({ locale, theme }: { locale: string; theme: The
               className={buttonClass('secondary', 'sm')}
               href={signInRedirectPath(`/${locale}/dashboard`)}
             >
-              <span className="phone-only">{t('nav.signInShort')}</span>
-              <span className="wide-only">{t('nav.signIn')}</span>
+              {t('nav.signIn')}
             </a>
           )}
         </div>

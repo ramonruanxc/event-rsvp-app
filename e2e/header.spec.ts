@@ -11,9 +11,9 @@ test.describe('REQ-80: header language, theme and account', () => {
     await page.goto('/en');
     const banner = page.getByRole('banner');
 
-    const signIn = banner.getByRole('link', { name: 'Sign in with Google', exact: true });
+    const signIn = banner.getByRole('link', { name: 'Sign in', exact: true });
     await expect(signIn).toBeVisible();
-    await expect(signIn).toHaveAttribute('href', '/api/login?callbackUrl=%2Fen%2Fdashboard');
+    await expect(signIn).toHaveAttribute('href', '/en/sign-in?callbackUrl=%2Fen%2Fdashboard');
     const wideBox = await page.getByLabel('Language').boundingBox();
     expect(wideBox!.width).toBeGreaterThan(40);
 
@@ -38,6 +38,10 @@ test.describe('REQ-80: header language, theme and account', () => {
     await summary.click();
     await expect(banner.getByText('Signed in as Ana')).toBeVisible();
     await expect(banner.getByRole('link', { name: 'My events' })).toBeVisible();
+    await expect(banner.getByRole('link', { name: 'Account', exact: true })).toHaveAttribute(
+      'href',
+      '/en/account',
+    );
     await expect(banner.getByRole('button', { name: 'Sign out' })).toBeVisible();
   });
 });

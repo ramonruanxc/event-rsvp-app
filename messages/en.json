@@ -7,12 +7,12 @@
     "brand": "Event RSVP",
     "language": "Language",
     "myEvents": "My events",
-    "signIn": "Sign in with Google",
-    "signInShort": "Sign in",
+    "signIn": "Sign in",
     "signOut": "Sign out",
     "darkTheme": "Dark theme",
     "accountMenu": "Account menu",
-    "signedInAs": "Signed in as {name}"
+    "signedInAs": "Signed in as {name}",
+    "account": "Account"
   },
   "languages": { "en": "English", "fr": "Français", "pt-BR": "Português (Brasil)" },
   "home": {
@@ -123,6 +123,39 @@
     "description": "A sample event to explore the app. Share the invite link, collect RSVPs, and delete it when you are done.",
     "location": "Community Hall"
   },
+  "auth": {
+    "signInTitle": "Sign in",
+    "continueWithGoogle": "Continue with Google",
+    "email": "Email",
+    "password": "Password",
+    "signInSubmit": "Sign in",
+    "noAccount": "New here?",
+    "createAccount": "Create an account",
+    "registerTitle": "Create an account",
+    "name": "Name",
+    "confirmPassword": "Confirm password",
+    "passwordHint": "8 to 128 characters.",
+    "registerSubmit": "Create account",
+    "haveAccount": "Already have an account?",
+    "signInLink": "Sign in",
+    "tooManyAttempts": "Too many attempts — please try again in a few minutes.",
+    "signInFailed": "Sign-in couldn't be completed. Please try again."
+  },
+  "account": {
+    "title": "Account",
+    "signedInEmail": "Signed in as {email}",
+    "setPasswordTitle": "Set a password",
+    "setPasswordHint": "Add a password to also sign in with your email.",
+    "changePasswordTitle": "Change password",
+    "currentPassword": "Current password",
+    "newPassword": "New password",
+    "confirmNewPassword": "Confirm new password",
+    "savePassword": "Save password",
+    "passwordSaved": "Password saved.",
+    "passwordClearedNotice": "You signed in with Google, so the password on this account was removed to keep it safe. Set a new password in Account to sign in with your email again.",
+    "goToAccount": "Go to Account",
+    "dismiss": "Dismiss"
+  },
   "errors": {
     "VALIDATION_ERROR": "Please fix the highlighted fields.",
     "NOT_FOUND": "This page does not exist.",
@@ -133,7 +166,10 @@
     "AI_LIMIT_REACHED": "Daily AI limit reached — fill the form manually.",
     "AI_UNAVAILABLE": "Couldn't fill automatically — please fill the form.",
     "UNAUTHENTICATED": "Please sign in to continue.",
-    "INTERNAL_ERROR": "Something went wrong. Please try again."
+    "INTERNAL_ERROR": "Something went wrong. Please try again.",
+    "INVALID_CREDENTIALS": "Email or password is incorrect.",
+    "EMAIL_TAKEN": "An account with this email already exists. Sign in instead.",
+    "GOOGLE_ACCOUNT_EXISTS": "This email already has an account that uses Google. Sign in with Google, then set a password in Account."
   },
   "validation": {
     "required": "This field is required.",
@@ -142,6 +178,10 @@
     "invalidTimezone": "Choose a valid timezone.",
     "inPast": "The date and time cannot be in the past.",
     "partySizeRange": "Enter a number from 1 to 10.",
-    "invalidStatus": "Choose Going or Not going."
+    "invalidStatus": "Choose Going or Not going.",
+    "invalidEmail": "Enter a valid email address.",
+    "passwordLength": "Use 8 to 128 characters.",
+    "passwordMismatch": "The passwords do not match.",
+    "currentPasswordIncorrect": "The current password is incorrect."
   }
 }

@@ -10,9 +10,14 @@ describe('auth-redirect', () => {
     expect(sanitizeCallbackUrl('/\\evil.com')).toBe('/');
   });
 
-  it('REQ-02: signInRedirectPath builds the login URL', () => {
+  it('REQ-02: signInRedirectPath goes to the sign-in page of the path locale', () => {
     expect(signInRedirectPath('/fr/events/new')).toBe(
-      '/api/login?callbackUrl=%2Ffr%2Fevents%2Fnew',
+      '/fr/sign-in?callbackUrl=%2Ffr%2Fevents%2Fnew',
     );
+    expect(signInRedirectPath('/pt-BR/dashboard')).toBe(
+      '/pt-BR/sign-in?callbackUrl=%2Fpt-BR%2Fdashboard',
+    );
+    expect(signInRedirectPath('/dashboard')).toBe('/en/sign-in?callbackUrl=%2Fdashboard');
+    expect(signInRedirectPath('https://evil.com')).toBe('/en/sign-in?callbackUrl=%2F');
   });
 });

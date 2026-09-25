@@ -13,4 +13,12 @@ export class PrismaRateLimitRepository implements RateLimitRepository {
       RETURNING "count"`;
     return Number(rows[0].count);
   }
+
+  /** Current count of (key, windowStart); 0 when there is no row. */
+  async count(key: string, windowStart: Date): Promise<number> {
+    const row = await this.prisma.rateLimit.findUnique({
+      where: { key_windowStart: { key, windowStart } },
+    });
+    return row?.count ?? 0;
+  }
 }

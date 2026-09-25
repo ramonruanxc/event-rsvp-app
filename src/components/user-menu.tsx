@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef } from 'react';
-import { Calendar, ChevronDown, LogOut } from 'lucide-react';
+import { Calendar, ChevronDown, LogOut, UserRound } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { Icon } from '@/components/ui/icon';
@@ -34,6 +34,10 @@ export function UserMenu({ name, initial, signOutAction }: UserMenuProps): React
         <Link href="/dashboard" onClick={close}>
           <Icon icon={Calendar} />
           {t('nav.myEvents')}
+        </Link>
+        <Link href="/account" onClick={close}>
+          <Icon icon={UserRound} />
+          {t('nav.account')}
         </Link>
         <form action={signOutAction}>
           <button type="submit" className="menu-item">

@@ -48,3 +48,25 @@ export interface OwnerRsvpRow {
 }
 /** Returns the current instant; injected so services are testable with a fixed time. */
 export type Clock = () => Date;
+
+/** A user as the credential services see it; passwordHash never leaves the server (BR-153). */
+export interface UserRecord {
+  id: string;
+  name: string | null;
+  email: string | null;
+  passwordHash: string | null;
+  passwordClearedAt: Date | null;
+  passwordNotice: boolean;
+}
+/** The identity handed to Auth.js after a password sign-in; never the hash (BR-153). */
+export interface AuthUser {
+  id: string;
+  name: string | null;
+  email: string;
+}
+/** What the Account page and the password notice need (BR-159, BR-160, BR-164). */
+export interface AccountView {
+  email: string | null;
+  hasPassword: boolean;
+  passwordNotice: boolean;
+}

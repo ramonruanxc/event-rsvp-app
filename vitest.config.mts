@@ -5,6 +5,9 @@ import { fileURLToPath } from 'node:url';
 
 export default defineConfig({
   plugins: [tsconfigPaths(), react()],
+  // next-auth's ESM files import subpaths of `next` (e.g. next/server) without an extension; Node's own
+  // ESM resolver can't find them, so bundle next-auth through Vite's resolver instead of externalizing it.
+  ssr: { noExternal: ['next-auth'] },
   resolve: {
     alias: {
       'server-only': fileURLToPath(new URL('./src/test/server-only-stub.ts', import.meta.url)),

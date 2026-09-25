@@ -3,7 +3,7 @@ import type { RateLimitRepository } from '@/repositories/interfaces';
 
 /** A named quota: at most `limit` calls per subject within `windowMs`. */
 export interface RateLimitRule {
-  name: 'rsvp' | 'ai';
+  name: 'rsvp' | 'ai' | 'signin-email' | 'signin-ip';
   limit: number;
   windowMs: number;
 }
@@ -12,6 +12,14 @@ export interface RateLimitRule {
 export const RSVP_RULE: RateLimitRule = { name: 'rsvp', limit: 10, windowMs: 600_000 };
 /** REQ-48: at most 20 "Fill with AI" calls per user per UTC day. */
 export const AI_RULE: RateLimitRule = { name: 'ai', limit: 20, windowMs: 86_400_000 };
+/** REQ-119: at most 5 failed sign-ins per email per 15 minutes. */
+export const SIGNIN_EMAIL_RULE: RateLimitRule = {
+  name: 'signin-email',
+  limit: 5,
+  windowMs: 900_000,
+};
+/** REQ-119: at most 20 failed sign-ins per client IP per 15 minutes. */
+export const SIGNIN_IP_RULE: RateLimitRule = { name: 'signin-ip', limit: 20, windowMs: 900_000 };
 
 /** Aligns `now` to the start of its fixed window of size `windowMs`. */
 export function windowStart(now: Date, windowMs: number): Date {
@@ -32,5 +40,14 @@ export class RateLimiter {
       windowStart(this.deps.now(), rule.windowMs),
     );
     return { allowed: count <= rule.limit, count };
+  }
+
+  /** True when (rule, subject) already reached rule.limit in the current window; never increments. */
+  async isBlocked(rule: RateLimitRule, subject: string): Promise<boolean> {
+    const count = await this.deps.repo.count(
+      `${rule.name}:${subject}`,
+      windowStart(this.deps.now(), rule.windowMs),
+    );
+    return count >= rule.limit;
   }
 }

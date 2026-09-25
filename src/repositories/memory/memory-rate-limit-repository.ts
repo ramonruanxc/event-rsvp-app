@@ -12,4 +12,9 @@ export class MemoryRateLimitRepository implements RateLimitRepository {
     this.store.rateLimits.set(mapKey, next);
     return next;
   }
+
+  /** Current count of (key, windowStart); 0 when there is no row. */
+  async count(key: string, windowStart: Date): Promise<number> {
+    return this.store.rateLimits.get(`${key}|${windowStart.toISOString()}`) ?? 0;
+  }
 }

@@ -7,12 +7,12 @@
     "brand": "Event RSVP",
     "language": "Langue",
     "myEvents": "Mes événements",
-    "signIn": "Se connecter avec Google",
-    "signInShort": "Se connecter",
+    "signIn": "Se connecter",
     "signOut": "Se déconnecter",
     "darkTheme": "Thème sombre",
     "accountMenu": "Menu du compte",
-    "signedInAs": "Connecté en tant que {name}"
+    "signedInAs": "Connecté en tant que {name}",
+    "account": "Compte"
   },
   "languages": { "en": "English", "fr": "Français", "pt-BR": "Português (Brasil)" },
   "home": {
@@ -123,6 +123,39 @@
     "description": "Un événement d'exemple pour découvrir l'application. Partagez le lien d'invitation, collectez les réponses, et supprimez-le une fois terminé.",
     "location": "Salle communautaire"
   },
+  "auth": {
+    "signInTitle": "Connexion",
+    "continueWithGoogle": "Continuer avec Google",
+    "email": "E-mail",
+    "password": "Mot de passe",
+    "signInSubmit": "Se connecter",
+    "noAccount": "Nouveau ici ?",
+    "createAccount": "Créer un compte",
+    "registerTitle": "Créer un compte",
+    "name": "Nom",
+    "confirmPassword": "Confirmez le mot de passe",
+    "passwordHint": "De 8 à 128 caractères.",
+    "registerSubmit": "Créer le compte",
+    "haveAccount": "Vous avez déjà un compte ?",
+    "signInLink": "Se connecter",
+    "tooManyAttempts": "Trop de tentatives — veuillez réessayer dans quelques minutes.",
+    "signInFailed": "La connexion n'a pas pu aboutir. Veuillez réessayer."
+  },
+  "account": {
+    "title": "Compte",
+    "signedInEmail": "Connecté en tant que {email}",
+    "setPasswordTitle": "Définir un mot de passe",
+    "setPasswordHint": "Ajoutez un mot de passe pour vous connecter aussi avec votre e-mail.",
+    "changePasswordTitle": "Changer le mot de passe",
+    "currentPassword": "Mot de passe actuel",
+    "newPassword": "Nouveau mot de passe",
+    "confirmNewPassword": "Confirmez le nouveau mot de passe",
+    "savePassword": "Enregistrer le mot de passe",
+    "passwordSaved": "Mot de passe enregistré.",
+    "passwordClearedNotice": "Vous vous êtes connecté avec Google : le mot de passe de ce compte a donc été supprimé par sécurité. Définissez un nouveau mot de passe dans Compte pour vous connecter à nouveau avec votre e-mail.",
+    "goToAccount": "Aller au compte",
+    "dismiss": "Ignorer"
+  },
   "errors": {
     "VALIDATION_ERROR": "Veuillez corriger les champs en surbrillance.",
     "NOT_FOUND": "Cette page n'existe pas.",
@@ -133,7 +166,10 @@
     "AI_LIMIT_REACHED": "Limite quotidienne d'IA atteinte — remplissez le formulaire manuellement.",
     "AI_UNAVAILABLE": "Impossible de remplir automatiquement — veuillez remplir le formulaire.",
     "UNAUTHENTICATED": "Veuillez vous connecter pour continuer.",
-    "INTERNAL_ERROR": "Une erreur s'est produite. Veuillez réessayer."
+    "INTERNAL_ERROR": "Une erreur s'est produite. Veuillez réessayer.",
+    "INVALID_CREDENTIALS": "E-mail ou mot de passe incorrect.",
+    "EMAIL_TAKEN": "Un compte existe déjà avec cet e-mail. Connectez-vous plutôt.",
+    "GOOGLE_ACCOUNT_EXISTS": "Cet e-mail a déjà un compte qui utilise Google. Connectez-vous avec Google, puis définissez un mot de passe dans Compte."
   },
   "validation": {
     "required": "Ce champ est obligatoire.",
@@ -142,6 +178,10 @@
     "invalidTimezone": "Choisissez un fuseau horaire valide.",
     "inPast": "La date et l'heure ne peuvent pas être dans le passé.",
     "partySizeRange": "Entrez un nombre de 1 à 10.",
-    "invalidStatus": "Choisissez Je viens ou Je ne viens pas."
+    "invalidStatus": "Choisissez Je viens ou Je ne viens pas.",
+    "invalidEmail": "Saisissez une adresse e-mail valide.",
+    "passwordLength": "Utilisez de 8 à 128 caractères.",
+    "passwordMismatch": "Les mots de passe ne correspondent pas.",
+    "currentPasswordIncorrect": "Le mot de passe actuel est incorrect."
   }
 }

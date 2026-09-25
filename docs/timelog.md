@@ -16,7 +16,8 @@ Event times are taken from session timestamps. All times in America/Fortaleza (U
 | 5 | Review (interleaved with execution: one reviewer + doc-sync per PR) | — | — |
 | 6 | Ship (final verification, Dependabot triage, time report) | 2026-09-25 10:10:04 | 2026-09-25 10:17:22 |
 | 8 | Post-delivery: harder AI evaluation + reasoning control (amendment A4) | 2026-09-25 10:51:53 | 2026-09-25 13:38:28 |
-| 9 | Post-delivery: containerized one-command local run (amendment A5) | 2026-09-25 14:02:26 | — |
+| 9 | Post-delivery: containerized one-command local run (amendment A5) | 2026-09-25 14:02:26 | 2026-09-25 14:56:51 |
+| 10 | Post-delivery: email and password sign-in alongside Google (amendment A6) | 2026-09-25 14:56:51 | — |
 
 ## Pauses
 
@@ -112,6 +113,16 @@ Pipeline agents working autonomously. Reported separately from human active time
 | Analyst: BR-127–144 (A5) | sonnet | 2026-09-25 14:03:11 | 2026-09-25 14:04:59 | 1m 48s | 18 BRs, no DOC questions |
 | Spec-writer: REQ-108–113, TASK-239–246 | opus | 2026-09-25 14:05:27 | 2026-09-25 14:26:58 | 21m 33s | spec + plan; a trial build caught `spawn tsx ENOENT` before implementation |
 | Implementer TASK-239–246 | sonnet | 2026-09-25 14:27:38 | 2026-09-25 14:44:00 | 16m 22s | 8/8 first attempt; local compose run + smoke OK |
+| Reviewer PR #15 | sonnet | 2026-09-25 14:44:50 | 2026-09-25 14:50:39 | 5m 49s | APPROVE, 0 findings, 1 nit |
+| Analyst: doc-sync PR #15 | sonnet | 2026-09-25 14:51:00 | 2026-09-25 14:55:35 | 4m 35s | statuses, README, CHANGELOG |
+| Analyst: BR-145–170 (A6) | sonnet | 2026-09-25 14:57:55 | 2026-09-25 15:01:18 | 3m 23s | 26 new BRs, 4 amended; DOC-Q5, DOC-Q6 raised |
+| Analyst: resolve DOC-Q5/Q6 | sonnet | 2026-09-25 15:01:25 | 2026-09-25 15:02:35 | 1m 10s | recommendations applied (human pre-authorized) |
+| Spec-writer: REQ-114–130, TASK-247–269 | opus | 2026-09-25 15:03:10 | 2026-09-25 15:40:47 | 37m 37s | spec + plan, contracts C15/C16 |
+| Implementer TASK-247–258 (batch A) | sonnet | 2026-09-25 15:41:20 | 2026-09-25 16:11:39 | 30m 19s | 12/12 first attempt; E2E 68/68 |
+| Implementer TASK-259–263 (batch B, part 1) | sonnet | 2026-09-25 16:12:00 | 2026-09-25 16:29:29 | 17m 29s | SPEC failure on TASK-263 (incident #24) |
+| Spec-writer: TASK-263 revision 1/2 | opus | 2026-09-25 16:29:35 | 2026-09-25 16:31:30 | 1m 55s | keep `type="email"`, assert trimmed value |
+| Implementer TASK-263–269 (batch B, part 2) | sonnet | 2026-09-25 16:31:40 | 2026-09-25 16:51:59 | 20m 19s | 11/11 done; unit 469, E2E 83/83 |
+| Reviewer PR #16 | sonnet | 2026-09-25 16:52:40 | 2026-09-25 17:03:11 | 10m 31s | APPROVE, 0 findings, 1 nit; incident #25 |
 
 ## Events
 
@@ -193,6 +204,11 @@ Pipeline agents working autonomously. Reported separately from human active time
 | 2026-09-25 14:02:26 | Human approved Phase 9 (amendment A5, decisions 1–5) and pre-approved its spec; human asked to containerize the app after the fresh-clone run |
 | 2026-09-25 14:03:10 | PR #14 merged by the orchestrator (human authorized) |
 | 2026-09-25 14:45:30 | Orchestrator added the missing `Co-Authored-By` trailer to one unpushed commit (local rebase, no force push) and opened the Phase 9 PR |
+| 2026-09-25 14:47:00 | Human authorized the Phase 9 merge once review, doc-sync and CI pass |
+| 2026-09-25 14:56:51 | Human requested email and password sign-in and approved amendment A6 decisions (link only after proof of email ownership; clear the unverified password on Google link; JWT sessions; lean password rules, no recovery) |
+| 2026-09-25 14:58:10 | Human pre-authorized every spec approval and merge for Phase 10; DOC questions take the analyst's recommendation |
+| 2026-09-25 14:58:34 | PR #15 merged by the orchestrator (human authorized); Phase 9 closed |
+| 2026-09-25 15:02:35 | DOC-Q5 (5 failures per email / 20 per IP per 15 min) and DOC-Q6 (banner + Account notice) resolved with the analyst's recommendations under the human pre-authorization |
 
 ## Time report
 

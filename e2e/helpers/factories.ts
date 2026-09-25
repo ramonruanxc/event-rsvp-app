@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { nanoid } from 'nanoid';
 import { toNameKey } from '@/domain/name-key';
 import { hashToken } from '@/lib/crypto';
+import { hashPassword } from '@/lib/password';
 import { db } from './db';
 
 /** Creates an event owner directly in the database, without going through Google sign-in. */
@@ -35,6 +36,32 @@ export async function createEvent(
     },
   });
   return { id: event.id, slug: event.slug };
+}
+
+/** Creates a user who signs in with email and password (scrypt hash), without the UI. */
+export async function createPasswordUser(
+  email: string,
+  name: string,
+  password: string,
+): Promise<{ id: string }> {
+  const user = await db.user.create({
+    data: { email, name, passwordHash: await hashPassword(password) },
+  });
+  return { id: user.id };
+}
+
+/** Creates a Google-only user: no password, one linked Google account row. */
+export async function createGoogleUser(email: string, name: string): Promise<{ id: string }> {
+  const user = await db.user.create({
+    data: {
+      email,
+      name,
+      accounts: {
+        create: { type: 'oidc', provider: 'google', providerAccountId: `google-${randomUUID()}` },
+      },
+    },
+  });
+  return { id: user.id };
 }
 
 /** Creates an RSVP directly in the database, with a random edit token no fixture holds. */

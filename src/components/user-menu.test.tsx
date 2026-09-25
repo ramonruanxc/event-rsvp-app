@@ -42,4 +42,15 @@ describe('UserMenu', () => {
     );
     expect(queryByText(/Signed in as/)).toBeNull();
   });
+
+  it('REQ-128: the menu links to Account between My events and Sign out', () => {
+    const { getByText, container } = renderWithIntl(
+      <UserMenu name="Ana" initial="A" signOutAction={vi.fn()} />,
+    );
+    expect(getByText('Account').closest('a')?.getAttribute('href')).toBe('/account');
+    const items = [...container.querySelectorAll('.menu-pop a, .menu-pop button')].map(
+      (el) => el.textContent,
+    );
+    expect(items).toEqual(['My events', 'Account', 'Sign out']);
+  });
 });

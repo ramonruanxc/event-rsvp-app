@@ -2,114 +2,67 @@
 
 Create an event, share one link, see who's coming.
 
-## Live demo
+## Start here
 
-**Production URL:** https://event-rsvp-app-flax.vercel.app
+**Live app:** https://event-rsvp-app-flax.vercel.app — create an account with email and password (or use Google
+if you are a test user). Guests never need to sign in: the
+[demo event](https://event-rsvp-app-flax.vercel.app/e/demoPicnic) takes RSVPs with no account at all.
 
-**Demo event (no sign-in needed):** https://event-rsvp-app-flax.vercel.app/e/demoPicnic
-
-> Google sign-in runs in Testing mode: an evaluator's Google account must be added as a test user. Guests never
-> need to sign in.
-
-## 60-second walkthrough
+**60-second walkthrough**
 
 1. Open the demo event and RSVP as a guest — no sign-in required.
-2. Sign in with Google.
+2. Create an account (name, email, password) — or sign in with Google.
 3. Go to your dashboard and click "Create sample event" to see a seeded guest list.
 4. Create your own event and try "Fill with AI" to prefill it from pasted text.
 5. Copy the event's invite link, open it in a private/incognito window, RSVP there, and watch the
    organizer's guest list update.
 
+**Read more:** [how this was built (pipeline overview)](docs/how-ai-was-used.md) ·
+[failure log](docs/pipeline/failures.md) · [time report](docs/timelog.md)
+
+## What it is
+
+An organizer creates an event, shares one link, and sees who is coming; a guest opens the link and answers in
+seconds, no account needed. Built end to end — code, tests, spec and docs — by a pipeline of Claude agents from a
+human-approved specification (see [How AI was used](#how-ai-was-used)).
+
 ## Features
 
 ### Core
 
-- **Events** — create, edit and delete an event you own (name, description, date/time, timezone, optional
-  location); a dashboard lists your upcoming and past events with RSVP counts.
-- **RSVP** — guests respond from the event page without an account (name, Going / Not going, party size); a
-  returning guest (same browser) sees and can change or cancel their own RSVP; duplicate names on the same
-  event are blocked; RSVP submission and editing close once the event starts.
-- **Guest list** — organizers see every RSVP on their event with totals, and can remove any RSVP, including
-  after the event has ended; guest names are never exposed to other guests.
+- **Events** — create, edit and delete an event you own; a dashboard lists your events with RSVP counts.
+- **RSVP** — guests respond without an account (name, Going / Not going, party size); duplicate names are blocked;
+  a returning guest can change or cancel their own RSVP; RSVP closes once the event starts.
+- **Guest list** — organizers see every RSVP with totals and can remove any of them; guest names are never shown
+  to other guests.
 
 ### Bonus
 
-- **Google SSO with per-event roles** — sign in with Google; there is no admin role, only Organizer (for the
-  events you own) and Guest (everywhere else).
-- **AI fill** — "Fill with AI" turns pasted text into a prefilled event form, flagging any field it could not
-  find for the organizer to complete.
-- **i18n EN/FR/PT-BR** — three interface languages with a language switcher, browser-locale detection on first
-  visit, and a remembered choice afterwards.
-- **.ics** — "Add to calendar" downloads a standard `.ics` file from the guest and owner event pages, no
-  sign-in required.
-- **Sample event** — "Create sample event" fills a new organizer's empty dashboard with a ready-made event and
-  sample RSVPs.
-- **Demo** — a public demo event, seeded and kept open automatically, lets evaluators RSVP without creating
-  anything.
-- **Dark/light theme with WCAG 2.2 AA checks** — dark theme by default, switchable from the header; automated
-  contrast and focus-ring checks guard both themes.
-- **One-command local run** — `docker compose up --build` builds and serves the whole app (Postgres + the app,
-  migrated and seeded); Node is not required and no secret is baked into the image.
-
-### Security and abuse protection
-
-- RSVP submissions are rate-limited to 10 per 10 minutes per client; only a salted hash of the IP is stored.
-- A hidden honeypot field rejects automated spam submissions without revealing why.
-- Every response carries `X-Frame-Options`, `Referrer-Policy` and `X-Content-Type-Options` headers.
-- User content always renders as text (no raw HTML); authorization is enforced in the services, not only in the UI.
-
-## Architecture
-
-Layered folders, each with one responsibility:
-
-| Folder | Responsibility |
-|---|---|
-| `src/domain` | Pure business rules and types: validation, time/timezone handling, slugs, policies, totals — no I/O. |
-| `src/services` | Use cases (create/update/delete an event, submit/cancel/remove an RSVP, AI parsing, rate limiting) that orchestrate the domain and repositories. |
-| `src/repositories` | Data access behind interfaces, with a Prisma implementation and an in-memory one for tests. |
-| `src/lib` | Cross-cutting helpers: auth, crypto, cookies, IP hashing, `.ics` generation, theme, contrast, the AI client. |
-| `src/app` | Next.js routes, pages, layouts and Server Actions — thin controllers that call one service and map its result. |
-
-Diagrams: [agent pipeline](docs/diagrams/agent-pipeline.svg), [user flows](docs/diagrams/user-flows.svg),
-[AI event parsing](docs/diagrams/ai-event-parsing.svg) (source and regeneration instructions in
-[docs/diagrams/README.md](docs/diagrams/README.md)).
-
-## Business rules and specification
-
-- **Business rules:** [docs/business-rules.md](docs/business-rules.md)
-- **Specification (requirements):** [docs/spec.md](docs/spec.md)
-- **Implementation plan (tasks):** [docs/plan.md](docs/plan.md)
-- **Product brief:** [docs/PRODUCT.md](docs/PRODUCT.md)
-- **Design system:** [docs/DESIGN.md](docs/DESIGN.md)
+- **Sign in with Google or email and password** — one account can use both; per-event roles only (Organizer for
+  events you own, Guest everywhere else), no admin role.
+- **AI fill** — "Fill with AI" turns pasted text into a prefilled event form, flagging fields it could not find.
+- **i18n EN/FR/PT-BR** — three languages, browser-locale detection on first visit, remembered afterwards.
+- **.ics** — "Add to calendar" downloads a standard file, no sign-in required.
+- **Sample event** — one click fills a new organizer's empty dashboard with a ready-made event.
+- **Demo** — a public, seeded event lets evaluators RSVP without creating anything.
+- **Dark/light theme** — dark by default, switchable, both checked against WCAG 2.2 AA.
+- **One-command local run** — `docker compose up --build`; Node is not required.
 
 ## Run locally
 
 ### One command (Docker)
 
-Prerequisite: Docker with Compose 2.24 or later. Node is not needed.
+Prerequisite: Docker with Compose 2.24+. Node is not needed.
 
 ```bash
 docker compose up --build
 ```
 
-Open `http://localhost:3000`; the seeded demo event is at `http://localhost:3000/en/e/demoPicnic`. If port 3000 is
-taken, pick another host port: `APP_PORT=3100 docker compose up --build` (PowerShell:
-`$env:APP_PORT=3100; docker compose up --build`).
-
-- On every start the app container applies the database migrations and the demo seed (which never duplicates
-  data), then serves the app.
-- `.env.local` is optional. Without it the public side works fully (event page, RSVP, `.ics` download); an
-  `AUTH_SECRET` is generated at each container start, so sign-in sessions last only until the container restarts;
-  "Sign in with Google" needs your own Google OAuth client; "Fill with AI" shows its fallback message and the
-  manual form still works.
-- With a `.env.local` (copy `.env.example`, see below), its values are used: `AUTH_SECRET`, `AUTH_GOOGLE_ID` /
-  `AUTH_GOOGLE_SECRET` (redirect URI `http://localhost:<APP_PORT>/api/auth/callback/google`) and the AI keys. The
-  database URLs always point to the compose database. Secrets are read when the container starts and are never
-  baked into the image.
-- Stop with `Ctrl+C` or `docker compose down`; `docker compose down -v` also deletes the database.
-
-This path (`docker compose up --build`, then the smoke check below) was run end to end by the implementer agent on
-2026-09-25: image build, migrate, seed, and all three smoke checks green on the first attempt.
+Open `http://localhost:3000` (demo event at `/en/e/demoPicnic`; a busy port 3000 can be changed with
+`APP_PORT=3100`). The app container migrates and seeds the database, then serves the app, every time it starts.
+`.env.local` is optional: without it, RSVP and email/password sign-in work fully (a session secret is generated at
+each start); Google sign-in and "Fill with AI" need their own credentials (see `.env.example`). Stop with `Ctrl+C`
+or `docker compose down` (`-v` also deletes the database).
 
 ### Development (Node)
 
@@ -118,82 +71,59 @@ Prerequisites: Node 22 (npm 10), Docker for PostgreSQL.
 ```bash
 npm ci
 docker compose up -d db
-cp .env.example .env.local   # then fill in the values (see below and docs/plan.md, HUMAN-04)
+cp .env.example .env.local   # fill in the values you need — see .env.example and docs/plan.md, HUMAN-02/HUMAN-04
 npx dotenv -e .env.local -- prisma migrate dev
 npx dotenv -e .env.local -- prisma db seed
 npm run dev
 ```
 
-- `AUTH_SECRET`: generate it with
-  `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"` and paste the output.
-- Without Google credentials the public side works fully: the seeded demo event at `/en/e/demoPicnic`, RSVP,
-  "Add to calendar" (`.ics`) and language/theme switches. Signing in as an organizer needs your own Google OAuth client
-  (`AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET`, redirect URI `http://localhost:3000/api/auth/callback/google`; steps in
-  docs/plan.md, HUMAN-02) — or use the [live demo](#live-demo), where the evaluator account is already a test user.
-
-- AI: set `OPENROUTER_API_KEY` in `.env.local` (`npm run openrouter:key` creates the OpenRouter key with a USD 3 spend
-  limit from the system variable `OPENROUTER_MANAGMENT_KEY` and writes it there). OpenRouter is the default and only
-  provider (`AI_PROVIDERS` defaults to `openrouter`; `OPENROUTER_MODEL` defaults to `anthropic/claude-sonnet-5`, the
-  model chosen by the [evaluation](docs/evals/README.md)). `OPENROUTER_REASONING_EFFORT` (default `low`) sets how much
-  the model reasons before answering; `omit` sends no reasoning parameter. Anthropic is optional: to use it, set
-  `ANTHROPIC_API_KEY` and list it in `AI_PROVIDERS`, e.g. `AI_PROVIDERS=openrouter,anthropic` — providers are tried in
-  the listed order and failover needs more than one. A listed provider without a key is skipped; with no key "Fill with
-  AI" shows its fallback message and the manual form still works.
-
-The app serves on `http://localhost:3000`. If port 3000 is already in use, run `npm run dev -- -p 3100` instead
-(and set `E2E_PORT=3100` for the E2E suite). A different port also needs its own Google redirect URI.
-
-This sequence was run end to end on a fresh clone with an empty database on 2026-09-25 (orchestrator): migrate, seed,
-demo event page, RSVP stored, `.ics` download; sign-in without Google credentials fails at Google as expected.
+Serves on `http://localhost:3000` (`npm run dev -- -p 3100` if busy; set `E2E_PORT` to match for E2E). Everything
+works with just the steps above except "Continue with Google" and "Fill with AI", which need their own credentials
+(`.env.example` documents every variable; Google OAuth setup steps are in `docs/plan.md`, HUMAN-02).
 
 ## Tests
 
-The integration and E2E suites need only the database container: `docker compose up -d db`.
+Unit tests need no database; integration and E2E need only the database container (`docker compose up -d db`).
+Current counts: 470 unit tests, 27 integration tests, and 83 end-to-end journeys across a11y and all three
+locales — all passing in CI (Node 22). `npm run trace` checks that every requirement marked "done" in
+[docs/spec.md](docs/spec.md) is cited by at least one passing test.
 
 ```bash
-npm run test:unit     # Vitest, no database — domain, services and components in isolation
-npm run test:int      # Vitest, Docker Postgres (rsvp_test) — repositories and Server Actions against a real database
-npm run test:e2e      # Playwright, Docker Postgres (rsvp_test) — full user journeys in a browser; uses E2E_PORT (default 3000)
-npm run trace         # traceability check: every done requirement is cited by a passing test
-npx tsx scripts/docker/smoke-cli.ts   # smoke check of a running docker compose stack (APP_PORT, default 3000)
+npm run test:unit     # Vitest, no database
+npm run test:int      # Vitest, Docker Postgres (rsvp_test)
+npm run test:e2e      # Playwright, Docker Postgres (rsvp_test); uses E2E_PORT (default 3000)
+npm run trace         # traceability check
+npx tsx scripts/docker/smoke-cli.ts   # smoke check of a running docker compose stack
 ```
 
-## AI evaluation
+## Security
 
-"Fill with AI" is scored against a 60-case quiz — 30 everyday cases plus 30 hard ones (vague times, dates that
-contradict their weekday, daylight-saving gaps, ambiguous timezone abbreviations, injections hidden in fields,
-fake JSON or base64) — by the runner in [evals/event-parser](evals/event-parser). Each case runs three times and
-passes only if every answer is right; a third of the cases is a hold-out set never used to tune the prompt. The
-gate is at least 90% overall, 80% in every category, 100% on must-not-invent and prompt-injection, and a p95
-latency under 8 seconds.
+- Passwords hashed with `scrypt` (`node:crypto`, per-user salt, constant-time check); the hash is never logged or
+  sent to the browser. Sessions are encrypted JWT cookies.
+- Failed sign-ins are limited per email and per client IP; RSVP submissions are rate-limited per client, with only
+  a salted hash of the IP ever stored; a hidden honeypot field rejects automated spam.
+- Google signs in to an existing account only when Google has verified the email; linking clears a password set
+  before that verification and ends the sessions it opened, which defeats account pre-hijacking.
+- Known trade-off (account enumeration): registering with the email of an existing Google account says so, so the
+  person knows to switch to Google sign-in — this reveals that the email has an account, and the refusal counts
+  against the per-IP sign-in limit.
+- Known limitation (pre-existing, documented, not fixed): `src/lib/client-ip.ts` trusts the `X-Forwarded-For` /
+  `X-Real-IP` headers without a defined trusted-proxy boundary (flagged by the reviewer on PR #16).
+- User content always renders as text, never raw HTML; authorization is enforced in the services, not only in the
+  UI; every response carries `X-Frame-Options`, `Referrer-Policy` and `X-Content-Type-Options`.
 
-| Model (via OpenRouter) | Overall | Must not invent | Prompt injection | p95 latency | Gate |
-|---|---|---|---|---|---|
-| `openai/gpt-4o-mini` | 78% | 33% | 78% | 2.4 s | Fail |
-| `google/gemini-3.8-flash` | 83% | 44% | 78% | 9.1 s | Fail |
-| `anthropic/claude-haiku-4.5` | 90% | 67% | 100% | 9.5 s | Fail |
-| `anthropic/claude-sonnet-5` | 88% | 56% | 89% | 4.4 s | Fail |
+## How AI was used
 
-Phase 8 (harder AI evaluation) is delivered as a measurement: no model passes the stricter gate. Sonnet 5 is kept
-as the code default; production sets the reasoning effort to `omit` (Vercel). Next step: prompt hardening on
-must-not-invent. Measured cost of the round: USD 1.1968. Full reports: [docs/evals/README.md](docs/evals/README.md).
+- The app was built end to end by a pipeline of Claude agents (analyst, spec-writer, implementer, reviewer) from a
+  human-approved spec, each gated by tests and an adversarial review before merge.
+- A traceability chain (business rule → requirement → task → test) keeps the spec and the code in sync; a CI check
+  fails the build if it ever breaks.
+- Failures escalate upstream — implementation issues to the implementer, repeated ones to the spec, spec gaps to
+  the documentation — instead of retrying on a stronger model; every escalation is logged.
+- "Fill with AI" (the product feature) is scored against a 60-case quiz before a model is trusted as the default.
+- Full mechanics, the agent roster, and every incident: [docs/how-ai-was-used.md](docs/how-ai-was-used.md).
 
-```bash
-npm run eval -- --model anthropic/claude-sonnet-5                # OpenRouter (default), needs OPENROUTER_API_KEY
-npm run eval -- --provider anthropic --model claude-sonnet-5     # Anthropic (optional), needs ANTHROPIC_API_KEY
-```
-
-## How I used AI
-
-The whole app was built by a pipeline of Claude agents (analyst, spec-writer, implementer, reviewer) working
-from a human-approved spec, each gated by tests and a reviewer before merge — see
-[docs/diagrams/agent-pipeline.svg](docs/diagrams/agent-pipeline.svg) for the escalation path (execution →
-specification → documentation) and which model ran which stage.
-
-Failures the pipeline hit along the way, and their root causes, are logged in
-[docs/pipeline/failures.md](docs/pipeline/failures.md).
-
-What I verified by hand:
+## What I verified by hand
 
 - Google sign-in end to end in production (2026-09-24).
 - The production setup (Vercel, Neon, Google OAuth, stable public domain https://event-rsvp-app-flax.vercel.app).
@@ -205,11 +135,10 @@ What I verified by hand:
 - "Fill with AI" in production with seven hand-picked cases (English, French and Portuguese input, a missing time,
   an explicit timezone, non-event text and a prompt-injection attempt): all seven behaved as expected (2026-09-25).
 
-Verified by the orchestrator (Claude): production smoke tests after the phase 1, 3, 6 and 7
-deployments (locales, demo event, `.ics`, sign-in redirect, theme, security headers), recorded in the Events table
-of [docs/timelog.md](docs/timelog.md).
+Agent-run smoke tests and fresh-clone verifications are recorded separately, with their actor, in the
+[timelog Events table](docs/timelog.md).
 
-## What I left out and why
+## What I left out
 
 | Item | Reason |
 |---|---|
@@ -223,7 +152,10 @@ of [docs/timelog.md](docs/timelog.md).
 | Strict CSP | Listed in the brief's out-of-scope list; other XSS mitigations are used instead (React escaping only, no `dangerouslySetInnerHTML`). |
 | Observability beyond logs | Listed in the brief's out-of-scope list; no reason given in the brief. |
 | Per-PR preview deployments | Explicitly decided: "no per-PR previews (would migrate the production database)". |
-| Publishing the Google OAuth app (stays in Testing mode) | Google requires full branding (home page, privacy policy, verified authorized domain) to publish an External OAuth app, and `vercel.app` ownership cannot be proven; the evaluator's Google account is added as a test user instead. |
+| Password reset | Needs email sending, which is out of scope. A user who forgets a password can sign in with Google (same email) and set a new one in Account. |
+| Email verification | Needs email sending; registration signs in at once. Because the email is not verified, a later Google sign-in with that email removes the password (see Security). |
+| Ending other sessions after a password change | Sessions are JWTs with no server-side store; only the Google-link password removal ends password sessions. |
+| Publishing the Google OAuth app (stays in Testing mode) | Google requires full branding (home page, privacy policy, verified authorized domain) to publish an External OAuth app, and `vercel.app` ownership cannot be proven; the evaluator's Google account is added as a test user instead. Evaluators can also register with email and password. |
 | Upgrading Next 15 → 16 and Vitest 3 → 4+ | Six Dependabot alerts (postcss pinned inside next@15; vitest dev-only) are not exploitable here: postcss only runs at build time on first-party CSS and vitest never ships. Both need major upgrades, out of scope for this exercise; alerts were dismissed as tolerable risk with this reasoning. |
 
 Full detail, including the brief citations, is in the
@@ -231,28 +163,30 @@ Full detail, including the brief citations, is in the
 
 ## Time report
 
-Timer: 2026-09-24 12:06:04 → 2026-09-25 10:17:22 (America/Fortaleza). Phase 0 (comprehension, 25 min) is untimed.
-
 | | Time |
 |---|---|
-| Wall clock | 22h 11m |
-| Paused (6 pauses: breaks, work calls, sleep) | 13h 03m |
+| Wall clock (timer: 2026-09-24 12:06 → 2026-09-25 10:17, America/Fortaleza) | 22h 11m |
+| Paused (6 announced pauses: breaks, calls, sleep) | 13h 03m |
 | **Human active time (self-reported)** | **3h 30m** |
-| Timer minus announced pauses | 9h 07m |
 | Agent run time (sum of all agent runs; many ran in parallel and during pauses) | 13h 48m |
 
-The timer only subtracts pauses the human announced. While agents ran for long stretches, the human was often
-not at the keyboard without announcing it, so the timer overstates hands-on time; the human's own measurement of
-active work is **3h 30m**.
+Post-delivery, after the timer above closed, phases 9 (containerize) and 10 (email/password sign-in) ran
+agent-only, no human task; human active time is unchanged. Full breakdown, including every phase, pause and agent
+run: [docs/timelog.md](docs/timelog.md).
 
-| Phase | Wall clock | Timer minus announced pauses |
-|---|---|---|
-| 1 — Spec definition | 1h 29m | 0h 50m |
-| 2 — Pipeline bootstrap + spec | 1h 14m | 0h 39m |
-| 4 — Execution, review, merges | 11h 36m | 7h 30m |
-| 6 — Ship | 0h 07m | 0h 07m |
+## Want to know more?
 
-Post-delivery, after the timer above closed: Phase 9 (containerize, amendment A5) ran 2026-09-25 14:02–14:45,
-agent-only, no human task. Human active time is unchanged.
-
-Full breakdown, including per-phase agent runs and every pause: [docs/timelog.md](docs/timelog.md).
+| Topic | File |
+|---|---|
+| Business rules and glossary | [docs/business-rules.md](docs/business-rules.md) |
+| Specification (requirements) | [docs/spec.md](docs/spec.md) |
+| Implementation plan (tasks) | [docs/plan.md](docs/plan.md) |
+| Product brief | [docs/PRODUCT.md](docs/PRODUCT.md) |
+| Architecture and stack | [docs/architecture.md](docs/architecture.md) |
+| Design system | [docs/DESIGN.md](docs/DESIGN.md) |
+| Architecture / flow diagrams | [docs/diagrams/README.md](docs/diagrams/README.md) |
+| How AI was used (pipeline, agents, evidence) | [docs/how-ai-was-used.md](docs/how-ai-was-used.md) |
+| Pipeline playbook (agent instructions) | [.claude/skills/pipeline/SKILL.md](.claude/skills/pipeline/SKILL.md) |
+| Failure log | [docs/pipeline/failures.md](docs/pipeline/failures.md) |
+| Timelog / time report | [docs/timelog.md](docs/timelog.md) |
+| AI evaluation ("Fill with AI" model choice) | [docs/evals/README.md](docs/evals/README.md) |

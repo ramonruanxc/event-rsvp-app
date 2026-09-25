@@ -1,4 +1,4 @@
-import type { EventRecord, RsvpRecord } from '@/domain/types';
+import type { EventRecord, RsvpRecord, UserRecord } from '@/domain/types';
 
 /** Fields required to persist a new event. */
 export interface NewEvent {
@@ -71,4 +71,28 @@ export interface RsvpRepository {
 export interface RateLimitRepository {
   /** Atomically increments the counter of (key, windowStart) and returns the new count (first call → 1). */
   increment(key: string, windowStart: Date): Promise<number>;
+  /** Current count of (key, windowStart); 0 when there is no row. */
+  count(key: string, windowStart: Date): Promise<number>;
+}
+
+/** Fields required to persist a new password user. */
+export interface NewUser {
+  name: string;
+  email: string;
+  passwordHash: string;
+}
+
+/** Persistence operations for users' password credentials. */
+export interface UserRepository {
+  /** Throws EmailTakenError when the email already exists. */
+  create(data: NewUser): Promise<UserRecord>;
+  /** Case-insensitive match on the stored email; callers pass a normalized email. */
+  findByEmail(email: string): Promise<UserRecord | null>;
+  findById(id: string): Promise<UserRecord | null>;
+  /** Stores a new hash and sets passwordNotice to false. */
+  setPassword(id: string, passwordHash: string): Promise<void>;
+  /** Sets passwordHash to null, passwordClearedAt to `at` and passwordNotice to true. */
+  clearPassword(id: string, at: Date): Promise<void>;
+  /** Sets passwordNotice to false. */
+  dismissPasswordNotice(id: string): Promise<void>;
 }
