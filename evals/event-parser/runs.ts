@@ -17,6 +17,15 @@ export function classifyRun(run: {
 }
 
 /** Aggregates one case's runs: passes iff ≥ 1 answered run and every answered run is ok and passes (REQ-100). */
-export function aggregateRuns(_evalCase: EvalCase, _runs: RunResult[]): CaseRuns {
-  throw new Error('not implemented');
+export function aggregateRuns(evalCase: EvalCase, runs: RunResult[]): CaseRuns {
+  const answered = runs.filter((run) => run.status === 'ok' || run.status === 'invalid');
+  const passed =
+    answered.length > 0 && answered.every((run) => run.status === 'ok' && run.result.passed);
+  return {
+    id: evalCase.id,
+    category: evalCase.category,
+    holdout: evalCase.holdout === true,
+    runs,
+    passed,
+  };
 }
