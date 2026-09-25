@@ -299,3 +299,31 @@ describe('SubmitRsvpService — REQ-56 rate limit', () => {
     );
   });
 });
+
+describe('SubmitRsvpService — REQ-58 honeypot', () => {
+  it('REQ-58: a filled honeypot is rejected and nothing is stored; an empty one proceeds', async () => {
+    const { events, rsvps, store } = await arrange();
+    const service = new SubmitRsvpService({ events, rsvps, now });
+
+    const error = await service
+      .execute({
+        ...base,
+        honeypot: 'http://spam',
+        values: { name: 'Ana', status: 'GOING', partySize: 1 },
+      })
+      .catch((e) => e);
+
+    expect(error).toBeInstanceOf(ValidationError);
+    expect((error as ValidationError).fieldErrors).toEqual({ form: 'invalidFormat' });
+    expect(store.rsvps).toHaveLength(0);
+
+    const result = await service.execute({
+      ...base,
+      honeypot: '',
+      values: { name: 'Ana', status: 'GOING', partySize: 1 },
+    });
+
+    expect(result.created).toBe(true);
+    expect(store.rsvps).toHaveLength(1);
+  });
+});
