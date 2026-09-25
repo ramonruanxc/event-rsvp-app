@@ -16,3 +16,8 @@ export const REASONING_EFFORT_SETTINGS = [...REASONING_EFFORTS, 'omit'] as const
 export type ReasoningEffortSetting = (typeof REASONING_EFFORT_SETTINGS)[number];
 /** Effort used when OPENROUTER_REASONING_EFFORT is unset, blank or unknown (amendment A4). */
 export const DEFAULT_REASONING_EFFORT: ReasoningEffortSetting = 'low';
+
+/** Reads OPENROUTER_REASONING_EFFORT: trimmed, lower-cased; unset, blank or unknown → DEFAULT_REASONING_EFFORT (REQ-99). */
+export function resolveReasoningEffort(_value: string | undefined): ReasoningEffortSetting {
+  throw new Error('not implemented');
+}
