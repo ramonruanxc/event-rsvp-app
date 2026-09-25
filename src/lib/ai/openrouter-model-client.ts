@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { InvalidModelOutputError } from './errors';
 import { AI_OUTPUT_JSON_SCHEMA } from './output';
 import { AI_TIMEOUT_MS, type AiModelClient } from './types';
 
@@ -17,6 +18,22 @@ const completionSchema = z.object({
     .optional(),
   error: z.object({ code: z.number(), message: z.string().optional() }).optional(),
 });
+
+/** Parses the model's JSON content, removing a Markdown code fence; unusable content is InvalidModelOutputError. */
+function parseContent(content: string | null | undefined): unknown {
+  if (typeof content !== 'string' || content.trim() === '') {
+    throw new InvalidModelOutputError('model returned no content');
+  }
+  const text = content
+    .trim()
+    .replace(/^```(?:json)?\s*/i, '')
+    .replace(/\s*```$/, '');
+  try {
+    return JSON.parse(text);
+  } catch {
+    throw new InvalidModelOutputError('model content is not JSON');
+  }
+}
 
 /** Structured-output model client for OpenRouter; the key and base URL are read on each call (REQ-94). */
 export function createOpenRouterModelClient(deps: OpenRouterDeps = {}): AiModelClient {
@@ -49,7 +66,7 @@ export function createOpenRouterModelClient(deps: OpenRouterDeps = {}): AiModelC
           signal: controller.signal,
         });
         const envelope = completionSchema.parse(JSON.parse(await response.text()));
-        return JSON.parse(envelope.choices?.[0]?.message?.content ?? '');
+        return parseContent(envelope.choices?.[0]?.message?.content);
       } finally {
         clearTimeout(timer);
       }
