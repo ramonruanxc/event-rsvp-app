@@ -3,7 +3,7 @@ export const AI_FIELDS = ['name', 'description', 'date', 'time', 'timezone', 'lo
 /** One of AI_FIELDS. */
 export type AiField = (typeof AI_FIELDS)[number];
 /** Hard limit for one "Fill with AI" model call (BR-64). */
-export const AI_TIMEOUT_MS = 10_000;
+export const AI_TIMEOUT_MS = 20_000;
 
 /** AI providers the app can call (BR-119). */
 export const AI_PROVIDER_NAMES = ['anthropic', 'openrouter'] as const;
