@@ -2,7 +2,12 @@ import { describe, expect, it, vi } from 'vitest';
 import { AiUnavailableError } from '@/domain/errors';
 import { AiEventParser } from '@/services/ai-event-parser';
 import { ProviderUnavailableError } from './errors';
-import { buildAiProviders, DEFAULT_AI_PROVIDERS, parseAiProviders } from './providers-config';
+import {
+  buildAiProviders,
+  DEFAULT_AI_PROVIDERS,
+  DEFAULT_MODELS,
+  parseAiProviders,
+} from './providers-config';
 import type { AiModelClient } from './types';
 
 describe('parseAiProviders', () => {
@@ -36,7 +41,7 @@ describe('buildAiProviders', () => {
   it('REQ-86: without AI_PROVIDERS only OpenRouter is used, even when both keys are set', () => {
     const f = makeFactories();
     expect(buildAiProviders({ ANTHROPIC_API_KEY: 'a', OPENROUTER_API_KEY: 'o' }, f)).toEqual([
-      { name: 'openrouter', client: openrouterClient, model: 'anthropic/claude-haiku-4.5' },
+      { name: 'openrouter', client: openrouterClient, model: 'anthropic/claude-sonnet-5' },
     ]);
     expect(f.anthropic).not.toHaveBeenCalled();
   });
@@ -48,8 +53,8 @@ describe('buildAiProviders', () => {
         makeFactories(),
       ),
     ).toEqual([
-      { name: 'anthropic', client: anthropicClient, model: 'claude-haiku-4-5' },
-      { name: 'openrouter', client: openrouterClient, model: 'anthropic/claude-haiku-4.5' },
+      { name: 'anthropic', client: anthropicClient, model: 'claude-sonnet-5' },
+      { name: 'openrouter', client: openrouterClient, model: 'anthropic/claude-sonnet-5' },
     ]);
 
     expect(
@@ -68,12 +73,12 @@ describe('buildAiProviders', () => {
         f,
       ),
     ).toEqual([
-      { name: 'openrouter', client: openrouterClient, model: 'anthropic/claude-haiku-4.5' },
+      { name: 'openrouter', client: openrouterClient, model: 'anthropic/claude-sonnet-5' },
     ]);
     expect(
       buildAiProviders({ AI_PROVIDERS: 'anthropic,openrouter', OPENROUTER_API_KEY: 'o' }, f),
     ).toEqual([
-      { name: 'openrouter', client: openrouterClient, model: 'anthropic/claude-haiku-4.5' },
+      { name: 'openrouter', client: openrouterClient, model: 'anthropic/claude-sonnet-5' },
     ]);
     expect(f.anthropic).not.toHaveBeenCalled();
 
@@ -98,12 +103,12 @@ describe('buildAiProviders', () => {
           AI_PROVIDERS: 'anthropic,openrouter',
           ANTHROPIC_API_KEY: 'a',
           OPENROUTER_API_KEY: 'o',
-          AI_MODEL: 'claude-sonnet-5',
+          AI_MODEL: 'claude-haiku-4-5',
           OPENROUTER_MODEL: 'openai/gpt-4o-mini',
         },
         makeFactories(),
       ).map((p) => p.model),
-    ).toEqual(['claude-sonnet-5', 'openai/gpt-4o-mini']);
+    ).toEqual(['claude-haiku-4-5', 'openai/gpt-4o-mini']);
 
     expect(
       buildAiProviders(
@@ -116,7 +121,12 @@ describe('buildAiProviders', () => {
         },
         makeFactories(),
       ).map((p) => p.model),
-    ).toEqual(['claude-haiku-4-5', 'anthropic/claude-haiku-4.5']);
+    ).toEqual(['claude-sonnet-5', 'anthropic/claude-sonnet-5']);
+
+    expect(DEFAULT_MODELS).toEqual({
+      anthropic: 'claude-sonnet-5',
+      openrouter: 'anthropic/claude-sonnet-5',
+    });
   });
 
   it('REQ-88: with the default configuration there is no failover', async () => {
