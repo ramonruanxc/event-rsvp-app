@@ -104,7 +104,7 @@ describe('AiEventParser', () => {
       system: SYSTEM_PROMPT,
       user: expect.stringContaining('<event_text>'),
       model: 'claude-haiku-4-5',
-      timeoutMs: 10_000,
+      timeoutMs: 20_000,
     });
   });
 
@@ -119,17 +119,23 @@ describe('AiEventParser', () => {
     ).rejects.toBeInstanceOf(AiUnavailableError);
   });
 
-  it('REQ-47: no answer within 10 seconds becomes AiUnavailableError', async () => {
+  it('REQ-133: no answer within 20 seconds ends the fill, and not before', async () => {
     vi.useFakeTimers();
     const complete = vi.fn().mockReturnValue(new Promise(() => {}));
     const parser = new AiEventParser({
       providers: [{ name: 'anthropic', client: { complete }, model: 'claude-haiku-4-5' }],
     });
+    let settled = false;
+    const result = parser
+      .parse({ text: 'Dinner', formTimezone: null, now: new Date() })
+      .finally(() => {
+        settled = true;
+      });
+    const assertion = expect(result).rejects.toBeInstanceOf(AiUnavailableError);
 
-    const assertion = expect(
-      parser.parse({ text: 'Dinner', formTimezone: null, now: new Date() }),
-    ).rejects.toBeInstanceOf(AiUnavailableError);
-    await vi.advanceTimersByTimeAsync(10_000);
+    await vi.advanceTimersByTimeAsync(19_999);
+    expect(settled).toBe(false);
+    await vi.advanceTimersByTimeAsync(1);
     await assertion;
     vi.useRealTimers();
   });
@@ -260,13 +266,13 @@ describe('AiEventParser — providers', () => {
     });
 
     await expect(parser.parse(REQUEST)).resolves.toEqual(EXPECTED);
-    expect(anthropic).toHaveBeenCalledWith(expect.objectContaining({ timeoutMs: 10_000 }));
-    expect(openrouter).toHaveBeenCalledWith(expect.objectContaining({ timeoutMs: 7_000 }));
+    expect(anthropic).toHaveBeenCalledWith(expect.objectContaining({ timeoutMs: 20_000 }));
+    expect(openrouter).toHaveBeenCalledWith(expect.objectContaining({ timeoutMs: 17_000 }));
   });
 
   it('REQ-88: no provider is tried with less than one second left', async () => {
     const anthropic1 = vi.fn(async () => {
-      t = 9_001;
+      t = 19_001;
       throw new ProviderUnavailableError('server');
     });
     const openrouter1 = vi.fn().mockResolvedValue(RAW);
@@ -282,7 +288,7 @@ describe('AiEventParser — providers', () => {
 
     t = 0;
     const anthropic2 = vi.fn(async () => {
-      t = 9_000;
+      t = 19_000;
       throw new ProviderUnavailableError('server');
     });
     const openrouter2 = vi.fn().mockResolvedValue(RAW);
@@ -306,7 +312,7 @@ describe('AiEventParser — providers', () => {
     });
 
     const assertion = expect(parser.parse(REQUEST)).rejects.toBeInstanceOf(AiUnavailableError);
-    await vi.advanceTimersByTimeAsync(10_000);
+    await vi.advanceTimersByTimeAsync(20_000);
     await assertion;
     expect(openrouter).not.toHaveBeenCalled();
     vi.useRealTimers();
