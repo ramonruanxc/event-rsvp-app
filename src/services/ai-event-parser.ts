@@ -1,9 +1,10 @@
 import { AiUnavailableError } from '@/domain/errors';
+import { ProviderUnavailableError } from '@/lib/ai/errors';
 import { normalizeAiOutput } from '@/lib/ai/output';
 import { buildUserMessage, SYSTEM_PROMPT } from '@/lib/ai/prompt';
 import { AI_TIMEOUT_MS } from '@/lib/ai/types';
 import type { AiProvider, EventTextParser, ParseEventResult } from '@/lib/ai/types';
-import { withTimeout } from '@/lib/with-timeout';
+import { TimeoutError, withTimeout } from '@/lib/with-timeout';
 
 /** Parses organizer text into event fields using the configured providers, with a hard timeout (REQ-45, REQ-47). */
 export class AiEventParser implements EventTextParser {
@@ -19,15 +20,17 @@ export class AiEventParser implements EventTextParser {
     const user = buildUserMessage({ text, now, timezone: formTimezone });
 
     for (const provider of this.deps.providers) {
+      let raw: unknown;
       try {
-        const raw = await withTimeout(
+        raw = await withTimeout(
           provider.client.complete({ system: SYSTEM_PROMPT, user, model: provider.model }),
           AI_TIMEOUT_MS,
         );
-        return normalizeAiOutput(raw, formTimezone);
-      } catch {
-        // any failure: try the next provider (TASK-194 narrows this to outages)
+      } catch (error) {
+        if (error instanceof ProviderUnavailableError || error instanceof TimeoutError) continue; // outage (BR-121)
+        throw new AiUnavailableError(); // anything else is never retried (BR-122)
       }
+      return normalizeAiOutput(raw, formTimezone); // schema failure → AiUnavailableError, no retry (BR-122)
     }
     throw new AiUnavailableError();
   }
