@@ -1,7 +1,47 @@
 import { describe, expect, it, vi } from 'vitest';
 import { AiUnavailableError } from '@/domain/errors';
+import { ProviderUnavailableError } from '@/lib/ai/errors'; // TASK-194 adds InvalidModelOutputError here
 import { SYSTEM_PROMPT } from '@/lib/ai/prompt';
+import type { AiModelClient, AiProvider, AiProviderName, ParseEventResult } from '@/lib/ai/types';
 import { AiEventParser } from './ai-event-parser';
+
+const RAW = {
+  isEvent: true,
+  name: 'Team dinner',
+  description: 'Dinner with the team.',
+  date: '2026-10-02',
+  time: '19:00',
+  timezone: null,
+  location: "Mario's",
+};
+// RAW + form timezone 'America/New_York' → timezone from the form, nothing missing (REQ-45, REQ-46)
+const EXPECTED: ParseEventResult = {
+  fields: {
+    name: 'Team dinner',
+    description: 'Dinner with the team.',
+    date: '2026-10-02',
+    time: '19:00',
+    timezone: 'America/New_York',
+    location: "Mario's",
+  },
+  missing: [],
+  timezoneFromText: false,
+  notAnEvent: false,
+};
+const REQUEST = {
+  text: "Team dinner next Friday 7pm at Mario's",
+  formTimezone: 'America/New_York',
+  now: new Date('2026-09-24T15:00:00.000Z'),
+};
+const provider = (
+  name: AiProviderName,
+  complete: AiModelClient['complete'],
+  model: string,
+): AiProvider => ({
+  name,
+  client: { complete },
+  model,
+});
 
 describe('AiEventParser', () => {
   it('REQ-45: returns the model fields with the form timezone and no missing field', async () => {
@@ -90,5 +130,77 @@ describe('AiEventParser', () => {
     await vi.advanceTimersByTimeAsync(10_000);
     await assertion;
     vi.useRealTimers();
+  });
+});
+
+describe('AiEventParser — providers', () => {
+  it('REQ-88: when the first provider is down, the next provider answers', async () => {
+    const anthropic = vi.fn().mockRejectedValue(new ProviderUnavailableError('server'));
+    const openrouter = vi.fn().mockResolvedValue(RAW);
+    const parser = new AiEventParser({
+      providers: [
+        provider('anthropic', anthropic, 'claude-haiku-4-5'),
+        provider('openrouter', openrouter, 'anthropic/claude-haiku-4.5'),
+      ],
+    });
+
+    await expect(parser.parse(REQUEST)).resolves.toEqual(EXPECTED);
+    expect(anthropic).toHaveBeenCalledTimes(1);
+    expect(openrouter).toHaveBeenCalledTimes(1);
+    expect(openrouter).toHaveBeenCalledWith(
+      expect.objectContaining({ system: SYSTEM_PROMPT, model: 'anthropic/claude-haiku-4.5' }),
+    );
+    expect(anthropic.mock.invocationCallOrder[0]).toBeLessThan(
+      openrouter.mock.invocationCallOrder[0],
+    );
+
+    // the first provider that answers wins; later providers are not called (REQ-86)
+    const first = vi.fn().mockResolvedValue(RAW);
+    const second = vi.fn().mockResolvedValue(RAW);
+    await new AiEventParser({
+      providers: [provider('anthropic', first, 'm1'), provider('openrouter', second, 'm2')],
+    }).parse(REQUEST);
+    expect(second).not.toHaveBeenCalled();
+  });
+
+  it('REQ-88: an invalid or unauthorized key (auth) on the first provider lets the next provider answer', async () => {
+    const a1 = vi.fn().mockRejectedValue(new ProviderUnavailableError('auth'));
+    const o1 = vi.fn().mockResolvedValue(RAW);
+    const parser1 = new AiEventParser({
+      providers: [
+        provider('anthropic', a1, 'claude-haiku-4-5'),
+        provider('openrouter', o1, 'anthropic/claude-haiku-4.5'),
+      ],
+    });
+    await expect(parser1.parse(REQUEST)).resolves.toEqual(EXPECTED);
+    expect(a1).toHaveBeenCalledTimes(1);
+    expect(o1).toHaveBeenCalledTimes(1);
+
+    const o2 = vi.fn().mockRejectedValue(new ProviderUnavailableError('auth'));
+    const a2 = vi.fn().mockResolvedValue(RAW);
+    const parser2 = new AiEventParser({
+      providers: [
+        provider('openrouter', o2, 'anthropic/claude-haiku-4.5'),
+        provider('anthropic', a2, 'claude-haiku-4-5'),
+      ],
+    });
+    await expect(parser2.parse(REQUEST)).resolves.toEqual(EXPECTED);
+    expect(o2).toHaveBeenCalledTimes(1);
+    expect(a2).toHaveBeenCalledTimes(1);
+  });
+
+  it('REQ-88: when every provider is down, the fill is unavailable', async () => {
+    const anthropic = vi.fn().mockRejectedValue(new ProviderUnavailableError('credit'));
+    const openrouter = vi.fn().mockRejectedValue(new ProviderUnavailableError('rate-limit'));
+    const parser = new AiEventParser({
+      providers: [
+        provider('anthropic', anthropic, 'claude-haiku-4-5'),
+        provider('openrouter', openrouter, 'anthropic/claude-haiku-4.5'),
+      ],
+    });
+
+    await expect(parser.parse(REQUEST)).rejects.toBeInstanceOf(AiUnavailableError);
+    expect(anthropic).toHaveBeenCalledTimes(1);
+    expect(openrouter).toHaveBeenCalledTimes(1);
   });
 });
