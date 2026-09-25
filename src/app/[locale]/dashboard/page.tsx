@@ -1,10 +1,10 @@
-import { CalendarPlus } from 'lucide-react';
+import { CalendarPlus, Check, ChevronRight } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
 import { CreateSampleButton } from '@/components/create-sample-button';
 import { Link } from '@/i18n/navigation';
 import { getServices } from '@/lib/container';
 import { requireUserId } from '@/lib/session';
-import { formatEventDateTime } from '@/lib/format-date';
+import { dateTileParts, formatEventDateTime } from '@/lib/format-date';
 import type { DashboardItem } from '@/services/list-dashboard';
 import { buttonClass } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
@@ -26,17 +26,41 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
   const isEmpty = upcoming.length === 0 && past.length === 0;
 
   function renderItem(item: DashboardItem) {
+    const tile = dateTileParts(item.startsAt, item.timezone, locale);
+    const hasReplies = item.totals.going + item.totals.declined > 0;
     return (
       <li key={item.slug}>
-        <Link href={`/e/${item.slug}`}>{item.name}</Link>
-        <span>{formatEventDateTime(item.startsAt, item.timezone, locale)}</span>
-        <span>
-          {t('totals.summary', {
-            going: item.totals.going,
-            declined: item.totals.declined,
-            people: item.totals.people,
-          })}
-        </span>
+        <Link className="ev-link" href={`/e/${item.slug}`}>
+          <span className="date-tile" aria-hidden="true">
+            <span className="m">{tile.month}</span>
+            <span className="d">{tile.day}</span>
+            <span className="w">{tile.weekday}</span>
+          </span>
+          <span className="ev-main">
+            <span className="ev-name">{item.name}</span>
+            <br />
+            <span className="small ev-meta">
+              {formatEventDateTime(item.startsAt, item.timezone, locale)}
+            </span>
+          </span>
+          <span className="small ev-counts">
+            {hasReplies ? (
+              <>
+                <Icon icon={Check} size={12} />
+                <span>
+                  {t('totals.summary', {
+                    going: item.totals.going,
+                    declined: item.totals.declined,
+                    people: item.totals.people,
+                  })}
+                </span>
+              </>
+            ) : (
+              <span>{t('dashboard.noReplies')}</span>
+            )}
+          </span>
+          <Icon icon={ChevronRight} className="ev-chev" />
+        </Link>
       </li>
     );
   }
@@ -85,17 +109,25 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
           </div>
         ) : (
           <>
-            <section aria-labelledby="upcoming-heading">
-              <h2 id="upcoming-heading">{t('dashboard.upcoming')}</h2>
+            <section aria-labelledby="upcoming-heading" className="mb-8">
+              <h2 id="upcoming-heading" className="h3 mb-3">
+                {t('dashboard.upcoming')}
+              </h2>
               {upcoming.length === 0 ? (
-                <p>{t('dashboard.noUpcoming')}</p>
+                <p className="muted">{t('dashboard.noUpcoming')}</p>
               ) : (
-                <ul>{upcoming.map(renderItem)}</ul>
+                <ul className="ev-list">{upcoming.map(renderItem)}</ul>
               )}
             </section>
             <section aria-labelledby="past-heading">
-              <h2 id="past-heading">{t('dashboard.past')}</h2>
-              {past.length === 0 ? <p>{t('dashboard.noPast')}</p> : <ul>{past.map(renderItem)}</ul>}
+              <h2 id="past-heading" className="h3 mb-3">
+                {t('dashboard.past')}
+              </h2>
+              {past.length === 0 ? (
+                <p className="muted">{t('dashboard.noPast')}</p>
+              ) : (
+                <ul className="ev-list">{past.map(renderItem)}</ul>
+              )}
             </section>
           </>
         )}
