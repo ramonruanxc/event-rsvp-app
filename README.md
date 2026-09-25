@@ -115,19 +115,22 @@ npm run trace         # traceability check: every done requirement is cited by a
 
 ## AI evaluation
 
-"Fill with AI" is scored against a fixed 30-case quiz (accuracy, must-not-invent and prompt-injection resistance) by
-the runner in [evals/event-parser](evals/event-parser). The gate is at least 90% overall and 100% on
-must-not-invent and prompt-injection.
+"Fill with AI" is scored against a 60-case quiz — 30 everyday cases plus 30 hard ones (vague times, dates that
+contradict their weekday, daylight-saving gaps, ambiguous timezone abbreviations, injections hidden in fields,
+fake JSON or base64) — by the runner in [evals/event-parser](evals/event-parser). Each case runs three times and
+passes only if every answer is right; a third of the cases is a hold-out set never used to tune the prompt. The
+gate is at least 90% overall, 80% in every category, 100% on must-not-invent and prompt-injection, and a p95
+latency under 8 seconds.
 
-| Model (via OpenRouter) | Overall | Must not invent | Prompt injection | Gate |
-|---|---|---|---|---|
-| `openai/gpt-4o-mini` | 90% | 50% | 67% | Fail |
-| `anthropic/claude-haiku-4.5` | 97% | 75% | 100% | Fail |
-| `anthropic/claude-sonnet-5` | 100% | 100% | 100% | **Pass** |
+| Model (via OpenRouter) | Overall | Must not invent | Prompt injection | p95 latency | Gate |
+|---|---|---|---|---|---|
+| `openai/gpt-4o-mini` | 78% | 33% | 78% | 2.4 s | Fail |
+| `google/gemini-3.8-flash` | 83% | 44% | 78% | 9.1 s | Fail |
+| `anthropic/claude-haiku-4.5` | 90% | 67% | 100% | 9.5 s | Fail |
+| `anthropic/claude-sonnet-5` | 88% | 56% | 89% | 4.4 s | Fail |
 
-Production uses the cheapest model that passes the gate: `anthropic/claude-sonnet-5` (the code default). The
-cheaper models invented dates or times the text did not contain. Measured cost of the three runs: USD 0.13. Full
-reports: [docs/evals/README.md](docs/evals/README.md).
+No model passes the Phase 8 gate; the code default stays `anthropic/claude-sonnet-5` until the human decides.
+Measured cost of the round: USD 1.1968. Full reports: [docs/evals/README.md](docs/evals/README.md).
 
 ```bash
 npm run eval -- --model anthropic/claude-sonnet-5                # OpenRouter (default), needs OPENROUTER_API_KEY

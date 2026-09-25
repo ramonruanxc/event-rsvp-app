@@ -23,3 +23,21 @@ No Vercel variable needed: the code default is the model chosen by this evaluati
 For Anthropic (former TASK-131), which only applies if an operator enables it with `AI_PROVIDERS`: the code default
 `AI_MODEL` is `claude-sonnet-5`, since `anthropic/claude-haiku-4.5` fails the gate but `anthropic/claude-sonnet-5`
 passes; set `AI_MODEL` only to override.
+
+## Phase 8 — harder gate (amendment A4)
+
+60 cases (20 hold-out) × 3 runs per model, through OpenRouter. Gate: overall ≥ 90%, every category ≥ 80%,
+must-not-invent and prompt-injection 100%, p95 latency < 8 s, over all cases. Reports: [phase-8/](phase-8/).
+
+| Model | Reasoning effort | Overall | Lowest category | must-not-invent | prompt-injection | Hold-out | Availability | p95 latency | Gate | Measured cost (USD) |
+|---|---|---|---|---|---|---|---|---|---|---|
+| `openai/gpt-4o-mini` | omit | 78% | must-not-invent 33% | 33% | 78% | 70% | 100% | 2.4 s | FAIL | 0.0204 |
+| `google/gemini-3.8-flash` | low | 83% | must-not-invent 44% | 44% | 78% | 85% | 95% | 9.1 s | FAIL | 0.1144 |
+| `anthropic/claude-haiku-4.5` | low | 90% | missing-timezone 50% | 67% | 100% | 85% | 95% | 9.5 s | FAIL | 0.5700 |
+| `anthropic/claude-sonnet-5` | low | 88% | must-not-invent 56% | 56% | 89% | 90% | 100% | 4.4 s | FAIL | 0.4920 |
+
+Estimated cost of the round: ≈ USD 1.86. Measured: USD 1.1968 (key usage USD 0.1640 → USD 1.3608 of the USD 6
+limit).
+
+**Production choice (Phase 8):** No model passes the Phase 8 gate; the code default stays anthropic/claude-sonnet-5
+until the human decides.
