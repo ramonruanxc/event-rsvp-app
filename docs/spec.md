@@ -28,6 +28,9 @@ Decided by the human on 2026-09-24 and recorded in `docs/business-rules.md`.
   2. The owner action keeps the BR-51 label "Copy invite link" (not DESIGN.md's "Copy link") → BR-51 unchanged.
   3. The header language select is exempt from the visible-label rule (globe + current language name, globe only
      below 480 px, accessible name via `aria-label`) → BR-105 (amended). Applied in REQ-68, REQ-80 (TASK-165).
+- **Resolved — A3** (Phase 7 open questions, decided 2026-09-24) →
+  1. Default provider order `anthropic,openrouter` confirmed → BR-119 unchanged. Applied in REQ-86.
+  2. No retry on another provider after invalid model output confirmed → BR-122 unchanged. Applied in REQ-89.
 
 ---
 
@@ -99,7 +102,7 @@ and "Please fix the highlighted fields." would mislead. Today the only source is
 | unit (component) | Vitest + jsdom + Testing Library | `src/**/*.test.tsx`, first line `// @vitest-environment jsdom` | none |
 | integration | Vitest (node) | `src/**/*.int.test.ts` | Docker Postgres `rsvp_test` / CI service container |
 | e2e | Playwright (Chromium) | `e2e/*.spec.ts` | Docker Postgres `rsvp_test` |
-| eval | custom runner (`npm run eval`) | `evals/event-parser/` | none (real Anthropic API) |
+| eval | custom runner (`npm run eval`) | `evals/event-parser/` | none (real Anthropic or OpenRouter API, `--provider`) |
 
 Every test title starts with the requirement ID it proves: `it('REQ-26: blocks "  maria " without a cookie', …)`.
 
@@ -119,6 +122,11 @@ real Google sign-in. **There is no fake or test-only auth provider in production
 
 E2E runs the app with `ANTHROPIC_BASE_URL=http://localhost:4010`, served by `e2e/mock-anthropic.mjs` (a plain Node HTTP
 server started by Playwright). Production code is unchanged; only the base URL differs.
+
+From Phase 7 (amendment A3) E2E also runs `e2e/mock-openrouter.mjs`, an OpenAI-compatible mock on
+`MOCK_OPENROUTER_PORT` (default 4020, never reused), and the app gets `OPENROUTER_BASE_URL=http://127.0.0.1:<port>/api/v1`.
+Both mocks answer the same event; the marker `[[mock-error]]` in the text makes both fail (HTTP 500) and the marker
+`[[anthropic-down]]` makes only the Anthropic mock fail (HTTP 529). CI and E2E only ever see the dummy key `test-key`.
 
 ---
 
@@ -1247,6 +1255,188 @@ its last assertion; no other change.
   character replaced by a plain space → `'Sep 24, 10:02 AM EDT'`
 **Test level:** unit + e2e
 
+### AI providers (amendment A3)
+
+OpenRouter is a second AI provider next to Anthropic. Both use the same prompt (`SYSTEM_PROMPT`, `buildUserMessage`),
+the same output schema (`aiRawOutputSchema`) and the same normalization (`normalizeAiOutput`); only the transport
+differs. Numbering: REQ-90 … REQ-93 are tooling requirements (their own range), so product numbering continues at
+REQ-94 after REQ-89.
+
+Terms used below:
+- **Provider list** — the ordered `AiProvider[]` (`{ name, client, model }`) given to `AiEventParser`.
+- **Outage** — a failure the client reports as `ProviderUnavailableError(reason)`; `reason` is one of `network`,
+  `server`, `rate-limit`, `timeout`, `credit`. Only an outage lets the next provider be tried (BR-121).
+- **Budget** — the 10 000 ms of BR-64 (`AI_TIMEOUT_MS`), counted from the start of `AiEventParser.parse` and shared by
+  every attempt of that call. A further provider is tried only if at least `MIN_ATTEMPT_MS` = 1 000 ms are left: this
+  is what "the retry still fits within the same 10-second budget" (BR-121) means in this system.
+
+### REQ-86 — AI providers are tried in the order set by `AI_PROVIDERS`
+**Rules:** BR-119
+**Status:** todo
+**Acceptance criteria:**
+- `parseAiProviders(undefined)`, `parseAiProviders('')` and `parseAiProviders('   ')` → `['anthropic', 'openrouter']`
+  (default order confirmed by the human, "Resolved — A3")
+- `parseAiProviders('openrouter,anthropic')` → `['openrouter', 'anthropic']`;
+  `parseAiProviders(' OpenRouter , anthropic ,')` → `['openrouter', 'anthropic']` (trimmed, lower-cased, empty items
+  dropped); `parseAiProviders('anthropic,anthropic')` → `['anthropic']` (first occurrence kept);
+  `parseAiProviders('anthropic,mistral')` → `['anthropic']` (unknown names ignored); `parseAiProviders('mistral')` → `[]`
+- Given both keys set and `AI_PROVIDERS=openrouter,anthropic`, `buildAiProviders` returns
+  `[{ name: 'openrouter', … }, { name: 'anthropic', … }]`
+- `AiEventParser` calls the providers in list order and returns the first usable answer; the providers after the one
+  that answered are not called
+**Test level:** unit
+
+### REQ-87 — A provider without an API key is skipped
+**Rules:** BR-120
+**Status:** todo
+**Acceptance criteria:**
+- Keys: `ANTHROPIC_API_KEY` (Anthropic), `OPENROUTER_API_KEY` (OpenRouter). A key that is missing or only whitespace
+  counts as "no key"
+- `buildAiProviders({ OPENROUTER_API_KEY: 'o' }, factories)` → only `{ name: 'openrouter', model:
+  'anthropic/claude-haiku-4.5' }`; the Anthropic factory is never called (the provider is not attempted)
+- `buildAiProviders({}, factories)` → `[]`; `AiEventParser` with `[]` rejects with `AiUnavailableError` without any
+  model call, so the organizer sees "Couldn't fill automatically — please fill the form." (BR-65, BR-66)
+- Models: Anthropic uses `AI_MODEL` (default `claude-haiku-4-5`), OpenRouter uses `OPENROUTER_MODEL` (default
+  `anthropic/claude-haiku-4.5`); a blank value means the default
+- Building the provider list creates no SDK or HTTP client and reads no key value beyond the presence check: the
+  Anthropic SDK is created on the first call (REQ-47, TASK-119) and the OpenRouter client reads its key on each call
+  (REQ-94)
+**Test level:** unit
+
+### REQ-88 — Failover to the next provider on an outage, within one 10-second budget
+**Rules:** BR-121, BR-64
+**Status:** todo
+**Acceptance criteria:**
+- Outage classification (`ProviderUnavailableError(reason)`):
+
+  | Failure | Anthropic client (SDK error) | OpenRouter client (fetch) | `reason` |
+  |---|---|---|---|
+  | Network error | `APIConnectionError` | `fetch` rejects | `network` |
+  | Timeout | `APIConnectionTimeoutError` | aborted after `timeoutMs` | `timeout` |
+  | Request timeout status | HTTP 408 | HTTP 408 | `timeout` |
+  | Server error | HTTP 500–599 (including 529 "overloaded") | HTTP 500–599; HTTP 200 whose body is not JSON | `server` |
+  | Rate limit | HTTP 429 | HTTP 429 | `rate-limit` |
+  | Insufficient credit | HTTP 402, or HTTP 400 whose message contains "credit balance" | HTTP 402 | `credit` |
+
+  An OpenRouter HTTP 200 body `{ "error": { "code": N, … } }` is classified by `N` with the same table. The parser's
+  own `TimeoutError` (`withTimeout`) is also an outage.
+- Any other failure — e.g. HTTP 400 (other than the credit message), 401, 403, 404 — is **not** an outage: no other
+  provider is tried and the result is `AiUnavailableError` (BR-121 lists the outage types; nothing else fails over)
+- Budget: the first provider is called with `timeoutMs: 10_000`. With a fake clock, a first provider that fails with
+  an outage at t = 3 000 ms → the second is called with `timeoutMs: 7_000`; at t = 9 000 → called with
+  `timeoutMs: 1_000`; at t = 9 001 → not called and the result is `AiUnavailableError`
+- A first provider that never answers uses the whole budget: `AiUnavailableError` at 10 000 ms and the second
+  provider is not called
+- Every provider failing with an outage → `AiUnavailableError` → "Couldn't fill automatically — please fill the form."
+- E2E (mocks): the text `[[anthropic-down]] Team dinner next Friday 7pm at Mario's` → the Anthropic mock answers 529,
+  the OpenRouter mock answers, and the form shows Name "Team dinner", Location "Mario's", Date "2030-10-04", Time
+  "19:00"; `[[mock-error]] party` → both fail and the fallback message is shown (REQ-51, unchanged)
+**Test level:** unit + e2e
+
+### REQ-89 — Invalid model output is never retried on another provider
+**Rules:** BR-122, BR-70
+**Status:** todo
+**Acceptance criteria:**
+- The first provider returns output that fails `aiRawOutputSchema` (e.g. `{ foo: 1 }`) → `AiUnavailableError`; the
+  second provider is not called (confirmed by the human, "Resolved — A3")
+- `InvalidModelOutputError` from a client → `AiUnavailableError`, no other provider called. It is raised for:
+  Anthropic `parsed_output: null` (message `model returned no structured output`) and SDK "Failed to parse structured
+  output" errors; OpenRouter content that is missing, blank or not JSON
+- Any non-outage client error (REQ-88) behaves the same way: `AiUnavailableError`, no other provider called
+**Test level:** unit
+
+### REQ-94 — OpenRouter structured-output client
+**Rules:** BR-70, BR-121
+**Status:** todo
+**Acceptance criteria:**
+- `AI_OUTPUT_JSON_SCHEMA` (derived from `aiRawOutputSchema` with `z.toJSONSchema`, `$schema` removed) equals exactly
+  `{ type: 'object', properties: { isEvent: { type: 'boolean' }, name: { type: ['string','null'] }, description:
+  { type: ['string','null'] }, date: { type: ['string','null'] }, time: { type: ['string','null'] }, timezone:
+  { type: ['string','null'] }, location: { type: ['string','null'] } }, required: ['isEvent','name','description',
+  'date','time','timezone','location'], additionalProperties: false }`
+- `createOpenRouterModelClient({ fetch, env: { OPENROUTER_API_KEY: 'test-key' } }).complete({ system: 'sys', user:
+  'user', model: 'openai/gpt-4o-mini' })` sends one `POST https://openrouter.ai/api/v1/chat/completions` with headers
+  `{ Authorization: 'Bearer test-key', 'Content-Type': 'application/json' }`, an `AbortSignal`, and the JSON body
+  `{ model: 'openai/gpt-4o-mini', max_tokens: 1024, messages: [{ role: 'system', content: 'sys' }, { role: 'user',
+  content: 'user' }], response_format: { type: 'json_schema', json_schema: { name: 'event_fields', strict: true,
+  schema: AI_OUTPUT_JSON_SCHEMA } }, provider: { require_parameters: true } }`
+  (`require_parameters` keeps the request away from endpoints that would ignore the schema)
+- The result is `JSON.parse` of `choices[0].message.content`; a Markdown code fence around it (```` ```json … ``` ````)
+  is removed first. The result is **not** validated here: `AiEventParser` validates it (REQ-43, REQ-89)
+- `OPENROUTER_BASE_URL` (trailing slashes removed) replaces `https://openrouter.ai/api/v1` — E2E uses it for the mock
+- Key and base URL are read on each call, never when the client is created; with no key the call rejects with
+  `Error('OPENROUTER_API_KEY is not set')` and no request is sent
+- Failures are classified per REQ-88 and REQ-89; error messages never contain the key (e.g. `OpenRouter HTTP 401`)
+**Test level:** unit (fake `fetch`) + e2e (mock server)
+
+### REQ-95 — The result is the same whichever provider answered
+**Rules:** BR-123, BR-56, BR-57, BR-58, BR-96
+**Status:** todo
+**Acceptance criteria:**
+- The same raw model output gives an identical `ParseEventResult` whether the Anthropic provider answered or the
+  OpenRouter provider answered after an Anthropic outage (one prompt, one schema, one `normalizeAiOutput`)
+- `{ isEvent: false, … }` from OpenRouter → the REQ-45 non-event result (`notAnEvent: true`, all fields `null`, all six
+  in `missing`), so the UI shows "Couldn't find event details in that text."
+- Failures from any provider end as `AI_UNAVAILABLE` with the same message; `ParseEventResult` carries no provider
+  name, so the UI cannot differ by provider; the AI path still never saves the event (REQ-50)
+- E2E: the failover fill of REQ-88 shows exactly the values of the Anthropic fill of REQ-51
+**Test level:** unit (characterization) + e2e
+
+### REQ-96 — One fill request counts once against the daily AI limit
+**Rules:** BR-124, BR-68
+**Status:** todo
+**Acceptance criteria:**
+- Given user `"u1"`, a fixed clock and a parser whose Anthropic provider always fails with an outage while OpenRouter
+  answers: 20 requests resolve, the 21st rejects `AiLimitReachedError`; each provider was called exactly 20 times
+- Given every provider failing with an outage: 20 requests reject `AiUnavailableError`, the 21st rejects
+  `AiLimitReachedError`
+- The limit is consumed once in `ParseEventTextService` before the parser runs (REQ-48); failover happens inside the
+  parser and never touches the limiter
+**Test level:** unit (characterization)
+
+### REQ-97 — Provider keys never reach the browser or CI
+**Rules:** BR-125
+**Status:** todo
+**Acceptance criteria:**
+- Keys are read only by server code at call time: the Anthropic SDK reads `ANTHROPIC_API_KEY`; the OpenRouter client
+  reads `OPENROUTER_API_KEY`; both are built only by `src/lib/container.ts` (`server-only`) and the eval runner
+- No tracked code or env file names a public (`NEXT_PUBLIC_`-prefixed) variable ending in a key or secret name; no
+  file starting with `'use client'` contains `API_KEY` or imports `@/lib/container` or a model client module
+- `.github/workflows/*.yml` mention none of `ANTHROPIC_API_KEY`, `OPENROUTER_API_KEY`, `OPENROUTER_MANAGMENT_KEY`,
+  `OPENROUTER_MANAGEMENT_KEY`; `.env.test` sets both API keys to the dummy `test-key`; `.env.example` leaves both
+  empty; `.env.local` is not tracked and is ignored by git
+- E2E: no HTML, script, JSON or Server Action response received by the browser during "Fill with AI" contains
+  `test-key`
+**Test level:** unit (characterization) + e2e
+
+### REQ-98 — The OpenRouter API key is provisioned with a spend limit, without printing secrets
+**Rules:** BR-126, BR-125
+**Status:** todo
+**Acceptance criteria:**
+- `npm run openrouter:key -- [--name <n>] [--limit <usd>] [--env-file <path>] [--rotate]` (defaults
+  `event-rsvp-app`, `3`, `.env.local`, off) reads the management key from `OPENROUTER_MANAGMENT_KEY` (the human's
+  spelling; `OPENROUTER_MANAGEMENT_KEY` is accepted as a fallback). Missing → exit 2 and the single stderr line
+  `OPENROUTER_MANAGMENT_KEY is not set — ask the human to set it as a system environment variable.`
+- `--limit` must be a number > 0 (else exit 2, `--limit must be a positive number of USD`)
+- Keys API (`https://openrouter.ai/api/v1`, `Authorization: Bearer <management key>`): list
+  `GET /keys?include_disabled=true&offset=<n>` page by page until an empty page; create `POST /keys` with
+  `{ name, limit }` (the plaintext `key` is only in this response); update `PATCH /keys/<hash>` with `{ limit }`;
+  delete `DELETE /keys/<hash>`
+- No key with that name → created (`action: created`) and `OPENROUTER_API_KEY=<key>` is written to the env file (line
+  replaced if present, appended otherwise, file created if missing, other lines untouched)
+- A key with that name and a non-empty `OPENROUTER_API_KEY` already in the env file → reused (`action: reused`), or
+  its limit updated when it differs (`action: limit-updated`); the env file is not written
+- A key with that name but no value in the env file → exit 1, `Key "event-rsvp-app" exists but OPENROUTER_API_KEY is
+  not in the env file — re-run with --rotate to replace it.`; a disabled key → exit 1, `Key "event-rsvp-app" is
+  disabled — re-run with --rotate to replace it.`; `--rotate` deletes the named key and creates a new one
+  (`action: rotated`)
+- stdout is exactly `name: <name>`, `limit: <limit> USD` (or `limit: none`), `usage: <usage> USD`, `action: <action>`
+  and, when a key was written, `OPENROUTER_API_KEY written to <env file>`. No output line ever contains the management
+  key or an API key; an API failure prints only `OpenRouter keys API <METHOD> <path> failed: HTTP <status>` (exit 1)
+- Tests use a fake HTTP layer; no test calls OpenRouter
+- The Anthropic key's spend limit is set by hand in the Anthropic console (HUMAN-05 step 2)
+**Test level:** unit (fake HTTP, in-memory files)
+
 ---
 
 ## Tooling requirements
@@ -1311,6 +1501,23 @@ These requirements are code in the repository and are TDD'd like product code. T
   `multilingual` has at least one French and one Brazilian Portuguese case
 - Every `non-event` case expects `notAnEvent: true`, every field `null` it checks, and `missing` equal to all six
   fields (BR-96); at least one `must-not-invent` case (an event with missing details) expects `notAnEvent: false`
+**Test level:** unit
+
+### REQ-93 — Eval runner: provider selection
+**Rules:** none (tooling)
+**Status:** todo
+**Acceptance criteria:**
+- `npm run eval -- --provider openrouter --model openai/gpt-4o-mini` runs the same cases, scoring and gate as REQ-91
+  through `AiEventParser` with the single provider `{ name: 'openrouter', client: createOpenRouterModelClient(),
+  model }`; `--provider` defaults to `anthropic` (so `npm run eval -- --model claude-haiku-4-5` behaves as before)
+- Checks, in this order, each → exit 2 with one stderr line: unknown provider → `--provider must be one of:
+  anthropic, openrouter`; the provider's key missing → `ANTHROPIC_API_KEY is not set — ask the human to provide it.`
+  or `OPENROUTER_API_KEY is not set — ask the human to provide it.`; no model → `--model is required`
+- Report label (title of REQ-91's report): `claude-haiku-4-5` for Anthropic, `openrouter:<model>` for OpenRouter
+  (e.g. `openrouter:openai/gpt-4o-mini`)
+- Report file: `<date>-<model>.md` for Anthropic (unchanged) and `<date>-openrouter-<model>.md` for OpenRouter, where
+  every character of the model outside `[A-Za-z0-9._-]` becomes `-`: `2026-09-24-openrouter-anthropic-claude-haiku-4.5.md`
+- The production OpenRouter model is the cheapest model that passes the gate (same rule as REQ-91 / TASK-131)
 **Test level:** unit
 
 ---
@@ -1382,13 +1589,13 @@ These requirements are code in the repository and are TDD'd like product code. T
 | BR-61 | REQ-46, REQ-51 |
 | BR-62 | REQ-44 |
 | BR-63 | REQ-44 (+ eval category `multilingual`, REQ-92) |
-| BR-64 | REQ-47 |
+| BR-64 | REQ-47, REQ-88 |
 | BR-65 | REQ-47, REQ-51 |
 | BR-66 | REQ-15, REQ-51 |
 | BR-67 | REQ-49 |
-| BR-68 | REQ-48, REQ-55 |
+| BR-68 | REQ-48, REQ-55, REQ-96 |
 | BR-69 | REQ-44 |
-| BR-70 | REQ-43 |
+| BR-70 | REQ-43, REQ-89, REQ-94 |
 | BR-71 | REQ-42 |
 | BR-72 | REQ-41 |
 | BR-73 | REQ-52 |
@@ -1437,6 +1644,15 @@ These requirements are code in the repository and are TDD'd like product code. T
 | BR-116 | REQ-77 |
 | BR-117 | REQ-78 |
 | BR-118 | REQ-79 |
+| BR-119 | REQ-86 |
+| BR-120 | REQ-87 |
+| BR-121 | REQ-88, REQ-94 |
+| BR-122 | REQ-89 |
+| BR-123 | REQ-95 |
+| BR-124 | REQ-96 |
+| BR-125 | REQ-97, REQ-98 |
+| BR-126 | REQ-98 (OpenRouter key); Anthropic key: non-functional — spend limit set by hand in the Anthropic console (HUMAN-05 step 2) |
 
-118 business rules, 118 covered (BR-12 additionally non-functional). BR-97 … BR-118 added by
-amendment A2 (REQ-62 … REQ-85). Tooling: REQ-90, REQ-91, REQ-92.
+126 business rules, 126 covered (BR-12 additionally non-functional; BR-126 partly non-functional for the Anthropic
+key). BR-97 … BR-118 added by amendment A2 (REQ-62 … REQ-85). BR-119 … BR-126 added by amendment A3 (REQ-86 …
+REQ-89, REQ-94 … REQ-98). Tooling: REQ-90, REQ-91, REQ-92, REQ-93.
