@@ -1,3 +1,5 @@
+import { z } from 'zod';
+
 /** OpenRouter's keys API base URL. */
 export const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1';
 
@@ -42,15 +44,48 @@ export interface KeysApi {
   remove(hash: string): Promise<void>;
 }
 
+const keyInfoSchema = z.object({
+  hash: z.string(),
+  name: z.string(),
+  limit: z.number().nullable().default(null),
+  usage: z.number().default(0),
+  disabled: z.boolean().default(false),
+});
+const listSchema = z.object({ data: z.array(keyInfoSchema) });
+const MAX_PAGES = 50;
+
 /** OpenRouter keys API client authenticated with a management key (REQ-98). */
-export function createKeysApi(_deps: {
+export function createKeysApi(deps: {
   fetch: HttpFetch;
   managementKey: string;
   baseUrl?: string;
 }): KeysApi {
+  const base = (deps.baseUrl ?? OPENROUTER_API_URL).replace(/\/+$/, '');
+  const call = async (method: string, path: string, body?: unknown): Promise<unknown> => {
+    const response = await deps.fetch(`${base}${path}`, {
+      method,
+      headers: {
+        Authorization: `Bearer ${deps.managementKey}`,
+        'Content-Type': 'application/json',
+      },
+      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+    });
+    if (response.status < 200 || response.status >= 300) {
+      throw new KeysApiError(method, path.split('?')[0], response.status);
+    }
+    return response.json();
+  };
   return {
     async list() {
-      throw new Error('not implemented');
+      const keys: KeyInfo[] = [];
+      for (let page = 0; page < MAX_PAGES; page++) {
+        const { data } = listSchema.parse(
+          await call('GET', `/keys?include_disabled=true&offset=${keys.length}`),
+        );
+        if (data.length === 0) break;
+        keys.push(...data);
+      }
+      return keys;
     },
     async create() {
       throw new Error('not implemented');
