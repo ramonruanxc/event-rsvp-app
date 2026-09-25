@@ -26,6 +26,9 @@
 | **Public demo event** | A seeded event linked from the signed-out home page so evaluators can see the app without signing in. |
 | **Missing field (AI)** | A form field the AI event-parsing feature could not determine from the organizer's free text; returned as missing rather than guessed. |
 | **Fill with AI** | The action that sends organizer free text to the AI parser and populates the event form; it never saves the event itself. |
+| **Theme** | The application's dark or light visual mode; user-selectable from the header and persisted across visits. |
+| **Reduced motion** | An operating-system-level user preference (`prefers-reduced-motion`) indicating that animated transitions should be minimized. |
+| **Target size** | The clickable or tappable area of an interactive control, measured in pixels. |
 
 ---
 
@@ -514,6 +517,124 @@ submissions — please try again in a few minutes." and preserves the values the
 #### BR-87 — Security response headers
 **Rule:** Server responses include the headers `X-Frame-Options: DENY`, `Referrer-Policy`, and `X-Content-Type-Options`.
 **Source:** design brief §4 "Errors and security"
+
+---
+
+### Interface & accessibility
+
+#### BR-97 — Dark theme is the default
+**Rule:** On first visit, with no stored theme preference, the application renders in the dark theme.
+**Rationale:** Establishes a single, predictable default appearance for new visitors, consistent with the approved
+visual direction.
+**Source:** design brief §6 amendment A2; DESIGN.md §"Scene"; PRODUCT.md §"Accessibility & Inclusion"
+
+#### BR-98 — Theme switch available in the header on every page
+**Rule:** Every page displays a control in the header that lets the user switch between the dark and light themes.
+**Source:** design brief §6 amendment A2; DESIGN.md §"Layout"
+
+#### BR-99 — Theme choice is remembered across visits
+**Rule:** Once a user selects a theme, that choice is applied on subsequent page loads and future visits in the same
+browser, until the user changes it again.
+**Rationale:** Avoids forcing the user to re-select their preferred theme on every visit.
+**Source:** design brief §6 amendment A2; DESIGN.md §"Theme implementation notes"
+
+#### BR-100 — Theme is applied without a flash of the other theme
+**Rule:** When a page loads, the user's previously chosen theme is the first theme rendered; the page never
+visibly renders in the other theme before switching to the chosen one.
+**Rationale:** A visible flash of the wrong theme reads as a bug and undermines the calm, trustworthy brand
+personality.
+**Source:** design brief §6 amendment A2; DESIGN.md §"Theme implementation notes"
+
+#### BR-101 — Both themes meet AA contrast for text
+**Rule:** In both the dark theme and the light theme, independently, body and label text has a contrast ratio of
+at least 4.5:1 against its background.
+**Source:** PRODUCT.md §"Accessibility & Inclusion"; DESIGN.md §"Tokens (OKLCH)"
+
+#### BR-102 — Both themes meet AA contrast for large text and UI boundaries
+**Rule:** In both the dark theme and the light theme, independently, large text and the visual boundaries of UI
+components (e.g. input borders, focus indicators) have a contrast ratio of at least 3:1 against their adjacent
+background.
+**Source:** PRODUCT.md §"Accessibility & Inclusion"; DESIGN.md §"Tokens (OKLCH)"
+
+#### BR-103 — Visible focus indicator on every interactive control
+**Rule:** Every interactive control (link, button, input, toggle) shows a visible focus indicator when it
+receives keyboard focus.
+**Source:** PRODUCT.md §"Accessibility & Inclusion"; DESIGN.md §"Components"
+
+#### BR-104 — Full keyboard operability
+**Rule:** Every user action available with a pointer is also available using only the keyboard.
+**Source:** PRODUCT.md §"Accessibility & Inclusion"
+
+#### BR-105 — Every input has a visible label
+**Rule:** Every form input displays a visible text label; a placeholder is never the only label for an input.
+**Source:** PRODUCT.md §"Accessibility & Inclusion"; DESIGN.md §"Components"
+
+#### BR-106 — Form errors are announced to assistive technology
+**Rule:** When a form submission produces a validation or server error, the error message is exposed to
+assistive technology (e.g. via `role="alert"` or an `aria-live` region), not only shown visually.
+**Source:** PRODUCT.md §"Accessibility & Inclusion"
+
+#### BR-107 — Status and state are never conveyed by color alone
+**Rule:** Wherever the interface conveys a status or state with color (e.g. going / not going / ended, an error,
+a success confirmation), it also conveys the same information with an icon, a text label, or both.
+**Rationale:** Keeps the interface usable for users who cannot distinguish the colors involved (e.g. color-blind
+users) or who rely on assistive technology that does not render color.
+**Source:** PRODUCT.md §"Design Principles" (#4 "State is always visible"); DESIGN.md §"Components"
+
+#### BR-108 — Minimum interactive target size
+**Rule:** Every interactive control has a target size of at least 24x24 px.
+**Source:** PRODUCT.md §"Accessibility & Inclusion"
+
+#### BR-109 — Larger touch targets for guest RSVP controls
+**Rule:** On the guest-facing RSVP page, the response choice, the party-size stepper controls, and the submit
+action each have a target size of at least 44x44 px.
+**Rationale:** These are the controls a guest completing an RSVP on a phone touches directly; a larger target
+reduces mis-taps on small screens.
+**Source:** DESIGN.md §"Components"; PRODUCT.md §"Design Principles" (#2 "Guest first, phone first")
+
+#### BR-110 — Confirmation required before removing an RSVP
+**Rule:** Organizer removal of an RSVP requires an explicit confirmation step before the RSVP is removed.
+**Rationale:** Removal is destructive and not reversible by the guest; explicit confirmation prevents accidental
+removal, mirroring the existing requirement for deleting an event (BR-09).
+**Source:** DESIGN.md §"Components" ("Inline confirm")
+
+#### BR-111 — Destructive-action confirmations are inline, not modal
+**Rule:** Confirmation for deleting an event (BR-09) and for removing an RSVP (BR-110) is presented inline,
+expanding in place next to the control that triggered it, rather than in a modal dialog.
+**Source:** design brief §6 amendment A2; DESIGN.md §"Components" ("Inline confirm")
+
+#### BR-112 — Guest RSVP page usable at 375 px width without horizontal scrolling
+**Rule:** The guest-facing RSVP page (`/e/[slug]`) is fully usable at a 375 px viewport width without any
+horizontal scrolling.
+**Source:** PRODUCT.md §"Design Principles" (#2 "Guest first, phone first")
+
+#### BR-113 — Reduced motion is respected
+**Rule:** When the user's system is set to prefer reduced motion, all interface transitions are limited to
+opacity changes only (no movement, scaling, or other motion).
+**Source:** PRODUCT.md §"Accessibility & Inclusion"; DESIGN.md §"Motion"
+
+#### BR-114 — Header displays the app logo on every page
+**Rule:** Every page's header displays the application's logo mark.
+**Source:** design brief §6 amendment A2; DESIGN.md §"Layout"
+
+#### BR-115 — Favicon is the app logo
+**Rule:** The browser favicon is the application's logo.
+**Source:** design brief §6 amendment A2; DESIGN.md §"Theme implementation notes"
+
+#### BR-116 — Layouts tolerate longer French strings
+**Rule:** Every layout displaying UI text remains usable and free of clipped, overlapping, or truncated text when
+the French translation of that text is up to 30% longer than the English source.
+**Source:** PRODUCT.md §"Accessibility & Inclusion"
+
+#### BR-117 — Decorative icons are hidden from assistive technology
+**Rule:** Icons used purely for decoration, that do not convey information on their own, are hidden from
+assistive technology and are not announced by screen readers.
+**Source:** DESIGN.md §"Iconography"
+
+#### BR-118 — Copy-link confirmation is announced to assistive technology
+**Rule:** After the invite link is copied successfully, the confirmation is announced to assistive technology
+(e.g. via an `aria-live` region), in addition to any visual change.
+**Source:** DESIGN.md §"Components" ("Copy invite link")
 
 ---
 
