@@ -42,11 +42,12 @@ export function RsvpForm({ initial, submit, onDone }: RsvpFormProps) {
   /**
    * Text for the top-level alert. Covers action-level failures (e.g. `DUPLICATE_NAME`,
    * `RATE_LIMITED`) as well as server-side form validation failures that carry no specific
-   * field (e.g. a filled honeypot, REQ-58). Always generic: never reveals the honeypot.
+   * field (e.g. a filled honeypot, REQ-58). Form-level failures show rsvp.formRejected, which
+   * never reveals the honeypot.
    */
   function formAlert(): string | null {
     if (formError) return t(`errors.${formError}`);
-    if (fieldErrors.form) return t('errors.VALIDATION_ERROR');
+    if (fieldErrors.form) return t('rsvp.formRejected');
     return null;
   }
 
