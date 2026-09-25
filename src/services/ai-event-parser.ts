@@ -16,23 +16,19 @@ export class AiEventParser implements EventTextParser {
     now: Date;
   }): Promise<ParseEventResult> {
     const { text, formTimezone, now } = request;
-    const provider = this.deps.providers[0];
-    if (!provider) throw new AiUnavailableError();
+    const user = buildUserMessage({ text, now, timezone: formTimezone });
 
-    let raw: unknown;
-    try {
-      raw = await withTimeout(
-        provider.client.complete({
-          system: SYSTEM_PROMPT,
-          user: buildUserMessage({ text, now, timezone: formTimezone }),
-          model: provider.model,
-        }),
-        AI_TIMEOUT_MS,
-      );
-    } catch {
-      throw new AiUnavailableError();
+    for (const provider of this.deps.providers) {
+      try {
+        const raw = await withTimeout(
+          provider.client.complete({ system: SYSTEM_PROMPT, user, model: provider.model }),
+          AI_TIMEOUT_MS,
+        );
+        return normalizeAiOutput(raw, formTimezone);
+      } catch {
+        // any failure: try the next provider (TASK-194 narrows this to outages)
+      }
     }
-
-    return normalizeAiOutput(raw, formTimezone);
+    throw new AiUnavailableError();
   }
 }
