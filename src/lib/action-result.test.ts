@@ -42,6 +42,9 @@ describe('toActionError', () => {
       'AI_UNAVAILABLE',
       'UNAUTHENTICATED',
       'INTERNAL_ERROR',
+      'INVALID_CREDENTIALS',
+      'EMAIL_TAKEN',
+      'GOOGLE_ACCOUNT_EXISTS',
     ];
     for (const code of codes) {
       expect(typeof en.errors[code]).toBe('string');

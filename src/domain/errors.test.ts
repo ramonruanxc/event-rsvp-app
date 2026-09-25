@@ -6,7 +6,10 @@ import {
   AiUnavailableError,
   DomainError,
   DuplicateNameError,
+  EmailTakenError,
   EventEndedError,
+  GoogleAccountExistsError,
+  InvalidCredentialsError,
   NotFoundError,
   NotOwnerError,
   RateLimitedError,
@@ -62,5 +65,12 @@ describe('DomainError subclasses', () => {
       expect(err.code).toBe(code);
       expect(err).toBeInstanceOf(DomainError);
     }
+  });
+
+  it('REQ-115: the credential errors carry their codes', () => {
+    expect(new InvalidCredentialsError().code).toBe('INVALID_CREDENTIALS');
+    expect(new EmailTakenError().code).toBe('EMAIL_TAKEN');
+    expect(new GoogleAccountExistsError().code).toBe('GOOGLE_ACCOUNT_EXISTS');
+    expect(new InvalidCredentialsError()).toBeInstanceOf(DomainError);
   });
 });

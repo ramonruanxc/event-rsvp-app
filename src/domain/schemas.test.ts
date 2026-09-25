@@ -1,12 +1,18 @@
+import { z } from 'zod';
 import { describe, expect, it } from 'vitest';
 import { ValidationError } from './errors';
 import {
+  emailSchema,
   eventDateSchema,
   eventDescriptionSchema,
   eventLocationSchema,
   eventNameSchema,
   eventTimeSchema,
+  passwordSchema,
+  registerInputSchema,
   rsvpInputSchema,
+  setPasswordInputSchema,
+  signInInputSchema,
   timezoneSchema,
 } from './schemas';
 
@@ -200,5 +206,114 @@ describe('rsvpInputSchema', () => {
         expect(result.data.partySize).toBe(0);
       }
     }
+  });
+});
+
+/** First field error of each field, as the forms show them. */
+function fieldErrorsOf(result: { success: boolean; error?: import('zod').ZodError }) {
+  return result.success ? null : ValidationError.fromZod(result.error!).fieldErrors;
+}
+
+describe('credential schemas (REQ-115)', () => {
+  it('REQ-115: emailSchema normalizes and validates the email', () => {
+    expect(emailSchema.parse('  Ana@Example.COM ')).toBe('ana@example.com');
+    expect(fieldErrorsOf(z.object({ email: emailSchema }).safeParse({ email: '' }))).toEqual({
+      email: 'required',
+    });
+    expect(fieldErrorsOf(z.object({ email: emailSchema }).safeParse({}))).toEqual({
+      email: 'required',
+    });
+    for (const email of ['nope', 'a@b']) {
+      expect(fieldErrorsOf(z.object({ email: emailSchema }).safeParse({ email })), email).toEqual({
+        email: 'invalidEmail',
+      });
+    }
+    expect(
+      fieldErrorsOf(
+        z.object({ email: emailSchema }).safeParse({ email: 'a'.repeat(250) + '@example.com' }),
+      ),
+    ).toEqual({ email: 'tooLong' });
+  });
+
+  it('REQ-115: passwordSchema accepts 8 to 128 code points with no composition rule', () => {
+    for (const ok of ['12345678', 'a'.repeat(128), '😀'.repeat(100), 'aaaaaaaa', '        ']) {
+      expect(passwordSchema.safeParse(ok).success, JSON.stringify(ok)).toBe(true);
+    }
+    const errors = (value: string) =>
+      fieldErrorsOf(z.object({ password: passwordSchema }).safeParse({ password: value }));
+    expect(errors('')).toEqual({ password: 'required' });
+    expect(errors('1234567')).toEqual({ password: 'passwordLength' });
+    expect(errors('a'.repeat(129))).toEqual({ password: 'passwordLength' });
+    expect(passwordSchema.parse('  spaced  ')).toBe('  spaced  ');
+  });
+
+  it('REQ-115: registerInputSchema normalizes, drops the confirmation and reports a mismatch', () => {
+    expect(
+      registerInputSchema.parse({
+        name: '  Ana Lima ',
+        email: ' Ana@Example.com',
+        password: 'correct horse',
+        confirmPassword: 'correct horse',
+      }),
+    ).toEqual({ name: 'Ana Lima', email: 'ana@example.com', password: 'correct horse' });
+    const base = { name: 'Ana', email: 'ana@example.com', password: 'correct horse' };
+    expect(
+      fieldErrorsOf(registerInputSchema.safeParse({ ...base, confirmPassword: 'correct horsE' })),
+    ).toEqual({
+      confirmPassword: 'passwordMismatch',
+    });
+    expect(fieldErrorsOf(registerInputSchema.safeParse({ ...base, confirmPassword: '' }))).toEqual({
+      confirmPassword: 'required',
+    });
+    expect(
+      fieldErrorsOf(registerInputSchema.safeParse({ ...base, name: '', confirmPassword: 'other' })),
+    ).toEqual({
+      name: 'required',
+      confirmPassword: 'passwordMismatch',
+    });
+    expect(
+      fieldErrorsOf(
+        registerInputSchema.safeParse({
+          ...base,
+          name: 'a'.repeat(81),
+          confirmPassword: base.password,
+        }),
+      ),
+    ).toEqual({ name: 'tooLong' });
+  });
+
+  it('REQ-115: signInInputSchema only needs a non-empty password', () => {
+    expect(signInInputSchema.parse({ email: ' Ana@Example.com ', password: 'x' })).toEqual({
+      email: 'ana@example.com',
+      password: 'x',
+    });
+    expect(fieldErrorsOf(signInInputSchema.safeParse({ email: 'nope', password: '' }))).toEqual({
+      email: 'invalidEmail',
+      password: 'required',
+    });
+  });
+
+  it('REQ-115: setPasswordInputSchema defaults the current password and checks the new one', () => {
+    expect(
+      setPasswordInputSchema.parse({
+        newPassword: 'new horse 12',
+        confirmPassword: 'new horse 12',
+      }),
+    ).toEqual({
+      currentPassword: '',
+      newPassword: 'new horse 12',
+    });
+    expect(
+      setPasswordInputSchema.parse({
+        currentPassword: 'old',
+        newPassword: 'new horse 12',
+        confirmPassword: 'new horse 12',
+      }),
+    ).toEqual({ currentPassword: 'old', newPassword: 'new horse 12' });
+    expect(
+      fieldErrorsOf(
+        setPasswordInputSchema.safeParse({ newPassword: 'short', confirmPassword: 'other' }),
+      ),
+    ).toEqual({ newPassword: 'passwordLength', confirmPassword: 'passwordMismatch' });
   });
 });

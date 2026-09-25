@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH, passwordLength } from './credentials';
 import { isValidTimeZone } from './timezone';
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -75,3 +76,63 @@ export const rsvpInputSchema = z
   }));
 /** Validated, transformed output of rsvpInputSchema. */
 export type RsvpInput = z.output<typeof rsvpInputSchema>;
+
+export const emailSchema = z
+  .string({ error: 'required' })
+  .trim()
+  .toLowerCase()
+  .min(1, 'required')
+  .max(254, 'tooLong')
+  .email('invalidEmail');
+export const passwordSchema = z
+  .string({ error: 'required' })
+  .min(1, 'required')
+  .refine((v) => {
+    const n = passwordLength(v);
+    return n >= PASSWORD_MIN_LENGTH && n <= PASSWORD_MAX_LENGTH;
+  }, 'passwordLength');
+const confirmSchema = z.string({ error: 'required' }).min(1, 'required');
+export const registerInputSchema = z
+  .object({
+    name: requiredText(80),
+    email: emailSchema,
+    password: passwordSchema,
+    confirmPassword: confirmSchema,
+  })
+  .superRefine((v, ctx) => {
+    if (v.password !== v.confirmPassword) {
+      ctx.addIssue({ code: 'custom', path: ['confirmPassword'], message: 'passwordMismatch' });
+    }
+  })
+  .transform(({ name, email, password }) => ({ name, email, password }));
+/** Unvalidated input shape of the registration form. */
+export type RegisterFormValues = z.input<typeof registerInputSchema>;
+/** Validated, transformed output of registerInputSchema. */
+export type RegisterInput = z.output<typeof registerInputSchema>;
+export const signInInputSchema = z.object({
+  email: emailSchema,
+  password: z.string({ error: 'required' }).min(1, 'required'),
+});
+/** Unvalidated input shape of the sign-in form. */
+export type SignInFormValues = z.input<typeof signInInputSchema>;
+/** Validated, transformed output of signInInputSchema. */
+export type SignInInput = z.output<typeof signInInputSchema>;
+export const setPasswordInputSchema = z
+  .object({
+    currentPassword: z
+      .string()
+      .optional()
+      .transform((v) => v ?? ''),
+    newPassword: passwordSchema,
+    confirmPassword: confirmSchema,
+  })
+  .superRefine((v, ctx) => {
+    if (v.newPassword !== v.confirmPassword) {
+      ctx.addIssue({ code: 'custom', path: ['confirmPassword'], message: 'passwordMismatch' });
+    }
+  })
+  .transform(({ currentPassword, newPassword }) => ({ currentPassword, newPassword }));
+/** Unvalidated input shape of the set/change password form. */
+export type SetPasswordFormValues = z.input<typeof setPasswordInputSchema>;
+/** Validated, transformed output of setPasswordInputSchema. */
+export type SetPasswordInput = z.output<typeof setPasswordInputSchema>;
