@@ -34,7 +34,16 @@ export interface StartDeps {
 }
 
 /** Runs START_STEPS in order with AUTH_SECRET ensured; stops at the first failing step and returns its code (REQ-108, REQ-109). */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars -- stub parameter, implemented in TASK-240
-export async function runStart(_deps: StartDeps): Promise<number> {
-  throw new Error('not implemented');
+export async function runStart(deps: StartDeps): Promise<number> {
+  const { env, generated } = withAuthSecret(deps.env, deps.generateSecret);
+  if (generated) deps.log(GENERATED_SECRET_NOTICE);
+  for (const step of START_STEPS) {
+    deps.log(`start: ${step.name}`);
+    const code = await deps.run(step, env);
+    if (code !== 0) {
+      deps.log(`start: ${step.name} failed with exit code ${code}`);
+      return code;
+    }
+  }
+  return 0;
 }
