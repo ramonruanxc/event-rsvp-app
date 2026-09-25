@@ -1,7 +1,10 @@
 import { CredentialsSignin } from 'next-auth';
 import type { JWT } from 'next-auth/jwt';
-import type { ActionFailure } from './action-result';
+import { InvalidCredentialsError, RateLimitedError } from '@/domain/errors';
 import type { AuthUser } from '@/domain/types';
+import { clientIp, hashIp } from './client-ip';
+import type { ActionFailure } from './action-result';
+import { toActionError } from './action-result';
 
 /** Thrown by authorize when the sign-in rate limit is reached (REQ-119). */
 export class RateLimitedSignIn extends CredentialsSignin {
@@ -37,24 +40,48 @@ export interface AuthCallbacks {
 }
 
 /** Builds the Auth.js callbacks from application services (REQ-118, REQ-119, REQ-121, REQ-122). */
-export function createAuthCallbacks(_deps: AuthCallbackDeps): AuthCallbacks {
+export function createAuthCallbacks(deps: AuthCallbackDeps): AuthCallbacks {
   return {
-    authorize: async () => {
+    async authorize(credentials, request) {
+      const ipHash = hashIp(clientIp(request.headers), deps.ipSalt());
+      try {
+        return await deps.signInWithPassword({
+          values: { email: credentials.email, password: credentials.password },
+          ipHash,
+        });
+      } catch (error) {
+        if (error instanceof RateLimitedError) throw new RateLimitedSignIn();
+        if (error instanceof InvalidCredentialsError) return null;
+        throw error;
+      }
+    },
+    async jwt({ token, account, trigger }) {
+      if (trigger === 'signIn' || trigger === 'signUp') {
+        if (account?.provider === 'credentials') token.pwdAt = deps.now();
+        return token;
+      }
+      if (typeof token.pwdAt !== 'number') return token;
+      if (!token.sub) return null;
+      return (await deps.validatePasswordSession({ userId: token.sub, pwdAt: token.pwdAt }))
+        ? token
+        : null;
+    },
+    async signIn() {
       throw new Error('not implemented');
     },
-    jwt: async () => {
-      throw new Error('not implemented');
-    },
-    signIn: async () => {
-      throw new Error('not implemented');
-    },
-    linkAccount: async () => {
+    async linkAccount() {
       throw new Error('not implemented');
     },
   };
 }
 
 /** Maps a server-side signIn failure to an ActionFailure (REQ-118, REQ-119). */
-export function signInFailure(_error: unknown, _log?: (error: unknown) => void): ActionFailure {
-  throw new Error('not implemented');
+export function signInFailure(error: unknown, log?: (error: unknown) => void): ActionFailure {
+  if (error instanceof CredentialsSignin) {
+    return {
+      ok: false,
+      code: error.code === 'rate_limited' ? 'RATE_LIMITED' : 'INVALID_CREDENTIALS',
+    };
+  }
+  return toActionError(error, log);
 }

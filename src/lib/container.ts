@@ -2,6 +2,7 @@ import 'server-only';
 import { prisma } from '@/lib/prisma';
 import { PrismaEventRepository } from '@/repositories/prisma/prisma-event-repository';
 import { PrismaRsvpRepository } from '@/repositories/prisma/prisma-rsvp-repository';
+import { PrismaUserRepository } from '@/repositories/prisma/prisma-user-repository';
 import { CreateEventService } from '@/services/create-event';
 import { UpdateEventService } from '@/services/update-event';
 import { DeleteEventService } from '@/services/delete-event';
@@ -19,6 +20,14 @@ import { PrismaRateLimitRepository } from '@/repositories/prisma/prisma-rate-lim
 import { createAnthropicModelClient } from '@/lib/ai/anthropic-model-client';
 import { createOpenRouterModelClient } from '@/lib/ai/openrouter-model-client';
 import { buildAiProviders } from '@/lib/ai/providers-config';
+import { scryptPasswordHasher } from '@/lib/password';
+import { RegisterUserService } from '@/services/register-user';
+import { SignInWithPasswordService } from '@/services/sign-in-with-password';
+import { SetPasswordService } from '@/services/set-password';
+import { GetAccountService } from '@/services/get-account';
+import { DismissPasswordNoticeService } from '@/services/dismiss-password-notice';
+import { LinkGoogleAccountService } from '@/services/link-google-account';
+import { ValidatePasswordSessionService } from '@/services/validate-password-session';
 
 /** The application's Prisma-backed services, built once per process. */
 export interface Services {
@@ -33,6 +42,13 @@ export interface Services {
   createSampleEvent: CreateSampleEventService;
   exportEventIcs: ExportEventIcsService;
   parseEventText: ParseEventTextService;
+  registerUser: RegisterUserService;
+  signInWithPassword: SignInWithPasswordService;
+  setPassword: SetPasswordService;
+  getAccount: GetAccountService;
+  dismissPasswordNotice: DismissPasswordNoticeService;
+  linkGoogleAccount: LinkGoogleAccountService;
+  validatePasswordSession: ValidatePasswordSessionService;
 }
 
 let services: Services | undefined;
@@ -42,6 +58,8 @@ export function getServices(): Services {
   if (!services) {
     const events = new PrismaEventRepository(prisma);
     const rsvps = new PrismaRsvpRepository(prisma);
+    const users = new PrismaUserRepository(prisma);
+    const hasher = scryptPasswordHasher;
     const now = () => new Date();
     const rateLimiter = new RateLimiter({ repo: new PrismaRateLimitRepository(prisma), now });
     services = {
@@ -65,6 +83,13 @@ export function getServices(): Services {
         rateLimiter,
         now,
       }),
+      registerUser: new RegisterUserService({ users, rateLimiter, hasher }),
+      signInWithPassword: new SignInWithPasswordService({ users, rateLimiter, hasher }),
+      setPassword: new SetPasswordService({ users, hasher }),
+      getAccount: new GetAccountService({ users }),
+      dismissPasswordNotice: new DismissPasswordNoticeService({ users }),
+      linkGoogleAccount: new LinkGoogleAccountService({ users, now }),
+      validatePasswordSession: new ValidatePasswordSessionService({ users }),
     };
   }
   return services;
