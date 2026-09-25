@@ -1317,6 +1317,16 @@
     margin-top: 3px;
     color: var(--text-muted);
   }
+  .site-notice {
+    max-width: 960px;
+    margin: 16px auto 0;
+    padding: 0 16px;
+  }
+  @media (min-width: 640px) {
+    .site-notice {
+      padding: 0 24px;
+    }
+  }
   .answer-line {
     display: flex;
     flex-wrap: wrap;

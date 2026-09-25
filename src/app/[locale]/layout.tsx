@@ -6,6 +6,7 @@ import { notFound } from 'next/navigation';
 import { routing } from '@/i18n/routing';
 import { parseTheme, THEME_COOKIE } from '@/lib/theme';
 import { SiteHeader } from '@/components/site-header';
+import { PasswordNoticeSlot } from '@/components/password-notice-slot';
 import '../globals.css';
 
 const geistSans = Geist({ variable: '--font-geist-sans', subsets: ['latin'] });
@@ -31,6 +32,7 @@ export default async function LocaleLayout({
       <body>
         <NextIntlClientProvider>
           <SiteHeader locale={locale} theme={theme} />
+          <PasswordNoticeSlot />
           {children}
         </NextIntlClientProvider>
       </body>
