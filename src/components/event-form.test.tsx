@@ -121,9 +121,7 @@ describe('EventForm — Fill with AI (REQ-51)', () => {
     );
     expect((screen.getByLabelText('Date') as HTMLInputElement).value).toBe('2026-10-02');
     expect((screen.getByLabelText('Time') as HTMLInputElement).value).toBe('19:00');
-    expect((screen.getByLabelText('Timezone') as HTMLSelectElement).value).toBe(
-      'America/New_York',
-    );
+    expect((screen.getByLabelText('Timezone') as HTMLSelectElement).value).toBe('America/New_York');
     const location = screen.getByLabelText('Location (optional)') as HTMLInputElement;
     expect(location.value).toBe('');
     expect(location.getAttribute('aria-invalid')).toBe('true');
