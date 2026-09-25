@@ -3282,7 +3282,7 @@ production model is the cheapest one that passes the gate (Haiku if it passes). 
 Order: TASK-140 → TASK-148.
 
 ### TASK-140 — RSVP rate limit in the service
-**Phase:** 5 · **Requirements:** REQ-56 · **Status:** todo · **Revision:** 2
+**Phase:** 5 · **Requirements:** REQ-56 · **Status:** done · **Revision:** 2
 **Files:** src/services/submit-rsvp.ts, src/services/submit-rsvp.test.ts
 **Interface:** `SubmitRsvpService` deps (today `{ events, rsvps, now, newToken? }`) gain `rateLimiter?: RateLimiter`
 (C5; `RateLimiter` and `RSVP_RULE` from `./rate-limiter`, TASK-110). When present, as the **first line** of
@@ -3313,7 +3313,7 @@ const going = (name: string) => ({ name, status: 'GOING', partySize: 1 });
   current test file.
 
 ### TASK-141 — Wire the RSVP rate limit and prove IPs are stored hashed
-**Phase:** 5 · **Requirements:** REQ-56 · **Status:** todo · **Revision:** 2
+**Phase:** 5 · **Requirements:** REQ-56 · **Status:** done · **Revision:** 2
 **Files:** src/lib/container.ts, src/services/submit-rsvp.int.test.ts
 **Interface:** in `getServices()` the entry becomes `submitRsvp: new SubmitRsvpService({ events, rsvps, now, rateLimiter })`,
 reusing the `rateLimiter` constant TASK-121 created (one `RateLimiter` for RSVP and AI; their keys differ by rule name).
@@ -3333,7 +3333,7 @@ Commit the container wiring as `chore(services): …` and the test as `test(serv
   shared `rateLimiter` constant from TASK-121, and the exact integration setup from `@/test/db`.
 
 ### TASK-142 — Honeypot in the service
-**Phase:** 5 · **Requirements:** REQ-58 · **Status:** todo · **Revision:** 2
+**Phase:** 5 · **Requirements:** REQ-58 · **Status:** done · **Revision:** 2
 **Files:** src/services/submit-rsvp.ts, src/services/submit-rsvp.test.ts
 **Interface:** step 0b in `execute` (after the TASK-140 rate-limit line, before `rsvpInputSchema.safeParse`):
 `if (input.honeypot.trim() !== '') throw new ValidationError({ form: 'invalidFormat' });`
@@ -3350,7 +3350,7 @@ Commit the container wiring as `chore(services): …` and the test as `test(serv
   (#13); merged as the last assertions of the filled-honeypot test, which fails first.
 
 ### TASK-143 — Honeypot field in the RSVP form
-**Phase:** 5 · **Requirements:** REQ-58 · **Status:** todo · **Revision:** 3
+**Phase:** 5 · **Requirements:** REQ-58 · **Status:** done · **Revision:** 3
 **Files:** src/components/rsvp-form.tsx, src/components/rsvp-form.test.tsx, messages/en.json, messages/fr.json,
 messages/pt-BR.json
 **Interface:** `RsvpFormProps.submit` already is `(values, honeypot: string) => …` and the action already forwards
@@ -3404,7 +3404,7 @@ highlighted. Spec: "Form-level validation errors" under Conventions, and REQ-58.
   `rsvp.formRejected` instead of `errors.VALIDATION_ERROR` for `fieldErrors.form`).
 
 ### TASK-144 — Security headers
-**Phase:** 5 · **Requirements:** REQ-60 · **Status:** todo · **Revision:** 2
+**Phase:** 5 · **Requirements:** REQ-60 · **Status:** done · **Revision:** 2
 **Files:** security-headers.mjs, src/security-headers.test.ts, next.config.ts, e2e/security.spec.ts
 **Interface:**
 ```js
@@ -3431,7 +3431,7 @@ Unit test import: `import { securityHeaders } from '../security-headers.mjs';` (
   intent; now keeps `withNextIntl` and states the import, stub and exact header values.
 
 ### TASK-145 — User content renders as text (E2E)
-**Phase:** 5 · **Requirements:** REQ-61 · **Status:** todo · **Revision:** 1
+**Phase:** 5 · **Requirements:** REQ-61 · **Status:** done · **Revision:** 1
 **Files:** e2e/security.spec.ts
 **Test first (characterization test — React escaping + the lint rule of TASK-02):**
 `REQ-61: an HTML description is shown literally and never executed` — event with description
@@ -3441,7 +3441,7 @@ Unit test import: `import { securityHeaders } from '../security-headers.mjs';` (
 **TDD exception:** none (characterization test, convention 13)
 
 ### TASK-146 — Journey: a guest RSVPs to the public demo event
-**Phase:** 5 · **Requirements:** REQ-40, REQ-23, REQ-39 · **Status:** todo · **Revision:** 1
+**Phase:** 5 · **Requirements:** REQ-40, REQ-23, REQ-39 · **Status:** done · **Revision:** 1
 **Files:** e2e/journeys.spec.ts
 **Test first (characterization test):** `REQ-40: a visitor opens the demo from the home page and RSVPs` —
 `await seedDemo(db, new Date())` (import from `../src/lib/demo-seed`); `/en` → click "See a demo event" → "Community
@@ -3451,7 +3451,7 @@ Picnic in the Park"; RSVP as "Evaluator", Going, 2 → "You're going (2)"; the t
 **TDD exception:** none (characterization test, convention 13)
 
 ### TASK-147 — Journey: organizer creates an event with AI and sees the guest list
-**Phase:** 5 · **Requirements:** REQ-51, REQ-34, REQ-23 · **Status:** todo · **Revision:** 1
+**Phase:** 5 · **Requirements:** REQ-51, REQ-34, REQ-23 · **Status:** done · **Revision:** 1
 **Files:** e2e/journeys.spec.ts
 **Test first (characterization test):** `REQ-34: organizer fills with AI, shares, and sees a guest's RSVP` — organizer
 context: `/en/events/new` → "Fill with AI" (mock) → "Save event" → read the slug from the URL; guest context (new,

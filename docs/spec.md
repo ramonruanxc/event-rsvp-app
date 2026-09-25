@@ -814,7 +814,7 @@ server started by Playwright). Production code is unchanged; only the base URL d
 
 ### REQ-56 — RSVP submissions are limited to 10 per 10 minutes per hashed IP
 **Rules:** BR-79, BR-80
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - `hashIp("203.0.113.7", "salt")` → SHA-256 hex of `"salt:203.0.113.7"`; never equals the raw IP
 - `clientIp(headers)` → first entry of `x-forwarded-for` trimmed (`"203.0.113.7, 10.0.0.1"` → `"203.0.113.7"`), else
@@ -836,7 +836,7 @@ server started by Playwright). Production code is unchanged; only the base URL d
 
 ### REQ-58 — Honeypot field
 **Rules:** BR-81, BR-83
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - `RsvpForm` renders an input `name="website"` inside a container with `aria-hidden="true"`, visually hidden
   (`className="absolute -left-[9999px]"`), `tabIndex={-1}`, `autoComplete="off"`
@@ -866,7 +866,7 @@ server started by Playwright). Production code is unchanged; only the base URL d
 
 ### REQ-60 — Security headers
 **Rules:** BR-87
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - `securityHeaders` (exported from `security-headers.mjs`) equals `[{ key: "X-Frame-Options", value: "DENY" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" }, { key: "X-Content-Type-Options",
@@ -876,7 +876,7 @@ server started by Playwright). Production code is unchanged; only the base URL d
 
 ### REQ-61 — User content is rendered as plain text
 **Rules:** BR-82
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - ESLint rule `react/no-danger` is `"error"` (lint fails on any `dangerouslySetInnerHTML`)
 - E2E: an event whose description is `<img src=x onerror="window.__xss=1">` shows that text literally on its page and

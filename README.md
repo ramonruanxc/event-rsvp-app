@@ -4,7 +4,7 @@ Create an event, share one link, see who's coming.
 
 ## Status
 
-Phase 3 of 6 merged: sharing, calendar export and demo.
+Phase 5 of 6 merged: abuse protection and hardening.
 
 **Live demo:** https://event-rsvp-app-flax.vercel.app
 
@@ -32,6 +32,9 @@ Phase 3 of 6 merged: sharing, calendar export and demo.
 - A public demo event, seeded and kept open automatically, lets evaluators RSVP without creating anything.
 - A home page that explains the app to signed-out visitors (with a link to the demo event and to Google
   sign-in) and greets signed-in organizers with a link to their dashboard.
+- RSVP submissions are rate-limited to 10 per 10 minutes per hashed IP address.
+- A hidden honeypot field on the RSVP form rejects automated spam submissions.
+- Every response carries `X-Frame-Options`, `Referrer-Policy` and `X-Content-Type-Options` security headers.
 
 ### Known limitations
 
