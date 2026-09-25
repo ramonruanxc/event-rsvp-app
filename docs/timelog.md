@@ -18,6 +18,7 @@ Event times are taken from session timestamps. All times in America/Fortaleza (U
 | 8 | Post-delivery: harder AI evaluation + reasoning control (amendment A4) | 2026-09-25 10:51:53 | 2026-09-25 13:38:28 |
 | 9 | Post-delivery: containerized one-command local run (amendment A5) | 2026-09-25 14:02:26 | 2026-09-25 14:56:51 |
 | 10 | Post-delivery: email and password sign-in alongside Google (amendment A6) | 2026-09-25 14:56:51 | 2026-09-25 17:40:17 |
+| 11 | Post-delivery: date and time pickers usable again (external feedback) | 2026-09-25 18:00:50 | — |
 
 ## Pauses
 
@@ -218,6 +219,7 @@ Pipeline agents working autonomously. Reported separately from human active time
 | 2026-09-25 17:42:30 | Orchestrator smoke-tested production after the deploy: sign-in and register pages in en/fr/pt-BR, organizer routes redirect to sign-in, demo event, `.ics`, security headers. Registering and signing in with a password in production is left to the human (agents never create accounts or type passwords) |
 | 2026-09-25 17:47:30 | Orchestrator ran `docker compose up --build` on a fresh clone of `main` with an empty database and no `.env.local`: AUTH_SECRET generated, migrate → seed → serve, smoke 3/3 |
 | 2026-09-25 17:49:00 | Human registered with email and password, signed out and signed in again on that local container: all worked |
+| 2026-09-25 18:00:50 | External reviewer feedback relayed by the human: the date and time controls could not open a picker, values had to be typed. Human asked for a quick fix (Phase 11) |
 
 ## Time report
 
