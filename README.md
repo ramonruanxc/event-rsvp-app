@@ -62,6 +62,14 @@ npx dotenv -e .env.local -- prisma migrate dev
 npm run dev
 ```
 
+- AI: set `OPENROUTER_API_KEY` in `.env.local` (`npm run openrouter:key` creates the OpenRouter key with a USD 3
+  spend limit from the system variable `OPENROUTER_MANAGMENT_KEY` and writes it there). OpenRouter is the default
+  and only provider (`AI_PROVIDERS` defaults to `openrouter`; `OPENROUTER_MODEL` defaults to
+  `anthropic/claude-haiku-4.5`). Anthropic is optional: to use it, set `ANTHROPIC_API_KEY` and list it in
+  `AI_PROVIDERS`, e.g. `AI_PROVIDERS=openrouter,anthropic` — providers are tried in the listed order and failover
+  needs more than one. A listed provider without a key is skipped; with no key "Fill with AI" shows its fallback
+  message and the manual form still works.
+
 The app serves on `http://localhost:3000`. If port 3000 is already in use, set `E2E_PORT` (see below) and run
 `npm run dev -- -p 3100` instead.
 
@@ -73,6 +81,15 @@ npm run test:int      # Vitest, Docker Postgres (rsvp_test)
 npm run test:e2e      # Playwright, Docker Postgres (rsvp_test); uses E2E_PORT (default 3000)
 npm run trace         # traceability check: every done requirement is cited by a passing test
 ```
+
+## AI evaluation
+
+```bash
+npm run eval -- --model openai/gpt-4o-mini                     # OpenRouter (default, production), needs OPENROUTER_API_KEY
+npm run eval -- --provider anthropic --model claude-haiku-4-5  # Anthropic, needs ANTHROPIC_API_KEY
+```
+
+`--provider` defaults to `openrouter`. See [docs/evals/README.md](docs/evals/README.md) for the evaluation results.
 
 ## Start here
 
