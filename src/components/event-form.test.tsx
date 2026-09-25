@@ -62,12 +62,8 @@ describe('EventForm groups, announced errors and saving state (REQ-83, REQ-69)',
   test('REQ-83: fields are grouped under What, When and Where', () => {
     renderWithIntl(<EventForm submit={vi.fn()} />);
 
-    expect(
-      within(screen.getByRole('group', { name: 'When' })).getByLabelText('Date'),
-    ).toBeTruthy();
-    expect(
-      within(screen.getByRole('group', { name: 'What' })).getByLabelText('Name'),
-    ).toBeTruthy();
+    expect(within(screen.getByRole('group', { name: 'When' })).getByLabelText('Date')).toBeTruthy();
+    expect(within(screen.getByRole('group', { name: 'What' })).getByLabelText('Name')).toBeTruthy();
     expect(
       within(screen.getByRole('group', { name: 'Where' })).getByLabelText('Location (optional)'),
     ).toBeTruthy();

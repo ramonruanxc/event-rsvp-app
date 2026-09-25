@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { ChevronDown } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from '@/i18n/navigation';
 import { ValidationError, type ErrorCode, type FieldErrors } from '@/domain/errors';
@@ -8,6 +9,16 @@ import { eventInputSchema, type EventFormValues } from '@/domain/schemas';
 import type { ActionResult } from '@/lib/action-result';
 import { detectBrowserTimeZone } from '@/lib/browser-timezone';
 import type { AiField, ParseEventResult } from '@/lib/ai/types';
+import {
+  Alert,
+  describedBy,
+  Field,
+  FieldError,
+  FieldHint,
+  FieldLabel,
+} from '@/components/ui/field';
+import { Icon } from '@/components/ui/icon';
+import { Button } from '@/components/ui/button';
 
 type FieldName = 'name' | 'description' | 'date' | 'time' | 'timezone' | 'location';
 
@@ -145,97 +156,136 @@ export function EventForm({ initialValues, submit, aiFill }: EventFormProps) {
         </div>
       )}
 
-      {formError && <div role="alert">{t(`errors.${formError}`)}</div>}
+      {formError && <Alert>{t(`errors.${formError}`)}</Alert>}
 
-      <div>
-        <label htmlFor="name">{t('eventForm.name')}</label>
-        <input
-          id="name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          aria-invalid={ariaInvalid('name')}
-          aria-describedby={ariaDescribedBy('name')}
-        />
-        {errorFor('name') && <p id="name-error">{errorFor('name')}</p>}
-        {missing.includes('name') && <p id="name-missing">{t('ai.missingHint')}</p>}
+      <fieldset className="form-group">
+        <legend className="h3">{t('eventForm.groupWhat')}</legend>
+        <Field>
+          <FieldLabel htmlFor="name">{t('eventForm.name')}</FieldLabel>
+          <input
+            className="input"
+            id="name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            aria-invalid={ariaInvalid('name')}
+            aria-describedby={ariaDescribedBy('name')}
+          />
+          {errorFor('name') && <FieldError id="name-error">{errorFor('name')}</FieldError>}
+          {missing.includes('name') && (
+            <FieldHint id="name-missing">{t('ai.missingHint')}</FieldHint>
+          )}
+        </Field>
+        <Field>
+          <FieldLabel htmlFor="description">{t('eventForm.description')}</FieldLabel>
+          <textarea
+            className="textarea"
+            id="description"
+            rows={4}
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            aria-invalid={ariaInvalid('description')}
+            aria-describedby={ariaDescribedBy('description')}
+          />
+          {errorFor('description') && (
+            <FieldError id="description-error">{errorFor('description')}</FieldError>
+          )}
+          {missing.includes('description') && (
+            <FieldHint id="description-missing">{t('ai.missingHint')}</FieldHint>
+          )}
+        </Field>
+      </fieldset>
+
+      <fieldset className="form-group">
+        <legend className="h3">{t('eventForm.groupWhen')}</legend>
+        <div className="pair">
+          <Field>
+            <FieldLabel htmlFor="date">{t('eventForm.date')}</FieldLabel>
+            <input
+              className="input"
+              id="date"
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              aria-invalid={ariaInvalid('date')}
+              aria-describedby={ariaDescribedBy('date')}
+            />
+            {errorFor('date') && <FieldError id="date-error">{errorFor('date')}</FieldError>}
+            {missing.includes('date') && (
+              <FieldHint id="date-missing">{t('ai.missingHint')}</FieldHint>
+            )}
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="time">{t('eventForm.time')}</FieldLabel>
+            <input
+              className="input"
+              id="time"
+              type="time"
+              value={time}
+              onChange={(e) => setTime(e.target.value)}
+              aria-invalid={ariaInvalid('time')}
+              aria-describedby={ariaDescribedBy('time')}
+            />
+            {errorFor('time') && <FieldError id="time-error">{errorFor('time')}</FieldError>}
+            {missing.includes('time') && (
+              <FieldHint id="time-missing">{t('ai.missingHint')}</FieldHint>
+            )}
+          </Field>
+        </div>
+        <Field className="mt-4">
+          <FieldLabel htmlFor="timezone">{t('eventForm.timezone')}</FieldLabel>
+          <div className="select-wrap">
+            <select
+              className="select"
+              id="timezone"
+              value={timezone}
+              onChange={(e) => setTimezone(e.target.value)}
+              aria-invalid={ariaInvalid('timezone')}
+              aria-describedby={describedBy(ariaDescribedBy('timezone'), 'timezone-hint')}
+            >
+              {timeZoneOptions.map((zone) => (
+                <option key={zone} value={zone}>
+                  {zone}
+                </option>
+              ))}
+            </select>
+            <Icon icon={ChevronDown} />
+          </div>
+          <FieldHint id="timezone-hint">{t('eventForm.timezoneHint')}</FieldHint>
+          {errorFor('timezone') && (
+            <FieldError id="timezone-error">{errorFor('timezone')}</FieldError>
+          )}
+          {missing.includes('timezone') && (
+            <FieldHint id="timezone-missing">{t('ai.missingHint')}</FieldHint>
+          )}
+        </Field>
+      </fieldset>
+
+      <fieldset className="form-group">
+        <legend className="h3">{t('eventForm.groupWhere')}</legend>
+        <Field>
+          <FieldLabel htmlFor="location">{t('eventForm.location')}</FieldLabel>
+          <input
+            className="input"
+            id="location"
+            value={location}
+            onChange={(e) => setLocation(e.target.value)}
+            aria-invalid={ariaInvalid('location')}
+            aria-describedby={ariaDescribedBy('location')}
+          />
+          {errorFor('location') && (
+            <FieldError id="location-error">{errorFor('location')}</FieldError>
+          )}
+          {missing.includes('location') && (
+            <FieldHint id="location-missing">{t('ai.missingHint')}</FieldHint>
+          )}
+        </Field>
+      </fieldset>
+
+      <div className="form-foot">
+        <Button type="submit" variant="primary" loading={submitting}>
+          {t('eventForm.save')}
+        </Button>
       </div>
-
-      <div>
-        <label htmlFor="description">{t('eventForm.description')}</label>
-        <textarea
-          id="description"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          aria-invalid={ariaInvalid('description')}
-          aria-describedby={ariaDescribedBy('description')}
-        />
-        {errorFor('description') && <p id="description-error">{errorFor('description')}</p>}
-        {missing.includes('description') && <p id="description-missing">{t('ai.missingHint')}</p>}
-      </div>
-
-      <div>
-        <label htmlFor="date">{t('eventForm.date')}</label>
-        <input
-          id="date"
-          type="date"
-          value={date}
-          onChange={(e) => setDate(e.target.value)}
-          aria-invalid={ariaInvalid('date')}
-          aria-describedby={ariaDescribedBy('date')}
-        />
-        {errorFor('date') && <p id="date-error">{errorFor('date')}</p>}
-        {missing.includes('date') && <p id="date-missing">{t('ai.missingHint')}</p>}
-      </div>
-
-      <div>
-        <label htmlFor="time">{t('eventForm.time')}</label>
-        <input
-          id="time"
-          type="time"
-          value={time}
-          onChange={(e) => setTime(e.target.value)}
-          aria-invalid={ariaInvalid('time')}
-          aria-describedby={ariaDescribedBy('time')}
-        />
-        {errorFor('time') && <p id="time-error">{errorFor('time')}</p>}
-        {missing.includes('time') && <p id="time-missing">{t('ai.missingHint')}</p>}
-      </div>
-
-      <div>
-        <label htmlFor="timezone">{t('eventForm.timezone')}</label>
-        <select
-          id="timezone"
-          value={timezone}
-          onChange={(e) => setTimezone(e.target.value)}
-          aria-invalid={ariaInvalid('timezone')}
-          aria-describedby={ariaDescribedBy('timezone')}
-        >
-          {timeZoneOptions.map((zone) => (
-            <option key={zone} value={zone}>
-              {zone}
-            </option>
-          ))}
-        </select>
-        {errorFor('timezone') && <p id="timezone-error">{errorFor('timezone')}</p>}
-        {missing.includes('timezone') && <p id="timezone-missing">{t('ai.missingHint')}</p>}
-      </div>
-
-      <div>
-        <label htmlFor="location">{t('eventForm.location')}</label>
-        <input
-          id="location"
-          value={location}
-          onChange={(e) => setLocation(e.target.value)}
-          aria-invalid={ariaInvalid('location')}
-          aria-describedby={ariaDescribedBy('location')}
-        />
-        {errorFor('location') && <p id="location-error">{errorFor('location')}</p>}
-        {missing.includes('location') && <p id="location-missing">{t('ai.missingHint')}</p>}
-      </div>
-
-      <button type="submit" disabled={submitting}>
-        {submitting ? t('eventForm.saving') : t('eventForm.save')}
-      </button>
     </form>
   );
 }
