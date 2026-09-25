@@ -12,7 +12,8 @@
     "signOut": "Sair",
     "darkTheme": "Tema escuro",
     "accountMenu": "Menu da conta",
-    "signedInAs": "Conectado como {name}"
+    "signedInAs": "Conectado como {name}",
+    "account": "Conta"
   },
   "languages": { "en": "English", "fr": "Français", "pt-BR": "Português (Brasil)" },
   "home": {
@@ -123,6 +124,39 @@
     "description": "Um evento de exemplo para explorar o aplicativo. Compartilhe o link de convite, colete confirmações e exclua-o quando terminar.",
     "location": "Salão Comunitário"
   },
+  "auth": {
+    "signInTitle": "Entrar",
+    "continueWithGoogle": "Continuar com o Google",
+    "email": "E-mail",
+    "password": "Senha",
+    "signInSubmit": "Entrar",
+    "noAccount": "Primeira vez aqui?",
+    "createAccount": "Criar uma conta",
+    "registerTitle": "Criar uma conta",
+    "name": "Nome",
+    "confirmPassword": "Confirme a senha",
+    "passwordHint": "De 8 a 128 caracteres.",
+    "registerSubmit": "Criar conta",
+    "haveAccount": "Já tem uma conta?",
+    "signInLink": "Entrar",
+    "tooManyAttempts": "Muitas tentativas — tente novamente em alguns minutos.",
+    "signInFailed": "Não foi possível concluir a entrada. Tente novamente."
+  },
+  "account": {
+    "title": "Conta",
+    "signedInEmail": "Conectado como {email}",
+    "setPasswordTitle": "Definir uma senha",
+    "setPasswordHint": "Adicione uma senha para entrar também com seu e-mail.",
+    "changePasswordTitle": "Alterar senha",
+    "currentPassword": "Senha atual",
+    "newPassword": "Nova senha",
+    "confirmNewPassword": "Confirme a nova senha",
+    "savePassword": "Salvar senha",
+    "passwordSaved": "Senha salva.",
+    "passwordClearedNotice": "Você entrou com o Google, então a senha desta conta foi removida por segurança. Defina uma nova senha em Conta para voltar a entrar com seu e-mail.",
+    "goToAccount": "Ir para Conta",
+    "dismiss": "Dispensar"
+  },
   "errors": {
     "VALIDATION_ERROR": "Corrija os campos destacados.",
     "NOT_FOUND": "Esta página não existe.",
@@ -133,7 +167,10 @@
     "AI_LIMIT_REACHED": "Limite diário de IA atingido — preencha o formulário manualmente.",
     "AI_UNAVAILABLE": "Não foi possível preencher automaticamente — preencha o formulário.",
     "UNAUTHENTICATED": "Por favor, entre para continuar.",
-    "INTERNAL_ERROR": "Algo deu errado. Tente novamente."
+    "INTERNAL_ERROR": "Algo deu errado. Tente novamente.",
+    "INVALID_CREDENTIALS": "E-mail ou senha incorretos.",
+    "EMAIL_TAKEN": "Já existe uma conta com este e-mail. Entre com ela.",
+    "GOOGLE_ACCOUNT_EXISTS": "Este e-mail já tem uma conta que usa o Google. Entre com o Google e depois defina uma senha em Conta."
   },
   "validation": {
     "required": "Este campo é obrigatório.",
@@ -142,6 +179,10 @@
     "invalidTimezone": "Escolha um fuso horário válido.",
     "inPast": "A data e a hora não podem estar no passado.",
     "partySizeRange": "Informe um número de 1 a 10.",
-    "invalidStatus": "Escolha Vou ou Não vou."
+    "invalidStatus": "Escolha Vou ou Não vou.",
+    "invalidEmail": "Informe um endereço de e-mail válido.",
+    "passwordLength": "Use de 8 a 128 caracteres.",
+    "passwordMismatch": "As senhas não coincidem.",
+    "currentPasswordIncorrect": "A senha atual está incorreta."
   }
 }
