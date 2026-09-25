@@ -21,6 +21,7 @@
     "test:e2e": "dotenv -e .env.test -- playwright test",
     "e2e:server": "dotenv -e .env.test -- next build && dotenv -e .env.test -- next start",
     "trace": "tsx scripts/traceability/cli.ts",
+    "eval": "dotenv -e .env.local -- tsx evals/event-parser/run.ts",
     "db:migrate": "prisma migrate dev",
     "db:seed": "prisma db seed",
     "postinstall": "prisma generate",
