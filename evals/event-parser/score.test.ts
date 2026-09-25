@@ -1,7 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import type { ParseEventResult } from '@/lib/ai/types';
-import { GATE_CATEGORY, GATE_OVERALL, gate, matches, scoreCase, summarize } from './score';
-import type { Category, CaseResult, EvalCase } from './types';
+import {
+  GATE_CATEGORY,
+  GATE_OVERALL,
+  gate,
+  matches,
+  scoreCase,
+  summarize,
+  summarizeEval,
+} from './score';
+import type { CaseRuns, Category, CaseResult, EvalCase, RunResult, RunStatus } from './types';
 
 const baseCase = (expected: EvalCase['expected']): EvalCase => ({
   id: 'case-1',
@@ -211,6 +219,68 @@ describe('gate (REQ-91)', () => {
     expect(gate(summarize([...many(19, 'explicit', true), r('prompt-injection', false)]))).toBe(
       false,
     );
+  });
+});
+
+describe('summarizeEval (REQ-101, REQ-104)', () => {
+  const runOf = (status: RunStatus, latencyMs: number, passed = true): RunResult => ({
+    status,
+    latencyMs,
+    result: { id: 'x', category: 'explicit', passed, fields: [] },
+  });
+  const CASES: CaseRuns[] = [
+    {
+      id: 'a',
+      category: 'explicit',
+      holdout: false,
+      passed: true,
+      runs: [runOf('ok', 1_000), runOf('ok', 2_000), runOf('timeout', 10_000, false)],
+    },
+    {
+      id: 'b',
+      category: 'explicit',
+      holdout: true,
+      passed: false,
+      runs: [runOf('ok', 1_500, false), runOf('invalid', 500, false), runOf('ok', 1_200)],
+    },
+    {
+      id: 'c',
+      category: 'relative',
+      holdout: false,
+      passed: true,
+      runs: [runOf('outage', 300, false), runOf('ok', 900), runOf('ok', 1_100)],
+    },
+  ];
+
+  it('REQ-104: summarizeEval scores all, tuning and hold-out cases separately', () => {
+    const s = summarizeEval(CASES);
+    expect(s.all).toMatchObject({ total: 3, passed: 2 });
+    expect(s.all.overall).toBe(2 / 3);
+    expect(s.all.byCategory.explicit).toEqual({ total: 2, passed: 1, rate: 0.5 });
+    expect(s.all.byCategory.relative).toEqual({ total: 1, passed: 1, rate: 1 });
+    expect(s.tuning).toMatchObject({ total: 2, passed: 2, overall: 1 });
+    expect(s.holdout).toMatchObject({ total: 1, passed: 0, overall: 0 });
+    expect(s.holdout.byCategory.explicit).toEqual({ total: 1, passed: 0, rate: 0 });
+    expect(s.holdout.byCategory.relative).toEqual({ total: 0, passed: 0, rate: 1 });
+  });
+
+  it('REQ-101: summarizeEval reports availability and p95 latency over every run', () => {
+    expect(summarizeEval(CASES).stats).toEqual({
+      runs: 9,
+      answered: 7,
+      timeouts: 1,
+      outages: 1,
+      availability: 7 / 9,
+      p95LatencyMs: 10_000,
+    });
+    expect(summarizeEval([]).stats).toEqual({
+      runs: 0,
+      answered: 0,
+      timeouts: 0,
+      outages: 0,
+      availability: 0,
+      p95LatencyMs: 0,
+    });
   });
 });
 

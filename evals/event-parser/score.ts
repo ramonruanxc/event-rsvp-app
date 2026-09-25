@@ -1,6 +1,15 @@
 import { AI_FIELDS, type ParseEventResult } from '@/lib/ai/types';
 import { CATEGORIES } from './types';
-import type { CaseResult, EvalCase, FieldResult, Matcher, Summary } from './types';
+import type {
+  CaseResult,
+  CaseRuns,
+  Category,
+  EvalCase,
+  EvalSummary,
+  FieldResult,
+  Matcher,
+  Summary,
+} from './types';
 
 /** Trims and lower-cases a value for case/space-insensitive comparisons. */
 function normalize(value: string): string {
@@ -91,7 +100,7 @@ export function scoreCase(
 }
 
 /** Aggregates case results into overall and per-category pass rates (REQ-91). */
-export function summarize(results: CaseResult[]): Summary {
+export function summarize(results: readonly { category: Category; passed: boolean }[]): Summary {
   const byCategory = Object.fromEntries(
     CATEGORIES.map((category) => [category, { total: 0, passed: 0, rate: 1 }]),
   ) as Summary['byCategory'];
@@ -109,6 +118,11 @@ export function summarize(results: CaseResult[]): Summary {
   const total = results.length;
   const passed = results.filter((r) => r.passed).length;
   return { total, passed, overall: total === 0 ? 0 : passed / total, byCategory };
+}
+
+/** Summarizes case runs: all, tuning and hold-out pass rates, availability and p95 latency (REQ-101, REQ-104). */
+export function summarizeEval(_cases: readonly CaseRuns[]): EvalSummary {
+  throw new Error('not implemented');
 }
 
 /** Minimum overall pass rate required by the gate (REQ-91, REQ-103). */
