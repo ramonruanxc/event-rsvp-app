@@ -9775,6 +9775,15 @@ production build (`prisma migrate deploy` in `vercel-build`).
     note 5). Both are stated in the README.
 19. **Out of scope** (README): password reset and email verification (both need email sending).
 20. **DESIGN.md** still says the top bar shows "Sign in with Google". The analyst updates that line during doc-sync.
+21. **SPEC revision (TASK-263 SPEC failure, revision 1/2): email inputs trim.** An `<input type="email">` strips
+    leading and trailing whitespace on every value assignment (HTML value sanitization; jsdom and browsers, and RTL
+    `fireEvent.change` goes through the native setter), so no component ever sees `' Ana@Example.com '`. Email inputs
+    keep `type="email"` (native semantics, email keyboard, accessibility); `type="text"` + `inputMode="email"` was
+    rejected. Component tests may type padded emails, but they assert what the input holds: the trimmed value
+    (`'Ana@Example.com'`) when a form sends raw values (TASK-263), or the normalized value when it sends the parsed
+    one (TASK-262). Lower-casing stays on the server (the action, BR-147). The padded `fill` in TASK-267 stays: it
+    asserts only the stored, normalized email. Server-side tests of `normalizeEmail`, the schemas, services and actions
+    keep padded inputs, since they are not behind an input.
 
 **Phase 10 rules (read once, in addition to "How to execute a task"):**
 1. **No new dependency.** `package.json` and `package-lock.json` do not change.
@@ -11824,9 +11833,15 @@ passes; `E2E_PORT=3100 npm run test:e2e -- e2e/sign-in.spec.ts` passes; `npm run
 **TDD exception:** none (the page is thin wiring; its E2E is in this task)
 
 ### TASK-263 — Register page
-**Phase:** 10 · **Requirements:** REQ-127, REQ-116, REQ-117, REQ-119 · **Status:** todo · **Revision:** 1
+**Phase:** 10 · **Requirements:** REQ-127, REQ-116, REQ-117, REQ-119 · **Status:** todo · **Revision:** 2
 **Files:** src/components/register-form.tsx, src/components/register-form.test.tsx,
 src/app/[locale]/register/page.tsx
+**Resuming at Revision 2:** the red commit `test(auth): register form` (Revision 1) is already on the branch. Do not
+rewrite or amend it. First change `src/components/register-form.test.tsx` to match the test below (only the
+`REQ-116: sends the typed values …` test changes: a comment and its `submit` assertion; the `typed` constant keeps
+`' Ana@Example.com '`), run it (still red with `not implemented`), and commit it as a new commit
+`test(auth): register form sends the browser-trimmed email`. Then do the implementation and commit
+`feat(auth): register page`.
 **Interface:** C15 `RegisterFormProps`; `export function RegisterForm(props: RegisterFormProps): React.JSX.Element`.
 **Steps (red commit):** `'use client'` component stub that throws `new Error('not implemented')`, and its props
 interface.
@@ -11881,7 +11896,10 @@ describe('RegisterForm', () => {
     const { fill, submit, navigate } = setup({ ok: true, data: { redirectTo: '/en/dashboard' } });
     fill(typed);
     await waitFor(() => expect(navigate).toHaveBeenCalledWith('/en/dashboard'));
-    expect(submit).toHaveBeenCalledWith(typed, '/en/dashboard');
+    // An <input type="email"> strips leading and trailing whitespace on every value assignment (HTML value
+    // sanitization, in jsdom and in browsers), so the form only ever holds 'Ana@Example.com'. The case is kept:
+    // the action lower-cases it on the server.
+    expect(submit).toHaveBeenCalledWith({ ...typed, email: 'Ana@Example.com' }, '/en/dashboard');
   });
 
   it('REQ-117: refusals and the rate limit show their message and keep the typed values', async () => {
@@ -11900,17 +11918,22 @@ describe('RegisterForm', () => {
   });
 });
 ```
-Red: all fail with `not implemented`. Commit `test(auth): register form`.
+Red: all fail with `not implemented`. Commit `test(auth): register form` (Revision 1, done), then the amended REQ-116
+test in a new commit `test(auth): register form sends the browser-trimmed email` (see "Resuming at Revision 2").
 **Implementation** (commit `feat(auth): register page`):
 1. `RegisterForm` like TASK-262's form, with four fields (ids `register-name`, `register-email`, `register-password`,
    `register-confirm`; labels `auth.name`, `auth.email`, `auth.password`, `auth.confirmPassword`; autocomplete `name`,
    `email`, `new-password`, `new-password`), a `FieldHint` with id `register-password-hint` and text
    `auth.passwordHint` under the Password input (its `aria-describedby` is
    `describedBy('register-password-hint', error && 'register-password-error')`), and the submit `auth.registerSubmit`.
+   The Email input keeps `type="email"` (native email keyboard and semantics; do not switch it to `type="text"`).
    Client validation with `registerInputSchema.safeParse(values)`; on success it calls
-   `submit(values, callbackUrl)` with the **typed** values `{ name, email, password, confirmPassword }` (the action
-   normalizes them). `ok` → `navigate(result.data.redirectTo)`; `VALIDATION_ERROR` → field errors; `RATE_LIMITED` →
-   `auth.tooManyAttempts`; any other code → `errors.<code>`. Nothing is cleared after a failure.
+   `submit(values, callbackUrl)` with the **typed** values `{ name, email, password, confirmPassword }` exactly as the
+   component state holds them (the action normalizes them; do not trim or lower-case in the component, and do not
+   send `parsed.data`). The state's email is already free of surrounding spaces because the email input sanitizes its
+   value; nothing in the component needs to do that. `ok` → `navigate(result.data.redirectTo)`; `VALIDATION_ERROR` →
+   field errors; `RATE_LIMITED` → `auth.tooManyAttempts`; any other code → `errors.<code>`. Nothing is cleared
+   after a failure.
 2. `src/app/[locale]/register/page.tsx`: the same shape as the sign-in page (same props, same `callbackUrl` handling and
    signed-in redirect, no `error` alert, no Google link), TSDoc `/** Register page: create a password account and sign
    in at once (REQ-127, BR-145, BR-146). */`. Inside the panel: `<h1 className="h2">{t('auth.registerTitle')}</h1>`,
@@ -11921,6 +11944,9 @@ Red: all fail with `not implemented`. Commit `test(auth): register form`.
 **Done when:** `npx vitest run --project unit src/components/register-form.test.tsx` passes (4 tests);
 `npm run typecheck` and `npm run lint` pass. (The page is covered by TASK-267's journeys.)
 **TDD exception:** none
+**Changelog:**
+- Rev 2 — SPEC failure revision 1/2: the REQ-116 test expected `' Ana@Example.com '` to reach `submit` through a
+  `type="email"` input, which trims it; it now expects `'Ana@Example.com'` (Phase 10 note 21).
 
 ### TASK-264 — Account page, set-password form and the menu link
 **Phase:** 10 · **Requirements:** REQ-128, REQ-120, REQ-80 · **Status:** todo · **Revision:** 1
