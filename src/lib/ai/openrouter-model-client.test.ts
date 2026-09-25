@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { InvalidModelOutputError } from './errors';
 import { AI_OUTPUT_JSON_SCHEMA } from './output';
 import { createOpenRouterModelClient } from './openrouter-model-client';
 
@@ -79,5 +80,30 @@ describe('createOpenRouterModelClient', () => {
     const [url, init] = callOf(fetchMock);
     expect(url).toBe('http://127.0.0.1:4020/api/v1/chat/completions');
     expect((init.headers as Record<string, string>).Authorization).toBe('Bearer k2');
+  });
+
+  it('REQ-89: content that is missing, blank or not JSON is InvalidModelOutputError', async () => {
+    const bodies = [
+      completion('not json'),
+      completion(null),
+      completion('   '),
+      { ...completion(null), choices: [] },
+    ];
+    for (const body of bodies) {
+      await expect(client(fakeFetch(() => reply(200, body))).complete(REQ)).rejects.toBeInstanceOf(
+        InvalidModelOutputError,
+      );
+    }
+  });
+
+  it('REQ-94: a Markdown code fence around the JSON is removed', async () => {
+    const fenced = '```json\n' + JSON.stringify(RAW) + '\n```';
+    const bare = '```\n' + JSON.stringify(RAW) + '\n```';
+    await expect(client(fakeFetch(() => reply(200, completion(fenced)))).complete(REQ)).resolves.toEqual(
+      RAW,
+    );
+    await expect(client(fakeFetch(() => reply(200, completion(bare)))).complete(REQ)).resolves.toEqual(
+      RAW,
+    );
   });
 });
