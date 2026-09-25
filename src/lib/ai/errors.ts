@@ -18,6 +18,11 @@ export class InvalidModelOutputError extends Error {
 }
 
 /** Maps an HTTP status to an outage reason, or null when the status is not an outage (BR-121). */
-export function outageReasonForStatus(_status: number): OutageReason | null {
+export function outageReasonForStatus(status: number): OutageReason | null {
+  if (status === 401 || status === 403) return 'auth'; // invalid, revoked or unauthorized key
+  if (status === 402) return 'credit';
+  if (status === 408) return 'timeout';
+  if (status === 429) return 'rate-limit';
+  if (status >= 500 && status <= 599) return 'server';
   return null;
 }
