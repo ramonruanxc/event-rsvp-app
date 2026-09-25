@@ -146,9 +146,8 @@ Failures the pipeline hit along the way, and their root causes, are logged in
 What I verified by hand:
 
 - Google sign-in end to end in production (2026-09-24).
-- The production domain (https://event-rsvp-app-flax.vercel.app), its public access, and smoke tests of the live site
-  after the phase 1, 3, 6 and 7 deployments (locales, demo event, `.ics`, sign-in redirect, theme, security headers;
-  see the Events table in [docs/timelog.md](docs/timelog.md)).
+- The production domain (https://event-rsvp-app-flax.vercel.app), its public access, and the live site after the
+  phase 1 and 3 deployments.
 - The approved visual direction (mockup) and every business-rule decision raised as a DOC question during the
   pipeline.
 - The real AI evaluation results (three models via OpenRouter) and the decision that the code default follows
@@ -156,6 +155,10 @@ What I verified by hand:
 - The key handling: the OpenRouter key was provisioned with a spend limit and never printed.
 - "Fill with AI" in production with seven hand-picked cases (English, French and Portuguese input, a missing time,
   an explicit timezone, non-event text and a prompt-injection attempt): all seven behaved as expected (2026-09-25).
+
+Verified by the orchestrator (Claude) while I was away: production smoke tests after the phase 6 and 7
+deployments (locales, demo event, `.ics`, sign-in redirect, theme, security headers), recorded in the Events table
+of [docs/timelog.md](docs/timelog.md).
 
 ## What I left out and why
 
