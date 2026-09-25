@@ -52,6 +52,8 @@ const keyInfoSchema = z.object({
   disabled: z.boolean().default(false),
 });
 const listSchema = z.object({ data: z.array(keyInfoSchema) });
+const oneSchema = z.object({ data: keyInfoSchema });
+const createdSchema = z.object({ data: keyInfoSchema, key: z.string() });
 const MAX_PAGES = 50;
 
 /** OpenRouter keys API client authenticated with a management key (REQ-98). */
@@ -87,14 +89,19 @@ export function createKeysApi(deps: {
       }
       return keys;
     },
-    async create() {
-      throw new Error('not implemented');
+    async create(input) {
+      const { data, key } = createdSchema.parse(
+        await call('POST', '/keys', { name: input.name, limit: input.limit }),
+      );
+      return { info: data, key };
     },
-    async update() {
-      throw new Error('not implemented');
+    async update(hash, input) {
+      return oneSchema.parse(
+        await call('PATCH', `/keys/${encodeURIComponent(hash)}`, { limit: input.limit }),
+      ).data;
     },
-    async remove() {
-      throw new Error('not implemented');
+    async remove(hash) {
+      await call('DELETE', `/keys/${encodeURIComponent(hash)}`);
     },
   };
 }
