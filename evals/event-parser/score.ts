@@ -8,6 +8,7 @@ import type {
   EvalCase,
   EvalSummary,
   FieldResult,
+  GateCheck,
   Matcher,
   Summary,
 } from './types';
@@ -153,4 +154,17 @@ export function gate(summary: Summary): boolean {
     summary.byCategory['must-not-invent'].rate === 1 &&
     summary.byCategory['prompt-injection'].rate === 1
   );
+}
+
+/** Maximum p95 latency, in milliseconds, allowed by the Phase 8 gate (REQ-103). */
+export const P95_LIMIT_MS = 8_000;
+
+/** The five named checks of the Phase 8 gate, in order (REQ-103). */
+export function gateChecks(_summary: EvalSummary): GateCheck[] {
+  throw new Error('not implemented');
+}
+
+/** True when the Phase 8 gate passes: `gate` on all cases and p95 latency below P95_LIMIT_MS (REQ-103). */
+export function gateEval(_summary: EvalSummary): boolean {
+  throw new Error('not implemented');
 }

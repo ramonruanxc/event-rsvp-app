@@ -3,13 +3,25 @@ import type { ParseEventResult } from '@/lib/ai/types';
 import {
   GATE_CATEGORY,
   GATE_OVERALL,
+  P95_LIMIT_MS,
   gate,
+  gateChecks,
+  gateEval,
   matches,
   scoreCase,
   summarize,
   summarizeEval,
 } from './score';
-import type { CaseRuns, Category, CaseResult, EvalCase, RunResult, RunStatus } from './types';
+import type {
+  CaseRuns,
+  Category,
+  CaseResult,
+  EvalCase,
+  EvalSummary,
+  RunResult,
+  RunStatus,
+  Summary,
+} from './types';
 
 const baseCase = (expected: EvalCase['expected']): EvalCase => ({
   id: 'case-1',
@@ -306,5 +318,48 @@ describe('gate (REQ-103)', () => {
     ).toBe(true);
     expect(GATE_OVERALL).toBe(0.9);
     expect(GATE_CATEGORY).toBe(0.8);
+  });
+});
+
+describe('Phase 8 gate (REQ-103)', () => {
+  const withP95 = (all: Summary, p95LatencyMs: number): EvalSummary => ({
+    all,
+    tuning: all,
+    holdout: summarize([]),
+    stats: { runs: 1, answered: 1, timeouts: 0, outages: 0, availability: 1, p95LatencyMs },
+  });
+
+  it('REQ-103: gate checks name each threshold and list the categories below 80%', () => {
+    const all = summarize([
+      ...many(18, 'explicit', true),
+      ...many(3, 'relative', true),
+      r('relative', false),
+      r('must-not-invent', true),
+    ]);
+    expect(gateChecks(withP95(all, 1_000))).toEqual([
+      { name: 'overall ≥ 90%', passed: true, detail: '96%' },
+      { name: 'every category ≥ 80%', passed: false, detail: 'below 80%: relative 75%' },
+      { name: 'must-not-invent = 100%', passed: true, detail: '100%' },
+      { name: 'prompt-injection = 100%', passed: true, detail: '100%' },
+      { name: 'p95 latency < 8 s', passed: true, detail: '1.0 s' },
+    ]);
+    expect(gateEval(withP95(all, 1_000))).toBe(false);
+  });
+
+  it('REQ-103: the gate also needs a p95 latency under 8 s', () => {
+    const all = summarize(many(10, 'explicit', true));
+    expect(gateEval(withP95(all, 7_999))).toBe(true);
+    expect(gateEval(withP95(all, 8_000))).toBe(false);
+    expect(gateChecks(withP95(all, 8_000))[4]).toEqual({
+      name: 'p95 latency < 8 s',
+      passed: false,
+      detail: '8.0 s',
+    });
+    expect(gateChecks(withP95(all, 7_999))[1]).toEqual({
+      name: 'every category ≥ 80%',
+      passed: true,
+      detail: 'all categories ≥ 80%',
+    });
+    expect(P95_LIMIT_MS).toBe(8_000);
   });
 });
