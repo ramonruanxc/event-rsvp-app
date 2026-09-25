@@ -12,7 +12,7 @@ test.describe('REQ-40: a guest RSVPs to the public demo event', () => {
     await seedDemo(db, new Date());
 
     await page.goto('/en');
-    await page.getByRole('link', { name: 'See a demo event' }).click();
+    await page.getByRole('link', { name: 'See the demo event' }).click();
 
     await expect(page.getByRole('heading', { name: 'Community Picnic in the Park' })).toBeVisible();
 
