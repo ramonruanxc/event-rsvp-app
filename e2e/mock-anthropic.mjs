@@ -28,6 +28,16 @@ const server = http.createServer((req, res) => {
       );
       return;
     }
+    if (body.includes('[[anthropic-down]]')) {
+      res.writeHead(529, { 'content-type': 'application/json' });
+      res.end(
+        JSON.stringify({
+          type: 'error',
+          error: { type: 'overloaded_error', message: 'mock overloaded' },
+        }),
+      );
+      return;
+    }
     res.writeHead(200, { 'content-type': 'application/json' });
     res.end(
       JSON.stringify({

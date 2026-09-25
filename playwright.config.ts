@@ -14,6 +14,15 @@ if (!Number.isInteger(mockAiPort) || mockAiPort <= 0) {
 }
 const mockAiBaseURL = `http://127.0.0.1:${mockAiPort}`;
 
+/** Port of the mock OpenRouter server during E2E runs (env `MOCK_OPENROUTER_PORT`, default 4020). */
+const mockOpenRouterPort = Number(process.env.MOCK_OPENROUTER_PORT ?? 4020);
+if (!Number.isInteger(mockOpenRouterPort) || mockOpenRouterPort <= 0) {
+  throw new Error(
+    `MOCK_OPENROUTER_PORT must be a positive integer, got "${process.env.MOCK_OPENROUTER_PORT}"`,
+  );
+}
+const mockOpenRouterBaseURL = `http://127.0.0.1:${mockOpenRouterPort}/api/v1`;
+
 export default defineConfig({
   testDir: './e2e',
   fullyParallel: false,
@@ -35,11 +44,17 @@ export default defineConfig({
       env: { MOCK_AI_PORT: String(mockAiPort) },
     },
     {
+      command: 'node e2e/mock-openrouter.mjs',
+      port: mockOpenRouterPort,
+      reuseExistingServer: false,
+      env: { MOCK_OPENROUTER_PORT: String(mockOpenRouterPort) },
+    },
+    {
       command: `npm run e2e:server -- -p ${port}`,
       url: `${baseURL}/en`,
       reuseExistingServer: false,
       timeout: 240_000,
-      env: { ANTHROPIC_BASE_URL: mockAiBaseURL },
+      env: { ANTHROPIC_BASE_URL: mockAiBaseURL, OPENROUTER_BASE_URL: mockOpenRouterBaseURL },
     },
   ],
 });
