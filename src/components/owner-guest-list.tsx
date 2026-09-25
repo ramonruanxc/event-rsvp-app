@@ -46,6 +46,7 @@ export async function OwnerGuestList({ view, locale }: OwnerGuestListProps) {
                 <td>{formatEventDateTime(row.updatedAt, view.event.timezone, locale)}</td>
                 <td>
                   <RemoveRsvpButton
+                    name={row.name}
                     removeAction={removeRsvpAction.bind(null, view.event.slug, row.id)}
                   />
                 </td>
