@@ -35,10 +35,16 @@ describe('Stepper', () => {
 
   it('REQ-84: the buttons are disabled at the bounds', () => {
     const { getByRole, rerender } = renderWithIntl(<Harness initial={1} />);
-    expect((getByRole('button', { name: 'One less person' }) as HTMLButtonElement).disabled).toBe(true);
-    expect((getByRole('button', { name: 'One more person' }) as HTMLButtonElement).disabled).toBe(false);
+    expect((getByRole('button', { name: 'One less person' }) as HTMLButtonElement).disabled).toBe(
+      true,
+    );
+    expect((getByRole('button', { name: 'One more person' }) as HTMLButtonElement).disabled).toBe(
+      false,
+    );
     rerender(<Harness initial={10} />);
-    expect((getByRole('button', { name: 'One more person' }) as HTMLButtonElement).disabled).toBe(true);
+    expect((getByRole('button', { name: 'One more person' }) as HTMLButtonElement).disabled).toBe(
+      true,
+    );
   });
 
   it('REQ-71: both buttons have accessible names and hidden icons', () => {
