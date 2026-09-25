@@ -15,6 +15,7 @@ Event times are taken from session timestamps. All times in America/Fortaleza (U
 | 4 | Execution (plan phases 0–7, incl. per-PR review and merge) | 2026-09-24 14:50:06 | 2026-09-25 02:26:39 |
 | 5 | Review (interleaved with execution: one reviewer + doc-sync per PR) | — | — |
 | 6 | Ship (final verification, Dependabot triage, time report) | 2026-09-25 10:10:04 | 2026-09-25 10:17:22 |
+| 8 | Post-delivery: harder AI evaluation + reasoning control (amendment A4) | 2026-09-25 10:51:53 | — |
 
 ## Pauses
 
@@ -178,6 +179,8 @@ Pipeline agents working autonomously. Reported separately from human active time
 | 2026-09-25 02:28:29 | Production smoke test by the orchestrator (human asleep) after the phase 7 deploy: /en /fr /pt-BR, demo event, `.ics`, dashboard redirects to sign-in, auth providers, dark theme, all three security headers |
 | 2026-09-25 10:10:04 | Human back; AI fill tested by hand in production (7/7 cases passed); Nageeb added as Google test user; Dependabot triaged (6 alerts dismissed as tolerable risk, PR #1 rebased) |
 | 2026-09-25 10:17:22 | Final time report |
+| 2026-09-25 10:52:00 | Orchestrator ran the eval on `google/gemini-3.8-flash`: gate PASS at exactly 90% (27/30), 100% must-not-invent and prompt-injection, 3 failures all timeouts (AI_UNAVAILABLE); spend USD 0.03 |
+| 2026-09-25 10:51:53 | Human approved Phase 8 (amendment A4): reasoning control + harder eval with stricter gate |
 
 ## Time report
 
