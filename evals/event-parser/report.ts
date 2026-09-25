@@ -1,7 +1,7 @@
 import { pct } from './format';
 import { gate } from './score';
 import { CATEGORIES } from './types';
-import type { CaseResult, Summary } from './types';
+import type { CaseResult, CaseRuns, EvalSummary, Summary } from './types';
 
 /** Renders the eval summary and results as a Markdown report (REQ-91). */
 export function renderReport(
@@ -42,4 +42,13 @@ export function renderReport(
   lines.push(failureLines.length > 0 ? failureLines.join('\n') : 'None.');
 
   return lines.join('\n');
+}
+
+/** Renders the Phase 8 eval report; hold-out cases appear only as totals (REQ-104, REQ-105). */
+export function renderEvalReport(
+  _summary: EvalSummary,
+  _cases: readonly CaseRuns[],
+  _meta: { model: string; date: string; runs: number; reasoningEffort: string },
+): string {
+  throw new Error('not implemented');
 }
