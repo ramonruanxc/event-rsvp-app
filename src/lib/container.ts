@@ -12,6 +12,11 @@ import { CancelRsvpService } from '@/services/cancel-rsvp';
 import { RemoveRsvpService } from '@/services/remove-rsvp';
 import { CreateSampleEventService } from '@/services/create-sample-event';
 import { ExportEventIcsService } from '@/services/export-event-ics';
+import { RateLimiter } from '@/services/rate-limiter';
+import { ParseEventTextService } from '@/services/parse-event-text';
+import { AiEventParser } from '@/services/ai-event-parser';
+import { PrismaRateLimitRepository } from '@/repositories/prisma/prisma-rate-limit-repository';
+import { createAnthropicModelClient } from '@/lib/ai/anthropic-model-client';
 
 /** The application's Prisma-backed services, built once per process. */
 export interface Services {
@@ -25,6 +30,7 @@ export interface Services {
   removeRsvp: RemoveRsvpService;
   createSampleEvent: CreateSampleEventService;
   exportEventIcs: ExportEventIcsService;
+  parseEventText: ParseEventTextService;
 }
 
 let services: Services | undefined;
@@ -35,6 +41,7 @@ export function getServices(): Services {
     const events = new PrismaEventRepository(prisma);
     const rsvps = new PrismaRsvpRepository(prisma);
     const now = () => new Date();
+    const rateLimiter = new RateLimiter({ repo: new PrismaRateLimitRepository(prisma), now });
     services = {
       createEvent: new CreateEventService({ events, now }),
       updateEvent: new UpdateEventService({ events, now }),
@@ -46,6 +53,14 @@ export function getServices(): Services {
       removeRsvp: new RemoveRsvpService({ events, rsvps }),
       createSampleEvent: new CreateSampleEventService({ events, rsvps, now }),
       exportEventIcs: new ExportEventIcsService({ events, now }),
+      parseEventText: new ParseEventTextService({
+        parser: new AiEventParser({
+          client: createAnthropicModelClient(),
+          model: process.env.AI_MODEL ?? 'claude-haiku-4-5',
+        }),
+        rateLimiter,
+        now,
+      }),
     };
   }
   return services;

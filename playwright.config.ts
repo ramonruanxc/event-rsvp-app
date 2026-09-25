@@ -7,6 +7,13 @@ if (!Number.isInteger(port) || port <= 0) {
 }
 const baseURL = `http://localhost:${port}`;
 
+/** Port of the mock Anthropic server during E2E runs (env `MOCK_AI_PORT`, default 4010). */
+const mockAiPort = Number(process.env.MOCK_AI_PORT ?? 4010);
+if (!Number.isInteger(mockAiPort) || mockAiPort <= 0) {
+  throw new Error(`MOCK_AI_PORT must be a positive integer, got "${process.env.MOCK_AI_PORT}"`);
+}
+const mockAiBaseURL = `http://127.0.0.1:${mockAiPort}`;
+
 export default defineConfig({
   testDir: './e2e',
   fullyParallel: false,
@@ -22,10 +29,17 @@ export default defineConfig({
   ],
   webServer: [
     {
+      command: 'node e2e/mock-anthropic.mjs',
+      port: mockAiPort,
+      reuseExistingServer: false,
+      env: { MOCK_AI_PORT: String(mockAiPort) },
+    },
+    {
       command: `npm run e2e:server -- -p ${port}`,
       url: `${baseURL}/en`,
       reuseExistingServer: false,
       timeout: 240_000,
+      env: { ANTHROPIC_BASE_URL: mockAiBaseURL },
     },
   ],
 });
