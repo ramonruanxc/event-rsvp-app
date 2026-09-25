@@ -102,7 +102,9 @@ describe('RsvpForm', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Send RSVP' }));
 
     const alert = await screen.findByRole('alert');
-    expect(alert.textContent).toBe('Please fix the highlighted fields.');
+    expect(alert.textContent).toBe("We couldn't send your RSVP. Please try again.");
+    expect(screen.queryByText('Please fix the highlighted fields.')).toBeNull();
+    expect(screen.queryByText('This value is not valid.')).toBeNull();
     expect(alert.textContent?.toLowerCase()).not.toContain('website');
     expect((screen.getByLabelText('Your name') as HTMLInputElement).value).toBe('Maria');
     expect(
