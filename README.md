@@ -143,7 +143,21 @@ specification → documentation) and which model ran which stage.
 Failures the pipeline hit along the way, and their root causes, are logged in
 [docs/pipeline/failures.md](docs/pipeline/failures.md).
 
-What I verified by hand: <!-- human fills -->
+What I verified by hand:
+
+- Google sign-in end to end in production (2026-09-24).
+- The production setup (Vercel, Neon, Google OAuth, stable public domain https://event-rsvp-app-flax.vercel.app).
+- The approved visual direction (mockup) and every business-rule decision raised as a DOC question during the
+  pipeline.
+- The real AI evaluation results (three models via OpenRouter) and the decision that the code default follows
+  them.
+- The key handling: the OpenRouter key was provisioned with a spend limit and never printed.
+- "Fill with AI" in production with seven hand-picked cases (English, French and Portuguese input, a missing time,
+  an explicit timezone, non-event text and a prompt-injection attempt): all seven behaved as expected (2026-09-25).
+
+Verified by the orchestrator (Claude): production smoke tests after the phase 1, 3, 6 and 7
+deployments (locales, demo event, `.ics`, sign-in redirect, theme, security headers), recorded in the Events table
+of [docs/timelog.md](docs/timelog.md).
 
 ## What I left out and why
 
@@ -159,10 +173,33 @@ What I verified by hand: <!-- human fills -->
 | Strict CSP | Listed in the brief's out-of-scope list; other XSS mitigations are used instead (React escaping only, no `dangerouslySetInnerHTML`). |
 | Observability beyond logs | Listed in the brief's out-of-scope list; no reason given in the brief. |
 | Per-PR preview deployments | Explicitly decided: "no per-PR previews (would migrate the production database)". |
+| Publishing the Google OAuth app (stays in Testing mode) | Google requires full branding (home page, privacy policy, verified authorized domain) to publish an External OAuth app, and `vercel.app` ownership cannot be proven; the evaluator's Google account is added as a test user instead. |
+| Upgrading Next 15 → 16 and Vitest 3 → 4+ | Six Dependabot alerts (postcss pinned inside next@15; vitest dev-only) are not exploitable here: postcss only runs at build time on first-party CSS and vitest never ships. Both need major upgrades, out of scope for this exercise; alerts were dismissed as tolerable risk with this reasoning. |
 
 Full detail, including the brief citations, is in the
 ["Out of scope" section of docs/business-rules.md](docs/business-rules.md#out-of-scope).
 
 ## Time report
 
-Wall-clock and agent-run tracking for the whole challenge: [docs/timelog.md](docs/timelog.md).
+Timer: 2026-09-24 12:06:04 → 2026-09-25 10:17:22 (America/Fortaleza). Phase 0 (comprehension, 25 min) is untimed.
+
+| | Time |
+|---|---|
+| Wall clock | 22h 11m |
+| Paused (6 pauses: breaks, work calls, sleep) | 13h 03m |
+| **Human active time (self-reported)** | **3h 30m** |
+| Timer minus announced pauses | 9h 07m |
+| Agent run time (sum of all agent runs; many ran in parallel and during pauses) | 13h 48m |
+
+The timer only subtracts pauses the human announced. While agents ran for long stretches, the human was often
+not at the keyboard without announcing it, so the timer overstates hands-on time; the human's own measurement of
+active work is **3h 30m**.
+
+| Phase | Wall clock | Timer minus announced pauses |
+|---|---|---|
+| 1 — Spec definition | 1h 29m | 0h 50m |
+| 2 — Pipeline bootstrap + spec | 1h 14m | 0h 39m |
+| 4 — Execution, review, merges | 11h 36m | 7h 30m |
+| 6 — Ship | 0h 07m | 0h 07m |
+
+Full breakdown, including per-phase agent runs and every pause: [docs/timelog.md](docs/timelog.md).

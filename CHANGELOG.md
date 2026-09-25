@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Security
+
+- Dependabot alerts for postcss (inside next@15) and vitest triaged and dismissed as tolerable risk; upgrade path
+  documented.
+
 ### Added
 
 - Provider failover for "Fill with AI": providers are tried in the order set by `AI_PROVIDERS` (default `openrouter`

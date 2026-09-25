@@ -12,9 +12,9 @@ Event times are taken from session timestamps. All times in America/Fortaleza (U
 | 1 | Spec definition (business rules, scope, gaps, design) | 2026-09-24 12:06:04 | 2026-09-24 13:35:54 |
 | 2 | Pipeline bootstrap (repo, agents, skills) + spec writing | 2026-09-24 13:35:54 | 2026-09-24 14:50:06 |
 | 3 | Plan (produced with the spec in phase 2) | — | — |
-| 4 | Execution | 2026-09-24 14:50:06 | — |
-| 5 | Review | — | — |
-| 6 | Ship (deploy + README) | — | — |
+| 4 | Execution (plan phases 0–7, incl. per-PR review and merge) | 2026-09-24 14:50:06 | 2026-09-25 02:26:39 |
+| 5 | Review (interleaved with execution: one reviewer + doc-sync per PR) | — | — |
+| 6 | Ship (final verification, Dependabot triage, time report) | 2026-09-25 10:10:04 | 2026-09-25 10:17:22 |
 
 ## Pauses
 
@@ -24,8 +24,8 @@ Event times are taken from session timestamps. All times in America/Fortaleza (U
 | 2 | 2 — Pipeline bootstrap + spec | 2026-09-24 14:04:38 | 2026-09-24 14:39:47 | 35m 09s | Human away; spec-writer agent ran meanwhile (see Agent runs) |
 | 3 | 4 — Execution | 2026-09-24 15:27:44 | 2026-09-24 15:44:10 | 16m 26s | Work break; pipeline kept running |
 | 4 | 4 — Execution | 2026-09-24 18:59:23 | 2026-09-24 19:20:18 | 20m 55s | Work and calls; pipeline kept running |
-| 5 | 4 — Execution | 2026-09-24 19:24:11 | 2026-09-24 21:28:38 | — | Break; pipeline kept running (duration computed in the final report) |
-| 6 | 4 — Execution | 2026-09-25 01:02:49 | — | — | Sleep; pipeline kept running |
+| 5 | 4 — Execution | 2026-09-24 19:24:11 | 2026-09-24 21:28:38 | 2h 04m 27s | Break; pipeline kept running (duration computed in the final report) |
+| 6 | 4 → 6 (spans the end of execution at 02:26:39 and the gap before ship) | 2026-09-25 01:02:49 | 2026-09-25 10:10:04 | 9h 07m 15s | Sleep; pipeline kept running and finished phases 6–7 |
 
 ## Agent runs
 
@@ -154,14 +154,14 @@ Pipeline agents working autonomously. Reported separately from human active time
 | 2026-09-24 18:21:36 | PR #5 merged (human approved) — phase 1 in production; phase 2 (RSVP flow) starts |
 | 2026-09-24 18:29:43 | HUMAN-02 done: Google OAuth client; app kept in Testing with test users |
 | 2026-09-24 18:39:43 | SPEC failure #13 (TASK-78 green-first) routed to spec-writer; batch resumed 18:43 |
-| 2026-09-24 18:47:00 | HUMAN-01 done: stable production domain https://event-rsvp-app-flax.vercel.app; smoke test passed |
+| 2026-09-24 18:47:00 | HUMAN-01 done by the human (stable production domain https://event-rsvp-app-flax.vercel.app); smoke test of the live site run by the orchestrator |
 | 2026-09-24 18:47:59 | Human verified Google sign-in end-to-end in production |
 | 2026-09-24 19:18:52 | Phase 2 complete: 20/20 tasks (one SPEC failure, resolved) |
 | 2026-09-24 19:24:11 | Phase 3 started in a separate worktree (isolated test DB and port) while PR #6 was reviewed |
 | 2026-09-24 19:31:33 | PR #6 merged (pre-authorized by human) — phase 2 in production |
 | 2026-09-24 19:58:27 | Phase 3 complete: 11/11 tasks, first attempt each |
 | 2026-09-24 20:02:10 | Phase 4 (AI fill) started on the main working tree after a preventive plan review |
-| 2026-09-24 21:22:55 | PR #7 merged (human approved) — phase 3 in production; demo event, .ics and invite link verified live |
+| 2026-09-24 21:22:55 | PR #7 merged (human approved) — phase 3 in production; demo event, .ics and invite link verified live by the orchestrator |
 | 2026-09-24 21:28:38 | Human back: provisioning the Anthropic key (HUMAN-05); phase 5 starts in a worktree; phase 6 (UI/UX) requested |
 | 2026-09-24 21:28:00 | Phase 6 (UI/UX) requested; PRODUCT.md + DESIGN.md written; mockup built; contrast issues fixed in DESIGN.md |
 | 2026-09-24 21:50:00 | Human approved the visual direction; amendment A2; analyst BR-97–BR-118 |
@@ -174,3 +174,34 @@ Pipeline agents working autonomously. Reported separately from human active time
 | 2026-09-25 01:22:17 | Real eval via OpenRouter: only claude-sonnet-5 passes the gate (Haiku 4.5 and gpt-4o-mini invent data); measured spend USD 0.1283 |
 | 2026-09-25 01:33:48 | TASK-218: code default model follows the eval (claude-sonnet-5); phase 7 complete |
 | 2026-09-25 01:35:43 | Phase 6 complete: 36/36 tasks (TASK-182 characterization found a real focus-ring defect, fixed) |
+| 2026-09-25 02:09:17 | Production smoke test by the orchestrator (human asleep) after the phase 6 deploy: dark theme by default, light theme from the cookie, logo and theme toggle, X-Frame-Options DENY, demo event page, `/icon.svg`, `.ics` |
+| 2026-09-25 02:28:29 | Production smoke test by the orchestrator (human asleep) after the phase 7 deploy: /en /fr /pt-BR, demo event, `.ics`, dashboard redirects to sign-in, auth providers, dark theme, all three security headers |
+| 2026-09-25 10:10:04 | Human back; AI fill tested by hand in production (7/7 cases passed); Nageeb added as Google test user; Dependabot triaged (6 alerts dismissed as tolerable risk, PR #1 rebased) |
+| 2026-09-25 10:17:22 | Final time report |
+
+## Time report
+
+Timer: 2026-09-24 12:06:04 → 2026-09-25 10:17:22 (America/Fortaleza). Phase 0 (comprehension, 25 min) is untimed.
+
+| | Time |
+|---|---|
+| Wall clock | 22h 11m |
+| Paused (6 pauses: breaks, work calls, sleep) | 13h 03m |
+| **Human active time (self-reported)** | **3h 30m** |
+| Timer minus announced pauses | 9h 07m |
+| Agent run time (sum of all agent runs; many ran in parallel and during pauses) | 13h 48m |
+
+The timer only subtracts pauses the human announced. While agents ran for long stretches, the human was often
+not at the keyboard without announcing it, so the timer overstates hands-on time; the human's own measurement of
+active work is **3h 30m**.
+
+| Phase | Wall clock | Timer minus announced pauses |
+|---|---|---|
+| 1 — Spec definition | 1h 29m | 0h 50m |
+| 2 — Pipeline bootstrap + spec | 1h 14m | 0h 39m |
+| 4 — Execution, review, merges | 11h 36m | 7h 30m |
+| 6 — Ship | 0h 07m | 0h 07m |
+
+Per-phase active time subtracts only the part of each pause that overlaps that phase (pause 6 overlaps phase 4
+for 1h 23m; the rest falls between phases). Active time includes the human's review and decisions while agents ran; agent runs overlapped each other (parallel
+worktrees) and continued during pauses, which is why their sum exceeds the active time.
