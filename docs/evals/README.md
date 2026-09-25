@@ -39,5 +39,7 @@ must-not-invent and prompt-injection 100%, p95 latency < 8 s, over all cases. Re
 Estimated cost of the round: ≈ USD 1.86. Measured: USD 1.1968 (key usage USD 0.1640 → USD 1.3608 of the USD 6
 limit).
 
-**Production choice (Phase 8):** No model passes the Phase 8 gate; the code default stays anthropic/claude-sonnet-5
-until the human decides.
+**Production choice (Phase 8):** No model passes the Phase 8 gate. Human decision (2026-09-25): Phase 8 ships as a
+measurement; the code default stays `anthropic/claude-sonnet-5`, and production sets `OPENROUTER_REASONING_EFFORT=omit`
+(HUMAN-07, done) to restore the provider-default reasoning that passed Phase 7. Next step: harden the prompt on
+must-not-invent using tuning cases only (hold-out untouched), then re-run this gate.

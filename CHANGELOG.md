@@ -9,7 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Added
 
 - `OPENROUTER_REASONING_EFFORT` setting (default `low`, `omit` sends no reasoning parameter), read fresh on every
-  OpenRouter call, like the key (REQ-99; BR-64 amended).
+  OpenRouter call, like the key (REQ-99; cites BR-64, unchanged).
 - Harder eval gate: each case runs 3 times and passes only if every answered run passes; availability and p95
   latency (< 8 s) are reported apart from correctness; a description-invention check; every category needs at
   least 80%; a hidden ⅓ hold-out split never used to tune the prompt (REQ-100, REQ-101, REQ-102, REQ-103, REQ-104,
