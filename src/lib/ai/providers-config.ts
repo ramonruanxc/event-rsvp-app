@@ -1,4 +1,4 @@
-import { AI_PROVIDER_NAMES, type AiProviderName } from './types';
+import { AI_PROVIDER_NAMES, type AiModelClient, type AiProvider, type AiProviderName } from './types';
 
 /** Environment variables as read by the provider configuration. */
 export type ProviderEnv = Readonly<Record<string, string | undefined>>;
@@ -29,4 +29,12 @@ export function parseAiProviders(value: string | undefined): AiProviderName[] {
     if ((AI_PROVIDER_NAMES as readonly string[]).includes(name) && !names.includes(name)) names.push(name);
   }
   return names;
+}
+
+/** Builds the provider list in AI_PROVIDERS order, skipping providers without a key (BR-119, BR-120). */
+export function buildAiProviders(
+  _env: ProviderEnv,
+  _factories: Record<AiProviderName, () => AiModelClient>,
+): AiProvider[] {
+  throw new Error('not implemented');
 }
