@@ -39,6 +39,17 @@ export function RsvpForm({ initial, submit, onDone }: RsvpFormProps) {
     return key ? t(`validation.${key}`) : null;
   }
 
+  /**
+   * Text for the top-level alert. Covers action-level failures (e.g. `DUPLICATE_NAME`,
+   * `RATE_LIMITED`) as well as server-side form validation failures that carry no specific
+   * field (e.g. a filled honeypot, REQ-58). Always generic: never reveals the honeypot.
+   */
+  function formAlert(): string | null {
+    if (formError) return t(`errors.${formError}`);
+    if (fieldErrors.form) return t('errors.VALIDATION_ERROR');
+    return null;
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const values: RsvpFormValues = { name, status, partySize };
@@ -70,7 +81,7 @@ export function RsvpForm({ initial, submit, onDone }: RsvpFormProps) {
   return (
     <form onSubmit={handleSubmit} noValidate>
       <h2>{t('rsvp.title')}</h2>
-      {formError && <div role="alert">{t(`errors.${formError}`)}</div>}
+      {formAlert() && <div role="alert">{formAlert()}</div>}
 
       <div>
         <label htmlFor="rsvp-name">{t('rsvp.name')}</label>

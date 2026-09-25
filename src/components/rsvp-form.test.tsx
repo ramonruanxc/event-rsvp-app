@@ -91,9 +91,11 @@ describe('RsvpForm', () => {
   });
 
   test('REQ-58: a rejected honeypot shows a generic form error and keeps the values', async () => {
-    const submit = vi
-      .fn()
-      .mockResolvedValue({ ok: false, code: 'VALIDATION_ERROR', fieldErrors: { form: 'invalidFormat' } });
+    const submit = vi.fn().mockResolvedValue({
+      ok: false,
+      code: 'VALIDATION_ERROR',
+      fieldErrors: { form: 'invalidFormat' },
+    });
     renderWithIntl(<RsvpForm submit={submit} />);
     fillGoing('Maria', 3);
 
