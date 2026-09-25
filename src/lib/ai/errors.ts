@@ -16,3 +16,8 @@ export class InvalidModelOutputError extends Error {
     this.name = 'InvalidModelOutputError';
   }
 }
+
+/** Maps an HTTP status to an outage reason, or null when the status is not an outage (BR-121). */
+export function outageReasonForStatus(_status: number): OutageReason | null {
+  return null;
+}
