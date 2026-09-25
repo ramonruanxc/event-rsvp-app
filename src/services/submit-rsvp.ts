@@ -41,6 +41,8 @@ export class SubmitRsvpService {
       if (!allowed) throw new RateLimitedError();
     }
 
+    if (input.honeypot.trim() !== '') throw new ValidationError({ form: 'invalidFormat' });
+
     const parsed = rsvpInputSchema.safeParse(input.values);
     if (!parsed.success) throw ValidationError.fromZod(parsed.error);
 
