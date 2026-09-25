@@ -49,7 +49,11 @@ export const aiRawOutputSchema = z.object({
 export type AiRawOutput = z.infer<typeof aiRawOutputSchema>;
 
 /** JSON Schema of aiRawOutputSchema for OpenAI-compatible `response_format` (BR-70); `$schema` removed. */
-export const AI_OUTPUT_JSON_SCHEMA: Record<string, unknown> = {};
+export const AI_OUTPUT_JSON_SCHEMA: Record<string, unknown> = (() => {
+  const schema = { ...z.toJSONSchema(aiRawOutputSchema) } as Record<string, unknown>;
+  delete schema.$schema;
+  return schema;
+})();
 
 /** Resolves the timezone priority (REQ-46, BR-60, BR-61): valid text timezone, else valid form timezone, else null. */
 function resolveTimezone(
