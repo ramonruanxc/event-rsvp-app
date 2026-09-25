@@ -1,11 +1,17 @@
-import type { ParseEventResult } from '@/lib/ai/types';
+import { ProviderUnavailableError } from '@/lib/ai/errors';
+import { AI_TIMEOUT_MS, type ParseEventResult } from '@/lib/ai/types';
 import type { RunStatus } from './types';
 
 /** Status of one run (REQ-101): a result → ok; ≥ AI_TIMEOUT_MS or a client timeout → timeout; other outage → outage; else invalid. */
-export function classifyRun(_run: {
+export function classifyRun(run: {
   outcome: ParseEventResult | { error: string };
   latencyMs: number;
   clientError: unknown;
 }): RunStatus {
-  throw new Error('not implemented');
+  if (!('error' in run.outcome)) return 'ok';
+  if (run.latencyMs >= AI_TIMEOUT_MS) return 'timeout';
+  if (run.clientError instanceof ProviderUnavailableError) {
+    return run.clientError.reason === 'timeout' ? 'timeout' : 'outage';
+  }
+  return 'invalid';
 }
