@@ -62,18 +62,33 @@ describe('renderReport (REQ-91)', () => {
 });
 
 describe('renderEvalReport (REQ-105)', () => {
-  const field = (name: string, passed: boolean, expected: unknown, actual: unknown): FieldResult => ({
+  const field = (
+    name: string,
+    passed: boolean,
+    expected: unknown,
+    actual: unknown,
+  ): FieldResult => ({
     field: name,
     passed,
     expected,
     actual,
   });
-  const ok = (id: string, category: Category, latencyMs: number, fields: FieldResult[] = []): RunResult => ({
+  const ok = (
+    id: string,
+    category: Category,
+    latencyMs: number,
+    fields: FieldResult[] = [],
+  ): RunResult => ({
     status: 'ok',
     latencyMs,
     result: { id, category, passed: fields.every((f) => f.passed), fields },
   });
-  const down = (status: RunStatus, id: string, category: Category, latencyMs: number): RunResult => ({
+  const down = (
+    status: RunStatus,
+    id: string,
+    category: Category,
+    latencyMs: number,
+  ): RunResult => ({
     status,
     latencyMs,
     result: { id, category, passed: false, fields: [], error: 'AI_UNAVAILABLE' },
@@ -138,7 +153,12 @@ describe('renderEvalReport (REQ-105)', () => {
       ],
     },
   ];
-  const META = { model: 'openrouter:google/gemini-3.8-flash', date: '2026-09-25', runs: 3, reasoningEffort: 'low' };
+  const META = {
+    model: 'openrouter:google/gemini-3.8-flash',
+    date: '2026-09-25',
+    runs: 3,
+    reasoningEffort: 'low',
+  };
 
   it('REQ-105: the report shows the gate checks, availability, latency, both sets and the tuning failures', () => {
     const EXPECTED = `# Event-parser eval — openrouter:google/gemini-3.8-flash — 2026-09-25
