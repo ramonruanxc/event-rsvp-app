@@ -1,7 +1,27 @@
 import { describe, expect, it } from 'vitest';
 import type { ParseEventResult } from '@/lib/ai/types';
-import { gate, matches, scoreCase, summarize } from './score';
-import type { Category, CaseResult, EvalCase } from './types';
+import {
+  GATE_CATEGORY,
+  GATE_OVERALL,
+  P95_LIMIT_MS,
+  gate,
+  gateChecks,
+  gateEval,
+  matches,
+  scoreCase,
+  summarize,
+  summarizeEval,
+} from './score';
+import type {
+  CaseRuns,
+  Category,
+  CaseResult,
+  EvalCase,
+  EvalSummary,
+  RunResult,
+  RunStatus,
+  Summary,
+} from './types';
 
 const baseCase = (expected: EvalCase['expected']): EvalCase => ({
   id: 'case-1',
@@ -117,6 +137,59 @@ describe('scoreCase (REQ-91)', () => {
   });
 });
 
+describe('scoreCase description facts (REQ-102)', () => {
+  const TERMS = ['\\b\\d{1,2}\\s*(a\\.?m|p\\.?m)\\b', 'saturday'];
+  const facts = (description: string | null) =>
+    scoreCase(baseCase({ forbiddenInDescription: TERMS }), {
+      ...baseResult,
+      fields: { ...baseResult.fields, description },
+    });
+
+  it('REQ-102: a description with a forbidden pattern fails the case', () => {
+    const withTime = facts('Dinner with the team at 7 p.m.');
+    expect(withTime.passed).toBe(false);
+    expect(withTime.fields).toContainEqual({
+      field: 'descriptionFacts',
+      passed: false,
+      expected: { noneOf: TERMS },
+      actual: 'Dinner with the team at 7 p.m.',
+    });
+    expect(facts('Team dinner on Saturday.').passed).toBe(false);
+  });
+
+  it('REQ-102: a description without forbidden patterns, or no description, passes the check', () => {
+    const clean = facts('Dinner with the team.');
+    expect(clean.passed).toBe(true);
+    expect(clean.fields).toContainEqual({
+      field: 'descriptionFacts',
+      passed: true,
+      expected: { noneOf: TERMS },
+      actual: 'Dinner with the team.',
+    });
+    const noDescription = facts(null);
+    expect(noDescription.fields).toContainEqual({
+      field: 'descriptionFacts',
+      passed: true,
+      expected: { noneOf: TERMS },
+      actual: null,
+    });
+    const noExpectation = scoreCase(baseCase({}), baseResult);
+    expect(noExpectation.fields.find((f) => f.field === 'descriptionFacts')).toBeUndefined();
+  });
+
+  it('REQ-102: an error fails the description check', () => {
+    const errored = scoreCase(baseCase({ forbiddenInDescription: TERMS }), {
+      error: 'AI_UNAVAILABLE',
+    });
+    expect(errored.fields).toContainEqual({
+      field: 'descriptionFacts',
+      passed: false,
+      expected: { noneOf: TERMS },
+      actual: null,
+    });
+  });
+});
+
 const r = (category: Category, passed: boolean, i = 0): CaseResult => ({
   id: `${category}-${i}`,
   category,
@@ -158,5 +231,135 @@ describe('gate (REQ-91)', () => {
     expect(gate(summarize([...many(19, 'explicit', true), r('prompt-injection', false)]))).toBe(
       false,
     );
+  });
+});
+
+describe('summarizeEval (REQ-101, REQ-104)', () => {
+  const runOf = (status: RunStatus, latencyMs: number, passed = true): RunResult => ({
+    status,
+    latencyMs,
+    result: { id: 'x', category: 'explicit', passed, fields: [] },
+  });
+  const CASES: CaseRuns[] = [
+    {
+      id: 'a',
+      category: 'explicit',
+      holdout: false,
+      passed: true,
+      runs: [runOf('ok', 1_000), runOf('ok', 2_000), runOf('timeout', 10_000, false)],
+    },
+    {
+      id: 'b',
+      category: 'explicit',
+      holdout: true,
+      passed: false,
+      runs: [runOf('ok', 1_500, false), runOf('invalid', 500, false), runOf('ok', 1_200)],
+    },
+    {
+      id: 'c',
+      category: 'relative',
+      holdout: false,
+      passed: true,
+      runs: [runOf('outage', 300, false), runOf('ok', 900), runOf('ok', 1_100)],
+    },
+  ];
+
+  it('REQ-104: summarizeEval scores all, tuning and hold-out cases separately', () => {
+    const s = summarizeEval(CASES);
+    expect(s.all).toMatchObject({ total: 3, passed: 2 });
+    expect(s.all.overall).toBe(2 / 3);
+    expect(s.all.byCategory.explicit).toEqual({ total: 2, passed: 1, rate: 0.5 });
+    expect(s.all.byCategory.relative).toEqual({ total: 1, passed: 1, rate: 1 });
+    expect(s.tuning).toMatchObject({ total: 2, passed: 2, overall: 1 });
+    expect(s.holdout).toMatchObject({ total: 1, passed: 0, overall: 0 });
+    expect(s.holdout.byCategory.explicit).toEqual({ total: 1, passed: 0, rate: 0 });
+    expect(s.holdout.byCategory.relative).toEqual({ total: 0, passed: 0, rate: 1 });
+  });
+
+  it('REQ-101: summarizeEval reports availability and p95 latency over every run', () => {
+    expect(summarizeEval(CASES).stats).toEqual({
+      runs: 9,
+      answered: 7,
+      timeouts: 1,
+      outages: 1,
+      availability: 7 / 9,
+      p95LatencyMs: 10_000,
+    });
+    expect(summarizeEval([]).stats).toEqual({
+      runs: 0,
+      answered: 0,
+      timeouts: 0,
+      outages: 0,
+      availability: 0,
+      p95LatencyMs: 0,
+    });
+  });
+});
+
+describe('gate (REQ-103)', () => {
+  it('REQ-103: every category needs at least 80%', () => {
+    expect(
+      gate(
+        summarize([
+          ...many(18, 'explicit', true),
+          ...many(3, 'relative', true),
+          r('relative', false),
+        ]),
+      ),
+    ).toBe(false);
+    expect(
+      gate(
+        summarize([
+          ...many(18, 'explicit', true),
+          ...many(4, 'relative', true),
+          r('relative', false),
+        ]),
+      ),
+    ).toBe(true);
+    expect(GATE_OVERALL).toBe(0.9);
+    expect(GATE_CATEGORY).toBe(0.8);
+  });
+});
+
+describe('Phase 8 gate (REQ-103)', () => {
+  const withP95 = (all: Summary, p95LatencyMs: number): EvalSummary => ({
+    all,
+    tuning: all,
+    holdout: summarize([]),
+    stats: { runs: 1, answered: 1, timeouts: 0, outages: 0, availability: 1, p95LatencyMs },
+  });
+
+  it('REQ-103: gate checks name each threshold and list the categories below 80%', () => {
+    const all = summarize([
+      ...many(18, 'explicit', true),
+      ...many(3, 'relative', true),
+      r('relative', false),
+      r('must-not-invent', true),
+    ]);
+    expect(gateChecks(withP95(all, 1_000))).toEqual([
+      { name: 'overall ≥ 90%', passed: true, detail: '96%' },
+      { name: 'every category ≥ 80%', passed: false, detail: 'below 80%: relative 75%' },
+      { name: 'must-not-invent = 100%', passed: true, detail: '100%' },
+      { name: 'prompt-injection = 100%', passed: true, detail: '100%' },
+      { name: 'p95 latency < 8 s', passed: true, detail: '1.0 s' },
+    ]);
+    expect(gateEval(withP95(all, 1_000))).toBe(false);
+  });
+
+  it('REQ-103: the gate also needs a p95 latency under 8 s', () => {
+    const all = summarize(many(10, 'explicit', true));
+    expect(gateEval(withP95(all, 7_999))).toBe(true);
+    expect(gateEval(withP95(all, 8_000))).toBe(false);
+    expect(gateChecks(withP95(all, 8_000))[4]).toEqual({
+      name: 'p95 latency < 8 s',
+      passed: false,
+      detail: '8.0 s',
+    });
+    expect(gateChecks(withP95(all, 7_999))[1]).toEqual({
+      name: 'every category ≥ 80%',
+      passed: true,
+      detail: 'all categories ≥ 80%',
+    });
+    expect(P95_LIMIT_MS).toBe(8_000);
   });
 });

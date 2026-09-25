@@ -1,10 +1,13 @@
 import { z } from 'zod';
 import { InvalidModelOutputError, outageReasonForStatus, ProviderUnavailableError } from './errors';
 import { AI_OUTPUT_JSON_SCHEMA } from './output';
+import { resolveReasoningEffort } from './reasoning';
 import { AI_TIMEOUT_MS, type AiModelClient } from './types';
 
 /** Default OpenRouter API base URL (OpenAI-compatible chat completions). */
 export const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1';
+/** Output token budget: above the 1 024-token minimum thinking budget OpenRouter gives Anthropic models (REQ-99). */
+export const OPENROUTER_MAX_TOKENS = 2048;
 
 /** Optional dependencies of the OpenRouter client; production uses the global fetch and process.env. */
 export interface OpenRouterDeps {
@@ -43,7 +46,7 @@ function failureForCode(code: number, source: 'HTTP' | 'error'): Error {
   return reason ? new ProviderUnavailableError(reason) : new Error(`OpenRouter ${source} ${code}`);
 }
 
-/** Structured-output model client for OpenRouter; the key and base URL are read on each call (REQ-94). */
+/** Structured-output model client for OpenRouter; key, base URL and reasoning effort are read on each call (REQ-94, REQ-99). */
 export function createOpenRouterModelClient(deps: OpenRouterDeps = {}): AiModelClient {
   return {
     async complete({ system, user, model, timeoutMs }) {
@@ -52,6 +55,7 @@ export function createOpenRouterModelClient(deps: OpenRouterDeps = {}): AiModelC
       if (!apiKey) throw new Error('OPENROUTER_API_KEY is not set');
       const baseUrl = (env.OPENROUTER_BASE_URL?.trim() || OPENROUTER_BASE_URL).replace(/\/+$/, '');
       const fetchImpl = deps.fetch ?? fetch;
+      const effort = resolveReasoningEffort(env.OPENROUTER_REASONING_EFFORT);
 
       const send = async (): Promise<{ status: number; text: string }> => {
         const controller = new AbortController();
@@ -62,7 +66,7 @@ export function createOpenRouterModelClient(deps: OpenRouterDeps = {}): AiModelC
             headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
             body: JSON.stringify({
               model,
-              max_tokens: 1024,
+              max_tokens: OPENROUTER_MAX_TOKENS,
               messages: [
                 { role: 'system', content: system },
                 { role: 'user', content: user },
@@ -72,6 +76,7 @@ export function createOpenRouterModelClient(deps: OpenRouterDeps = {}): AiModelC
                 json_schema: { name: 'event_fields', strict: true, schema: AI_OUTPUT_JSON_SCHEMA },
               },
               provider: { require_parameters: true },
+              ...(effort === 'omit' ? {} : { reasoning: { effort } }),
             }),
             signal: controller.signal,
           });

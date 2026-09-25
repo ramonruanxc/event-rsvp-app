@@ -10,6 +10,8 @@ describe('eval options (REQ-93)', () => {
       model: 'openai/gpt-4o-mini',
       cases: 'evals/event-parser/cases.json',
       out: 'docs/evals',
+      runs: 3,
+      reasoningEffort: 'low',
     });
     expect(parseEvalOptions(['--model', 'openai/gpt-4o-mini'], { ANTHROPIC_API_KEY: 'x' })).toEqual(
       { error: 'OPENROUTER_API_KEY is not set — ask the human to provide it.' },
@@ -31,6 +33,8 @@ describe('eval options (REQ-93)', () => {
       model: 'claude-haiku-4-5',
       cases: 'evals/event-parser/cases.json',
       out: 'docs/evals',
+      runs: 3,
+      reasoningEffort: 'low',
     });
   });
 
@@ -43,6 +47,8 @@ describe('eval options (REQ-93)', () => {
       model: 'openai/gpt-4o-mini',
       cases: 'evals/event-parser/cases.json',
       out: 'docs/evals',
+      runs: 3,
+      reasoningEffort: 'low',
     });
   });
 
@@ -76,5 +82,49 @@ describe('eval options (REQ-93)', () => {
     expect(reportFileName('2026-09-24', 'openrouter', 'openai/gpt-4o-mini')).toBe(
       '2026-09-24-openrouter-openai-gpt-4o-mini.md',
     );
+  });
+});
+
+describe('eval options (REQ-107)', () => {
+  it('REQ-107: --runs defaults to 3 and the reasoning effort to OPENROUTER_REASONING_EFFORT or low', () => {
+    expect(parseEvalOptions(['--model', 'm'], { OPENROUTER_API_KEY: 'y' })).toEqual({
+      provider: 'openrouter',
+      model: 'm',
+      cases: 'evals/event-parser/cases.json',
+      out: 'docs/evals',
+      runs: 3,
+      reasoningEffort: 'low',
+    });
+    expect(
+      parseEvalOptions(['--model', 'm'], {
+        OPENROUTER_API_KEY: 'y',
+        OPENROUTER_REASONING_EFFORT: ' Medium ',
+      }),
+    ).toMatchObject({ runs: 3, reasoningEffort: 'medium' });
+  });
+
+  it('REQ-107: --runs and --reasoning-effort are validated after the model', () => {
+    expect(
+      parseEvalOptions(['--model', 'm', '--runs', '5', '--reasoning-effort', 'OMIT'], {
+        OPENROUTER_API_KEY: 'y',
+        OPENROUTER_REASONING_EFFORT: 'high',
+      }),
+    ).toMatchObject({ runs: 5, reasoningEffort: 'omit' });
+    for (const value of ['0', '2.5', 'abc', '']) {
+      expect(
+        parseEvalOptions(['--model', 'm', '--runs', value], { OPENROUTER_API_KEY: 'y' }),
+      ).toEqual({ error: '--runs must be a positive integer' });
+    }
+    expect(
+      parseEvalOptions(['--model', 'm', '--reasoning-effort', 'turbo'], {
+        OPENROUTER_API_KEY: 'y',
+      }),
+    ).toEqual({
+      error:
+        '--reasoning-effort must be one of: max, xhigh, high, medium, low, minimal, none, omit',
+    });
+    expect(parseEvalOptions(['--runs', '0'], { OPENROUTER_API_KEY: 'y' })).toEqual({
+      error: '--model is required',
+    });
   });
 });
