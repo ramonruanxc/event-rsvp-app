@@ -1,0 +1,984 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Event RSVP Phase 6 Mockup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400..700&family=Geist+Mono:wght@400..600&display=swap" rel="stylesheet">
+<style>
+/* ============ Tokens (DESIGN.md) ============ */
+:root {
+  --font: 'Geist', system-ui, sans-serif;
+  --mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --ease: cubic-bezier(0.25, 1, 0.5, 1);
+  --brand-indigo: #3630B0;
+  --brand-turquoise: #3BDBD1;
+}
+[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: oklch(0.17 0.018 277);
+  --surface: oklch(0.21 0.02 277);
+  --surface-2: oklch(0.25 0.022 277);
+  --border: oklch(0.34 0.02 277);
+  /* BEND: added. --border fails 3:1 vs --surface (1.51:1), so input/control boundaries use this. 3.80:1 vs surface. */
+  --border-input: oklch(0.56 0.03 277);
+  --text: oklch(0.95 0.006 277);
+  --text-muted: oklch(0.74 0.014 277);
+  /* BEND: DESIGN.md dark primary 0.62 gives 3.73:1 with --on-primary; 0.55 gives 5.01:1. Hover goes darker (5.9:1). */
+  --primary: oklch(0.55 0.19 277);
+  --primary-hover: oklch(0.51 0.19 277);
+  --on-primary: oklch(0.99 0.004 277);
+  --link: oklch(0.78 0.12 277);
+  --success: oklch(0.84 0.12 185);
+  --success-bg: oklch(0.3 0.05 185);
+  --warning: oklch(0.85 0.13 85);
+  --warning-bg: oklch(0.3 0.05 85);
+  --danger: oklch(0.72 0.17 25);
+  --danger-bg: oklch(0.3 0.06 25);
+  /* BEND: added. --on-primary on --danger is 2.60:1 in dark; --bg on --danger is 7.17:1. */
+  --on-danger: oklch(0.17 0.018 277);
+  --shadow-pop: 0 12px 32px oklch(0.08 0.02 277 / 0.55), 0 1px 2px oklch(0.08 0.02 277 / 0.4);
+}
+[data-theme="light"] {
+  color-scheme: light;
+  --bg: oklch(0.985 0.004 277);
+  --surface: oklch(0.995 0.003 277);
+  --surface-2: oklch(0.955 0.008 277);
+  --border: oklch(0.88 0.012 277);
+  --border-input: oklch(0.6 0.03 277); /* 3.91:1 vs surface */
+  --text: oklch(0.22 0.02 277);
+  --text-muted: oklch(0.46 0.018 277);
+  --primary: oklch(0.42 0.2 277);
+  --primary-hover: oklch(0.37 0.2 277);
+  --on-primary: oklch(0.99 0.004 277);
+  --link: oklch(0.45 0.2 277);
+  --success: oklch(0.5 0.1 185);
+  --success-bg: oklch(0.95 0.035 185);
+  --warning: oklch(0.52 0.12 70);
+  --warning-bg: oklch(0.96 0.04 85);
+  --danger: oklch(0.5 0.19 27);
+  --danger-bg: oklch(0.96 0.03 25);
+  --on-danger: oklch(0.99 0.004 277);
+  --shadow-pop: 0 12px 32px oklch(0.3 0.03 277 / 0.16), 0 1px 2px oklch(0.3 0.03 277 / 0.12);
+}
+
+/* ============ Base ============ */
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font: 400 1rem/1.55 var(--font);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+h1, h2, h3, p, ul, ol, figure, fieldset { margin: 0; }
+ul, ol { padding: 0; }
+fieldset { border: 0; padding: 0; min-width: 0; }
+button, input, select, textarea { font: inherit; color: inherit; }
+a { color: var(--link); text-underline-offset: 3px; }
+:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.sr-only { position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+.num { font-variant-numeric: tabular-nums; }
+.mono { font-family: var(--mono); }
+
+.i { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
+.i-20 { width: 20px; height: 20px; }
+.i-12 { width: 12px; height: 12px; }
+
+/* Type scale */
+.display { font-size: 2rem; line-height: 1.15; font-weight: 650; letter-spacing: -0.015em; text-wrap: balance; }
+.h2 { font-size: 1.375rem; line-height: 1.25; font-weight: 600; letter-spacing: -0.005em; }
+.h3 { font-size: 1.125rem; line-height: 1.35; font-weight: 600; }
+.small { font-size: 0.875rem; line-height: 1.45; font-weight: 450; }
+.micro { font-size: 0.75rem; line-height: 1.4; font-weight: 550; letter-spacing: 0.02em; }
+.muted { color: var(--text-muted); }
+.prose { max-width: 65ch; }
+
+/* ============ Mockup control bar (outside the app) ============ */
+.mock-bar {
+  position: sticky; top: 0; z-index: 50;
+  background: var(--bg);
+  border-bottom: 1px dashed var(--border-input);
+  padding: 8px 16px;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px;
+  font-family: var(--mono); font-size: 0.8125rem;
+}
+.mock-title { font-weight: 600; color: var(--text-muted); white-space: nowrap; }
+.mock-tabs { display: flex; gap: 4px; overflow-x: auto; flex: 1 1 100%; order: 3; padding-bottom: 2px; scrollbar-width: thin; }
+.mock-tabs button, .mock-toggle {
+  flex: none; height: 32px; padding: 0 10px; border-radius: 6px;
+  border: 1px solid var(--border); background: var(--surface); color: var(--text-muted);
+  font: 500 0.8125rem/1 var(--mono); cursor: pointer; white-space: nowrap;
+}
+.mock-tabs button:hover, .mock-toggle:hover { color: var(--text); border-color: var(--border-input); }
+.mock-tabs button[aria-pressed="true"] { color: var(--on-primary); background: var(--primary); border-color: var(--primary); }
+.mock-toggle[aria-pressed="true"] { color: var(--text); border-color: var(--link); }
+.mock-controls { display: flex; gap: 8px; margin-left: auto; }
+@media (min-width: 1100px) {
+  .mock-tabs { flex: 0 1 auto; order: 0; }
+}
+
+.stage { padding: 24px 16px 64px; }
+.frame {
+  container: app / inline-size;
+  max-width: 1200px; margin: 0 auto;
+  border: 1px solid var(--border); border-radius: 12px; overflow: hidden;
+  background: var(--bg);
+  min-height: calc(100vh - 140px);
+  transition: max-width 200ms var(--ease);
+}
+.stage.phone .frame { max-width: 377px; } /* 375 px content + 1 px border each side */
+@media (max-width: 520px) {
+  .stage { padding: 0; }
+  .frame { border: 0; border-radius: 0; }
+}
+.screen[hidden] { display: none; }
+.screen { scroll-margin-top: 400px; } /* hash links never tuck the app bar under the control bar */
+
+/* ============ App shell ============ */
+.topbar { height: 56px; background: var(--surface-2); border-bottom: 1px solid var(--border); }
+.topbar-in { height: 100%; max-width: 1008px; margin: 0 auto; padding: 0 16px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.brand { display: inline-flex; align-items: center; gap: 8px; color: var(--text); text-decoration: none; font-weight: 650; font-size: 1rem; letter-spacing: -0.01em; border-radius: 8px; min-height: 40px; white-space: nowrap; }
+.brand .mark { width: 24px; height: 24px; flex: none; }
+.topbar-actions { display: flex; align-items: center; gap: 4px; }
+.topbar-actions > .btn { margin-left: 4px; }
+
+.lang { position: relative; display: inline-flex; align-items: center; }
+.lang .i-globe { position: absolute; left: 11px; color: var(--text-muted); pointer-events: none; }
+.lang .i-chev { position: absolute; right: 8px; color: var(--text-muted); pointer-events: none; width: 14px; height: 14px; }
+.lang select {
+  height: 40px; padding: 0 28px 0 34px; border-radius: 8px; border: 1px solid transparent;
+  background: transparent; font-size: 0.875rem; font-weight: 450; appearance: none; cursor: pointer;
+  transition: background-color 150ms var(--ease);
+}
+.lang select:hover { background: var(--surface); border-color: var(--border); }
+.lang select option { color: var(--text); background: var(--surface); }
+.icon-btn {
+  width: 40px; height: 40px; display: inline-grid; place-items: center; border-radius: 8px;
+  border: 1px solid transparent; background: transparent; color: var(--text-muted); cursor: pointer;
+  transition: background-color 150ms var(--ease), color 150ms var(--ease);
+}
+.icon-btn:hover { background: var(--surface); color: var(--text); border-color: var(--border); }
+.icon-btn:active { transform: translateY(1px); }
+[data-theme="dark"] .theme-toggle .i-sun, [data-theme="light"] .theme-toggle .i-moon { display: none; }
+
+/* user menu (details = no JS) */
+.menu { position: relative; margin-left: 4px; }
+.menu summary { list-style: none; cursor: pointer; height: 40px; padding: 0 6px 0 4px; display: inline-flex; align-items: center; gap: 4px; border-radius: 8px; border: 1px solid transparent; color: var(--text-muted); }
+.menu summary::-webkit-details-marker { display: none; }
+.menu summary:hover { background: var(--surface); border-color: var(--border); }
+.avatar { width: 32px; height: 32px; border-radius: 999px; display: grid; place-items: center; background: var(--primary); color: var(--on-primary); font-weight: 600; font-size: 0.875rem; }
+.menu-pop { position: absolute; right: 0; top: calc(100% + 8px); z-index: 10; min-width: 208px; padding: 4px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow-pop); }
+.menu-pop .who { padding: 8px 12px; border-bottom: 1px solid var(--border); margin-bottom: 4px; }
+.menu-pop a { display: flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 12px; border-radius: 8px; color: var(--text); text-decoration: none; font-size: 0.875rem; }
+.menu-pop a:hover { background: var(--surface-2); }
+
+.page { padding: 24px 16px 48px; }
+.col-640 { max-width: 640px; margin: 0 auto; }
+.col-880 { max-width: 880px; margin: 0 auto; }
+.col-960 { max-width: 960px; margin: 0 auto; }
+.wide-only { display: none; }
+
+@container app (min-width: 480px) {
+  .wide-only { display: inline; }
+}
+@container app (max-width: 479px) {
+  /* Phone: language select collapses to a 40 px globe target; the native list still shows full names. */
+  .lang select { width: 40px; padding: 0; color: transparent; }
+  .lang .i-chev { display: none; }
+}
+@container app (min-width: 640px) {
+  .topbar-in { padding: 0 24px; }
+  .page { padding: 40px 24px 64px; }
+}
+
+/* ============ Buttons ============ */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  height: 40px; padding: 0 16px; border-radius: 8px; border: 1px solid transparent;
+  font-size: 0.9375rem; font-weight: 550; line-height: 1; white-space: nowrap; text-decoration: none; cursor: pointer;
+  transition: background-color 150ms var(--ease), border-color 150ms var(--ease), color 150ms var(--ease), transform 150ms var(--ease);
+}
+.btn:active { transform: translateY(1px); }
+.btn:disabled, .btn[aria-disabled="true"] { opacity: 0.5; cursor: not-allowed; transform: none; }
+.btn-sm { height: 36px; padding: 0 12px; font-size: 0.875rem; }
+.btn-lg { height: 44px; padding: 0 20px; font-size: 1rem; }
+.btn-primary { background: var(--primary); color: var(--on-primary); }
+.btn-primary:hover { background: var(--primary-hover); }
+.btn-secondary { background: var(--surface); color: var(--text); border-color: var(--border-input); }
+.btn-secondary:hover { background: var(--surface-2); }
+.btn-ghost { background: transparent; color: var(--text); }
+.btn-ghost:hover { background: var(--surface-2); }
+.btn-ghost-danger { background: transparent; color: var(--danger); }
+.btn-ghost-danger:hover { background: var(--danger-bg); }
+.btn-danger { background: var(--danger); color: var(--on-danger); }
+.btn-danger:hover { filter: brightness(1.06); }
+.btn.is-copied { color: var(--success); border-color: var(--success); background: var(--success-bg); }
+.btn-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.g-chip { width: 20px; height: 20px; border-radius: 999px; background: var(--on-primary); display: grid; place-items: center; flex: none; }
+.g-chip svg { width: 13px; height: 13px; }
+
+/* ============ Forms ============ */
+.field { display: grid; gap: 6px; }
+.field + .field { margin-top: 16px; }
+.label-row { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.label { font-size: 0.875rem; line-height: 1.45; font-weight: 550; color: var(--text); }
+.label .opt { font-weight: 450; color: var(--text-muted); }
+.input, .select, .textarea {
+  width: 100%; height: 40px; padding: 0 12px; border-radius: 8px;
+  background: var(--surface); border: 1px solid var(--border-input); color: var(--text);
+  font-size: 1rem; transition: border-color 150ms var(--ease), background-color 150ms var(--ease);
+}
+.textarea { height: auto; padding: 8px 12px; resize: vertical; line-height: 1.55; }
+.select { appearance: none; padding-right: 36px; background-image: none; cursor: pointer; }
+.select-wrap { position: relative; }
+.select-wrap .i { position: absolute; right: 12px; top: 12px; color: var(--text-muted); pointer-events: none; }
+.input:hover, .select:hover, .textarea:hover { border-color: var(--text-muted); }
+.input::placeholder, .textarea::placeholder { color: var(--text-muted); opacity: 1; }
+.input[readonly] { background: var(--surface-2); }
+.hint { font-size: 0.875rem; line-height: 1.45; color: var(--text-muted); }
+.field.is-missing .input { background: var(--warning-bg); border-color: var(--warning); }
+.needed { display: inline-flex; align-items: center; gap: 4px; color: var(--warning); }
+.field.is-missing .hint { color: var(--warning); display: flex; gap: 6px; align-items: flex-start; }
+.field.is-missing .hint .i { margin-top: 2px; }
+.pair { display: grid; gap: 16px; }
+.pair .field + .field { margin-top: 0; }
+@container app (min-width: 480px) { .pair { grid-template-columns: 1fr 1fr; } }
+
+/* Segmented control (radio group) */
+.seg { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px; }
+.seg label { position: relative; cursor: pointer; }
+.seg input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+.seg span {
+  height: 44px; display: flex; align-items: center; justify-content: center; gap: 8px;
+  border-radius: 8px; border: 1px solid transparent; color: var(--text-muted); font-weight: 500;
+  transition: background-color 150ms var(--ease), color 150ms var(--ease), border-color 150ms var(--ease);
+}
+.seg span .i { display: none; }
+.seg label:hover span { color: var(--text); }
+.seg input:checked + span { background: var(--surface); border-color: var(--border-input); color: var(--text); font-weight: 600; }
+.seg input:checked + span .i { display: block; }
+.seg .going .i { color: var(--success); }
+.seg .not .i { color: var(--text-muted); }
+.seg input:focus-visible + span { outline: 2px solid var(--link); outline-offset: 2px; }
+
+/* Stepper */
+.stepper { display: inline-grid; grid-template-columns: 44px 64px 44px; height: 44px; border: 1px solid var(--border-input); border-radius: 8px; background: var(--surface); overflow: hidden; width: max-content; }
+.stepper button { border: 0; background: transparent; color: var(--text); display: grid; place-items: center; cursor: pointer; transition: background-color 150ms var(--ease); }
+.stepper button:hover:not(:disabled) { background: var(--surface-2); }
+.stepper button:disabled { color: var(--text-muted); opacity: 0.5; cursor: not-allowed; }
+.stepper button:focus-visible { outline-offset: -2px; }
+.stepper input { border: 0; border-inline: 1px solid var(--border); background: transparent; text-align: center; font-size: 1.125rem; font-weight: 600; font-variant-numeric: tabular-nums; width: 100%; -moz-appearance: textfield; }
+.stepper input::-webkit-inner-spin-button, .stepper input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.stepper input:focus-visible { outline-offset: -2px; }
+
+/* ============ Panels, pills ============ */
+.panel { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+@container app (min-width: 640px) { .panel { padding: 24px; } }
+.pill { display: inline-flex; align-items: center; gap: 4px; height: 24px; padding: 0 9px 0 7px; border-radius: 999px; font-size: 0.75rem; line-height: 1; font-weight: 550; letter-spacing: 0.02em; white-space: nowrap; }
+.pill-going { color: var(--success); background: var(--success-bg); }
+.pill-declined, .pill-ended { color: var(--text-muted); background: var(--surface-2); border: 1px solid var(--border); }
+.pill .i { width: 12px; height: 12px; stroke-width: 2.25; }
+.divider { height: 1px; background: var(--border); border: 0; margin: 32px 0; }
+
+/* ============ Screen 1: Home ============ */
+.home { display: grid; gap: 40px; align-items: center; padding-top: 16px; }
+.home-copy { display: grid; gap: 16px; justify-items: start; }
+.home-copy .btn-row { margin-top: 8px; }
+.home-note { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
+.invite-preview { justify-self: center; width: 100%; max-width: 360px; }
+.ip-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+.ip-bar { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: var(--surface-2); border-bottom: 1px solid var(--border); color: var(--text-muted); font-family: var(--mono); font-size: 0.75rem; min-width: 0; }
+.ip-bar span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ip-body { padding: 16px; display: grid; gap: 6px; }
+.ip-date { color: var(--text-muted); }
+.ip-title { font-size: 1.375rem; line-height: 1.25; font-weight: 650; letter-spacing: -0.01em; margin-bottom: 4px; }
+.ip-meta { display: flex; align-items: center; gap: 8px; color: var(--text-muted); }
+.ip-seg { margin-top: 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px; }
+.ip-seg span { height: 36px; display: flex; align-items: center; justify-content: center; gap: 6px; border-radius: 8px; color: var(--text-muted); font-size: 0.875rem; border: 1px solid transparent; }
+.ip-seg .on { background: var(--surface); border-color: var(--border-input); color: var(--text); font-weight: 600; }
+.ip-seg .on .i { color: var(--success); }
+.ip-submit { margin-top: 8px; height: 40px; border-radius: 8px; background: var(--primary); color: var(--on-primary); display: grid; place-items: center; font-weight: 550; font-size: 0.9375rem; }
+.invite-preview figcaption { margin-top: 12px; text-align: center; }
+@container app (min-width: 768px) {
+  .home { grid-template-columns: 1.15fr 0.85fr; gap: 64px; padding-top: 48px; }
+  .invite-preview { justify-self: end; }
+}
+
+/* ============ Dashboard ============ */
+.page-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 24px; }
+.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 16px; }
+.tab { position: relative; height: 44px; padding: 0 12px; border: 0; background: transparent; color: var(--text-muted); font-weight: 500; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; border-radius: 8px 8px 0 0; }
+.tab:hover { color: var(--text); background: var(--surface); }
+.tab[aria-selected="true"] { color: var(--text); font-weight: 600; }
+.tab[aria-selected="true"]::after { content: ""; position: absolute; left: 8px; right: 8px; bottom: -1px; height: 2px; border-radius: 2px; background: var(--primary); }
+.tab-count { min-width: 22px; height: 20px; padding: 0 6px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--border); font-size: 0.75rem; font-weight: 550; display: inline-grid; place-items: center; font-variant-numeric: tabular-nums; color: var(--text-muted); }
+
+.ev-list { list-style: none; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+.ev-list li + li { border-top: 1px solid var(--border); }
+.ev-link {
+  display: grid; grid-template-columns: 56px minmax(0, 1fr) 20px; grid-template-areas: "date main chev" "date counts chev";
+  column-gap: 16px; row-gap: 4px; align-items: center; padding: 12px 16px; color: inherit; text-decoration: none;
+  transition: background-color 150ms var(--ease);
+}
+.ev-link:hover { background: var(--surface-2); }
+.ev-link:focus-visible { outline-offset: -2px; border-radius: 12px; }
+.date-tile { grid-area: date; align-self: start; width: 56px; padding: 6px 0 7px; border-radius: 8px; background: var(--surface-2); border: 1px solid var(--border); display: grid; justify-items: center; line-height: 1.1; }
+.date-tile .m { font-size: 0.6875rem; font-weight: 600; letter-spacing: 0.06em; color: var(--text-muted); }
+.date-tile .d { font-size: 1.375rem; font-weight: 650; font-variant-numeric: tabular-nums; margin: 2px 0 1px; }
+.date-tile .w { font-size: 0.6875rem; font-weight: 500; color: var(--text-muted); }
+.ev-main { grid-area: main; min-width: 0; align-self: end; }
+.ev-name { font-weight: 600; overflow-wrap: anywhere; }
+.ev-meta { color: var(--text-muted); }
+.ev-counts { grid-area: counts; align-self: start; color: var(--text-muted); font-variant-numeric: tabular-nums; display: flex; flex-wrap: wrap; gap: 0 6px; align-items: center; }
+.ev-counts b { font-weight: 600; color: var(--text); }
+.ev-counts .i { color: var(--success); }
+.ev-chev { grid-area: chev; color: var(--text-muted); }
+@container app (max-width: 479px) {
+  .ev-link { grid-template-columns: 48px minmax(0, 1fr) 16px; column-gap: 12px; padding: 12px; }
+  .date-tile { width: 48px; }
+  .ev-counts { gap: 0 4px; }
+  .ev-counts > .i { display: none; }
+}
+@container app (min-width: 640px) {
+  .ev-link { grid-template-columns: 56px minmax(0, 1fr) auto 20px; grid-template-areas: "date main counts chev"; padding: 14px 20px; }
+  .ev-main { align-self: center; }
+  .ev-counts { align-self: center; justify-content: flex-end; }
+}
+
+/* Empty state */
+.empty { display: grid; gap: 24px; }
+.steps { list-style: none; display: grid; gap: 16px; counter-reset: step; }
+.steps li { display: grid; grid-template-columns: 32px 1fr; gap: 12px; align-items: start; }
+.step-n { width: 32px; height: 32px; border-radius: 999px; display: grid; place-items: center; background: var(--surface-2); border: 1px solid var(--border); font-weight: 600; font-size: 0.875rem; font-variant-numeric: tabular-nums; color: var(--text); }
+.steps .t { font-weight: 600; }
+
+/* ============ New event form ============ */
+.ai-panel { background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px; padding: 16px; display: grid; gap: 12px; }
+.ai-panel .label { display: inline-flex; align-items: center; gap: 8px; }
+.ai-panel .textarea { background: var(--surface); }
+.ai-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
+.ai-status { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; }
+.ai-status span { display: inline-flex; align-items: center; gap: 6px; }
+.ai-status .ok .i { color: var(--success); }
+.ai-status .warn { color: var(--warning); }
+.form-group { padding-top: 24px; margin-top: 24px; border-top: 1px solid var(--border); }
+.form-group legend { padding: 0; margin-bottom: 16px; float: left; width: 100%; }
+.form-group legend + * { clear: both; }
+.form-foot { margin-top: 32px; display: flex; flex-wrap: wrap; gap: 8px; }
+@container app (max-width: 479px) { .form-foot .btn-primary { flex: 1 1 100%; height: 44px; } .form-foot .btn-ghost { flex: 1 1 100%; } }
+@container app (min-width: 640px) { .ai-panel { padding: 20px; } }
+
+/* ============ Event page ============ */
+.ev-head { display: grid; gap: 12px; }
+.ev-head .status-row { display: flex; gap: 8px; }
+.meta-list { list-style: none; display: grid; gap: 6px; margin-top: 4px; }
+.meta-list li { display: flex; gap: 10px; align-items: flex-start; }
+.meta-list .i { margin-top: 4px; color: var(--text-muted); }
+.meta-list .tz { color: var(--text-muted); }
+.ev-desc { color: var(--text); }
+.ev-sub { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-top: 8px; }
+.going-count { display: inline-flex; align-items: center; gap: 8px; font-weight: 550; font-variant-numeric: tabular-nums; }
+.going-count .i { color: var(--text-muted); }
+
+.rsvp-form { display: grid; gap: 20px; }
+.rsvp-form .field + .field { margin-top: 0; }
+.rsvp-form .btn-lg { width: 100%; }
+@container app (min-width: 640px) { .rsvp-form .btn-lg { width: auto; justify-self: start; min-width: 200px; } }
+
+@keyframes reveal { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+.confirm {
+  background: var(--success-bg); border: 1px solid color-mix(in oklch, var(--success) 35%, transparent);
+  border-radius: 12px; padding: 20px 16px; display: grid; gap: 16px; animation: reveal 200ms var(--ease) both;
+}
+.confirm-top { display: grid; grid-template-columns: 48px 1fr; gap: 16px; align-items: center; }
+.check-badge { width: 48px; height: 48px; border-radius: 999px; background: var(--success); color: var(--bg); display: grid; place-items: center; }
+.check-badge .i { width: 26px; height: 26px; stroke-width: 2.75; }
+.confirm p { color: var(--text); }
+@container app (min-width: 640px) { .confirm { padding: 24px; } }
+
+.notice { display: grid; grid-template-columns: 20px 1fr; gap: 12px; align-items: start; background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+.notice .i { margin-top: 3px; color: var(--text-muted); }
+.answer-line { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 12px; }
+
+/* Owner */
+.owner-tools { display: grid; gap: 16px; }
+.copy-row { display: flex; gap: 8px; }
+.copy-row .input { flex: 1; min-width: 0; font-family: var(--mono); font-size: 0.875rem; text-overflow: ellipsis; }
+.copy-row .btn { min-width: 112px; }
+.owner-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.btn-danger-open { color: var(--danger); background: var(--danger-bg); border-color: color-mix(in oklch, var(--danger) 45%, transparent); }
+.inline-confirm {
+  flex: 1 1 100%; display: grid; gap: 12px; padding: 12px 16px; border-radius: 12px;
+  background: var(--danger-bg); border: 1px solid color-mix(in oklch, var(--danger) 45%, transparent);
+  animation: reveal 180ms var(--ease) both;
+}
+.inline-confirm p { display: flex; gap: 8px; align-items: flex-start; color: var(--text); }
+.inline-confirm p .i { color: var(--danger); margin-top: 3px; }
+@container app (min-width: 640px) {
+  .inline-confirm { grid-template-columns: 1fr auto; align-items: center; }
+}
+
+.guest-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 16px; margin-bottom: 12px; }
+.totals { color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.totals b { color: var(--text); font-weight: 600; }
+.guests { width: 100%; border-collapse: collapse; font-size: 0.875rem; line-height: 1.45; }
+.guests th { text-align: left; font-size: 0.75rem; font-weight: 550; letter-spacing: 0.02em; color: var(--text-muted); padding: 8px 12px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+.guests td { padding: 8px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+.guests th:first-child, .guests td:first-child { padding-left: 0; }
+.guests th:last-child, .guests td:last-child { padding-right: 0; text-align: right; }
+.guests .c-name { font-weight: 550; font-size: 0.9375rem; }
+.guests .c-people { text-align: right; font-variant-numeric: tabular-nums; }
+.guests th.c-people { text-align: right; }
+.guests .c-upd { color: var(--text-muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.guests tbody tr { transition: background-color 150ms var(--ease); }
+.guests tbody tr:hover { background: color-mix(in oklch, var(--surface-2) 60%, transparent); }
+.guests .ph { display: none; }
+.guests .btn { height: 36px; padding: 0 10px; font-size: 0.875rem; }
+@container app (max-width: 639px) {
+  .guests thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .guests, .guests tbody { display: block; }
+  .guests tr { display: grid; grid-template-columns: auto 1fr auto; grid-template-areas: "name name rm" "resp ppl rm" "upd upd rm"; column-gap: 8px; row-gap: 6px; padding: 12px 0; border-bottom: 1px solid var(--border); align-items: center; }
+  .guests td { display: block; padding: 0 !important; border: 0; text-align: left !important; }
+  .guests .c-name { grid-area: name; font-size: 1rem; }
+  .guests .c-resp { grid-area: resp; }
+  .guests .c-people { grid-area: ppl; color: var(--text-muted); }
+  .guests .c-people.is-zero { visibility: hidden; }
+  .guests .c-upd { grid-area: upd; }
+  .guests .c-rm { grid-area: rm; align-self: center; }
+  .guests .c-rm .btn { height: 44px; }
+  .guests .ph { display: inline; }
+}
+
+/* Reduced motion: opacity only */
+@media (prefers-reduced-motion: reduce) {
+  @keyframes reveal { from { opacity: 0; } to { opacity: 1; } }
+  *, *::before, *::after { transition-property: opacity, background-color, color, border-color !important; }
+  .btn:active, .icon-btn:active { transform: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- ============ Icon sprite (lucide geometry, stroke 1.75 via .i) ============ -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <symbol id="i-calendar-plus" viewBox="0 0 24 24"><path d="M8 2v4"/><path d="M16 2v4"/><path d="M21 13V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h8"/><path d="M3 10h18"/><path d="M16 19h6"/><path d="M19 16v6"/></symbol>
+  <symbol id="i-calendar" viewBox="0 0 24 24"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></symbol>
+  <symbol id="i-sparkles" viewBox="0 0 24 24"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/><path d="M20 3v4"/><path d="M22 5h-4"/><path d="M4 17v2"/><path d="M5 18H3"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></symbol>
+  <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><path d="M10 11v6"/><path d="M14 11v6"/></symbol>
+  <symbol id="i-pencil" viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></symbol>
+  <symbol id="i-map-pin" viewBox="0 0 24 24"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/></symbol>
+  <symbol id="i-users" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
+  <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></symbol>
+  <symbol id="i-chevron-right" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+  <symbol id="i-chevron-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></symbol>
+  <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></symbol>
+  <symbol id="i-log-out" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></symbol>
+  <!-- Logo mark redrawn as vector: the PNG has an opaque light background that shows as a box in dark theme. -->
+  <symbol id="logo-mark" viewBox="0 0 24 24">
+    <rect x="3.5" y="4.5" width="17" height="17" rx="4.5" fill="#3630B0"/>
+    <rect x="7.4" y="2.2" width="2.2" height="5.4" rx="1.1" fill="#3630B0" stroke="var(--surface-2)" stroke-width="1"/>
+    <rect x="14.4" y="2.2" width="2.2" height="5.4" rx="1.1" fill="#3630B0" stroke="var(--surface-2)" stroke-width="1"/>
+    <path d="M8.2 14.2l2.7 2.6 5.1-5.9" fill="none" stroke="#3BDBD1" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/>
+  </symbol>
+</svg>
+
+<!-- ============ Mockup controls (not part of the app) ============ -->
+<div class="mock-bar" role="region" aria-label="Mockup controls">
+  <span class="mock-title">Phase 6 mockup</span>
+  <nav class="mock-tabs" aria-label="Screens">
+    <button type="button" data-screen-tab="s1" aria-pressed="true">1 Home</button>
+    <button type="button" data-screen-tab="s2" aria-pressed="false">2 Dashboard empty</button>
+    <button type="button" data-screen-tab="s3" aria-pressed="false">3 Dashboard</button>
+    <button type="button" data-screen-tab="s4" aria-pressed="false">4 New event + AI</button>
+    <button type="button" data-screen-tab="s5" aria-pressed="false">5 Guest RSVP</button>
+    <button type="button" data-screen-tab="s6" aria-pressed="false">6 After RSVP</button>
+    <button type="button" data-screen-tab="s7" aria-pressed="false">7 Ended</button>
+    <button type="button" data-screen-tab="s8" aria-pressed="false">8 Owner</button>
+  </nav>
+  <div class="mock-controls">
+    <button type="button" class="mock-toggle" id="mockTheme" aria-pressed="true">Theme: dark</button>
+    <button type="button" class="mock-toggle" id="mockPhone" aria-pressed="false">Phone 375</button>
+  </div>
+</div>
+
+<div class="stage" id="stage">
+<div class="frame">
+
+<!-- =====================================================================
+     SCREEN 1 · Signed-out home
+     ===================================================================== -->
+<section class="screen" id="s1" aria-label="Signed-out home">
+  <header class="topbar"><div class="topbar-in">
+    <a class="brand" href="#s1"><svg class="mark" aria-hidden="true"><use href="#logo-mark"/></svg>Event RSVP</a>
+    <div class="topbar-actions">
+      <div class="lang"><label class="sr-only" for="lang1">Language</label><svg class="i i-globe" aria-hidden="true"><use href="#i-globe"/></svg><select id="lang1"><option>English</option><option>Français</option><option>Português (Brasil)</option></select><svg class="i i-chev" aria-hidden="true"><use href="#i-chevron-down"/></svg></div>
+      <button type="button" class="icon-btn theme-toggle" aria-pressed="true" aria-label="Dark theme"><svg class="i i-20 i-moon" aria-hidden="true"><use href="#i-moon"/></svg><svg class="i i-20 i-sun" aria-hidden="true"><use href="#i-sun"/></svg></button>
+      <a class="btn btn-secondary btn-sm" href="#"><span>Sign in<span class="wide-only">&nbsp;with Google</span></span></a>
+    </div>
+  </div></header>
+  <main class="page"><div class="col-960">
+    <div class="home">
+      <div class="home-copy">
+        <h1 class="display">Plan an event. Share one link. See who's coming.</h1>
+        <p class="prose muted" style="font-size:1.0625rem">Guests answer from one link, without an account, and you see who's coming in one list.</p>
+        <div class="btn-row">
+          <a class="btn btn-primary btn-lg" href="#">
+            <span class="g-chip" aria-hidden="true"><svg viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg></span>
+            Sign in with Google
+          </a>
+          <a class="btn btn-secondary btn-lg" href="#s5">See the demo event</a>
+        </div>
+        <p class="small muted home-note"><svg class="i" aria-hidden="true"><use href="#i-sparkles"/></svg>Describe your event in a sentence and AI fills the form for you.</p>
+      </div>
+
+      <figure class="invite-preview">
+        <div class="ip-card">
+          <div class="ip-bar" aria-hidden="true"><svg class="i i-12" aria-hidden="true"><use href="#i-link"/></svg><span>event-rsvp-app-flax.vercel.app/e/demoPicnic</span></div>
+          <div class="ip-body" aria-hidden="true">
+            <p class="small ip-date num">Sat, Oct 24 · 6:00 PM EDT</p>
+            <p class="ip-title">Community Picnic in the Park</p>
+            <p class="small ip-meta"><svg class="i" aria-hidden="true"><use href="#i-map-pin"/></svg>Riverside Park</p>
+            <p class="small ip-meta num"><svg class="i" aria-hidden="true"><use href="#i-users"/></svg>7 people going</p>
+            <div class="ip-seg"><span class="on"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Going</span><span>Not going</span></div>
+            <span class="ip-submit">Send RSVP</span>
+          </div>
+        </div>
+        <figcaption class="small muted">What a guest sees after tapping your link. One page, one answer.</figcaption>
+      </figure>
+    </div>
+  </div></main>
+</section>
+
+<!-- =====================================================================
+     SCREEN 2 · Dashboard, empty
+     ===================================================================== -->
+<section class="screen" id="s2" aria-label="Dashboard, empty state" hidden>
+  <header class="topbar"><div class="topbar-in">
+    <a class="brand" href="#s1"><svg class="mark" aria-hidden="true"><use href="#logo-mark"/></svg>Event RSVP</a>
+    <div class="topbar-actions">
+      <div class="lang"><label class="sr-only" for="lang2">Language</label><svg class="i i-globe" aria-hidden="true"><use href="#i-globe"/></svg><select id="lang2"><option>English</option><option>Français</option><option>Português (Brasil)</option></select><svg class="i i-chev" aria-hidden="true"><use href="#i-chevron-down"/></svg></div>
+      <button type="button" class="icon-btn theme-toggle" aria-pressed="true" aria-label="Dark theme"><svg class="i i-20 i-moon" aria-hidden="true"><use href="#i-moon"/></svg><svg class="i i-20 i-sun" aria-hidden="true"><use href="#i-sun"/></svg></button>
+      <details class="menu"><summary aria-label="Account menu"><span class="avatar" aria-hidden="true">R</span><svg class="i" aria-hidden="true"><use href="#i-chevron-down"/></svg></summary>
+        <div class="menu-pop"><p class="who small muted">Signed in as Ramon</p><a href="#s3"><svg class="i" aria-hidden="true"><use href="#i-calendar"/></svg>My events</a><a href="#s1"><svg class="i" aria-hidden="true"><use href="#i-log-out"/></svg>Sign out</a></div>
+      </details>
+    </div>
+  </div></header>
+  <main class="page"><div class="col-880">
+    <div class="page-head"><h1 class="h2">My events</h1></div>
+    <div class="panel empty">
+      <div>
+        <h2 class="h3">You have no events yet.</h2>
+        <p class="muted" style="margin-top:4px">Three steps, about a minute:</p>
+      </div>
+      <ol class="steps">
+        <li><span class="step-n" aria-hidden="true">1</span><div><p class="t">Create an event</p><p class="small muted">Fill the form, or describe the event in a sentence and let AI fill it.</p></div></li>
+        <li><span class="step-n" aria-hidden="true">2</span><div><p class="t">Share one link</p><p class="small muted">Send the invite link in any chat. Guests don't need an account.</p></div></li>
+        <li><span class="step-n" aria-hidden="true">3</span><div><p class="t">Watch replies come in</p><p class="small muted">See who's going and how many people, in one list.</p></div></li>
+      </ol>
+      <div>
+        <div class="btn-row">
+          <a class="btn btn-primary" href="#s4"><svg class="i" aria-hidden="true"><use href="#i-calendar-plus"/></svg>Create event</a>
+          <button type="button" class="btn btn-secondary">Create sample event</button>
+        </div>
+        <p class="small muted" style="margin-top:8px">The sample comes with five fictional guests so you can look around. Delete it when you're done.</p>
+      </div>
+    </div>
+  </div></main>
+</section>
+
+<!-- =====================================================================
+     SCREEN 3 · Dashboard, with events
+     ===================================================================== -->
+<section class="screen" id="s3" aria-label="Dashboard with events" hidden>
+  <header class="topbar"><div class="topbar-in">
+    <a class="brand" href="#s1"><svg class="mark" aria-hidden="true"><use href="#logo-mark"/></svg>Event RSVP</a>
+    <div class="topbar-actions">
+      <div class="lang"><label class="sr-only" for="lang3">Language</label><svg class="i i-globe" aria-hidden="true"><use href="#i-globe"/></svg><select id="lang3"><option>English</option><option>Français</option><option>Português (Brasil)</option></select><svg class="i i-chev" aria-hidden="true"><use href="#i-chevron-down"/></svg></div>
+      <button type="button" class="icon-btn theme-toggle" aria-pressed="true" aria-label="Dark theme"><svg class="i i-20 i-moon" aria-hidden="true"><use href="#i-moon"/></svg><svg class="i i-20 i-sun" aria-hidden="true"><use href="#i-sun"/></svg></button>
+      <details class="menu"><summary aria-label="Account menu"><span class="avatar" aria-hidden="true">R</span><svg class="i" aria-hidden="true"><use href="#i-chevron-down"/></svg></summary>
+        <div class="menu-pop"><p class="who small muted">Signed in as Ramon</p><a href="#s3"><svg class="i" aria-hidden="true"><use href="#i-calendar"/></svg>My events</a><a href="#s1"><svg class="i" aria-hidden="true"><use href="#i-log-out"/></svg>Sign out</a></div>
+      </details>
+    </div>
+  </div></header>
+  <main class="page"><div class="col-880">
+    <div class="page-head">
+      <h1 class="h2">My events</h1>
+      <a class="btn btn-primary" href="#s4"><svg class="i" aria-hidden="true"><use href="#i-calendar-plus"/></svg>Create event</a>
+    </div>
+    <div class="tabs" role="tablist" aria-label="Events">
+      <button type="button" class="tab" role="tab" aria-selected="true" aria-controls="upcoming3" id="t-up3">Upcoming <span class="tab-count">4</span></button>
+      <button type="button" class="tab" role="tab" aria-selected="false" tabindex="-1" id="t-past3">Past <span class="tab-count">2</span></button>
+    </div>
+    <ul class="ev-list" id="upcoming3" role="tabpanel" aria-labelledby="t-up3">
+      <li><a class="ev-link" href="#s8">
+        <span class="date-tile" aria-hidden="true"><span class="m">OCT</span><span class="d">2</span><span class="w">Fri</span></span>
+        <span class="ev-main"><span class="ev-name">Design team dinner</span><br><span class="small ev-meta"><span class="sr-only">Friday, October 2, </span>7:00 PM EDT · Mario's Trattoria</span></span>
+        <span class="small ev-counts"><svg class="i i-12" aria-hidden="true"><use href="#i-check"/></svg><span><b>6</b> going</span><span aria-hidden="true">·</span><span>1 declined</span><span aria-hidden="true">·</span><span>9 people</span></span>
+        <svg class="i ev-chev" aria-hidden="true"><use href="#i-chevron-right"/></svg>
+      </a></li>
+      <li><a class="ev-link" href="#s8">
+        <span class="date-tile" aria-hidden="true"><span class="m">OCT</span><span class="d">13</span><span class="w">Tue</span></span>
+        <span class="ev-main"><span class="ev-name">Book club: October read</span><br><span class="small ev-meta"><span class="sr-only">Tuesday, October 13, </span>7:30 PM GMT-3 · Livraria da Vila, São Paulo</span></span>
+        <span class="small ev-counts"><svg class="i i-12" aria-hidden="true"><use href="#i-check"/></svg><span><b>3</b> going</span><span aria-hidden="true">·</span><span>2 declined</span><span aria-hidden="true">·</span><span>3 people</span></span>
+        <svg class="i ev-chev" aria-hidden="true"><use href="#i-chevron-right"/></svg>
+      </a></li>
+      <li><a class="ev-link" href="#s8">
+        <span class="date-tile" aria-hidden="true"><span class="m">OCT</span><span class="d">24</span><span class="w">Sat</span></span>
+        <span class="ev-main"><span class="ev-name">Community Picnic in the Park</span><br><span class="small ev-meta"><span class="sr-only">Saturday, October 24, </span>6:00 PM EDT · Riverside Park</span></span>
+        <span class="small ev-counts"><svg class="i i-12" aria-hidden="true"><use href="#i-check"/></svg><span><b>4</b> going</span><span aria-hidden="true">·</span><span>1 declined</span><span aria-hidden="true">·</span><span>7 people</span></span>
+        <svg class="i ev-chev" aria-hidden="true"><use href="#i-chevron-right"/></svg>
+      </a></li>
+      <li><a class="ev-link" href="#s8">
+        <span class="date-tile" aria-hidden="true"><span class="m">NOV</span><span class="d">6</span><span class="w">Fri</span></span>
+        <span class="ev-main"><span class="ev-name">Sample: Friday get-together</span><br><span class="small ev-meta"><span class="sr-only">Friday, November 6, </span>7:00 PM EST · Community Hall</span></span>
+        <span class="small ev-counts">No replies yet</span>
+        <svg class="i ev-chev" aria-hidden="true"><use href="#i-chevron-right"/></svg>
+      </a></li>
+    </ul>
+  </div></main>
+</section>
+
+<!-- =====================================================================
+     SCREEN 4 · New event with AI panel (filled, 2 missing)
+     ===================================================================== -->
+<section class="screen" id="s4" aria-label="New event form" hidden>
+  <header class="topbar"><div class="topbar-in">
+    <a class="brand" href="#s1"><svg class="mark" aria-hidden="true"><use href="#logo-mark"/></svg>Event RSVP</a>
+    <div class="topbar-actions">
+      <div class="lang"><label class="sr-only" for="lang4">Language</label><svg class="i i-globe" aria-hidden="true"><use href="#i-globe"/></svg><select id="lang4"><option>English</option><option>Français</option><option>Português (Brasil)</option></select><svg class="i i-chev" aria-hidden="true"><use href="#i-chevron-down"/></svg></div>
+      <button type="button" class="icon-btn theme-toggle" aria-pressed="true" aria-label="Dark theme"><svg class="i i-20 i-moon" aria-hidden="true"><use href="#i-moon"/></svg><svg class="i i-20 i-sun" aria-hidden="true"><use href="#i-sun"/></svg></button>
+      <details class="menu"><summary aria-label="Account menu"><span class="avatar" aria-hidden="true">R</span><svg class="i" aria-hidden="true"><use href="#i-chevron-down"/></svg></summary>
+        <div class="menu-pop"><p class="who small muted">Signed in as Ramon</p><a href="#s3"><svg class="i" aria-hidden="true"><use href="#i-calendar"/></svg>My events</a><a href="#s1"><svg class="i" aria-hidden="true"><use href="#i-log-out"/></svg>Sign out</a></div>
+      </details>
+    </div>
+  </div></header>
+  <main class="page"><div class="col-640">
+    <div class="page-head" style="margin-bottom:16px"><h1 class="h2">New event</h1></div>
+    <form onsubmit="return false" novalidate>
+      <div class="ai-panel">
+        <label class="label" for="ai4"><svg class="i" aria-hidden="true" style="color:var(--link)"><use href="#i-sparkles"/></svg>Describe your event</label>
+        <textarea class="textarea" id="ai4" rows="3" placeholder="Team dinner next Friday 7pm at Mario's">Design team dinner at Mario's Trattoria. Bring your appetite and a good story.</textarea>
+        <div class="ai-foot">
+          <button type="button" class="btn btn-secondary"><svg class="i" aria-hidden="true"><use href="#i-sparkles"/></svg>Fill with AI</button>
+          <p class="small ai-status" role="status">
+            <span class="ok"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Filled 3 fields</span>
+            <span class="warn"><svg class="i" aria-hidden="true"><use href="#i-alert"/></svg>2 need your input below</span>
+          </p>
+        </div>
+      </div>
+
+      <fieldset class="form-group">
+        <legend class="h3">What</legend>
+        <div class="field"><label class="label" for="name4">Name</label><input class="input" id="name4" value="Design team dinner"></div>
+        <div class="field"><label class="label" for="desc4">Description <span class="opt">(optional)</span></label><textarea class="textarea" id="desc4" rows="2">Bring your appetite and a good story.</textarea></div>
+      </fieldset>
+
+      <fieldset class="form-group">
+        <legend class="h3">When</legend>
+        <div class="pair">
+          <div class="field is-missing">
+            <div class="label-row"><label class="label" for="date4">Date</label><span class="micro needed"><svg class="i i-12" aria-hidden="true"><use href="#i-alert"/></svg>Needed</span></div>
+            <input class="input" type="date" id="date4" aria-describedby="date4h" aria-invalid="false" required>
+            <p class="hint" id="date4h">Not found in your text. Please fill it.</p>
+          </div>
+          <div class="field is-missing">
+            <div class="label-row"><label class="label" for="time4">Time</label><span class="micro needed"><svg class="i i-12" aria-hidden="true"><use href="#i-alert"/></svg>Needed</span></div>
+            <input class="input" type="time" id="time4" aria-describedby="time4h" required>
+            <p class="hint" id="time4h">Not found in your text. Please fill it.</p>
+          </div>
+        </div>
+        <div class="field" style="margin-top:16px">
+          <label class="label" for="tz4">Timezone</label>
+          <div class="select-wrap"><select class="select" id="tz4" aria-describedby="tz4h"><option>America/New_York (EDT, UTC−4)</option><option>America/Sao_Paulo (GMT-3)</option><option>Europe/Paris (CEST, UTC+2)</option></select><svg class="i" aria-hidden="true"><use href="#i-chevron-down"/></svg></div>
+          <p class="hint" id="tz4h">Detected from your browser. Guests see times in this zone.</p>
+        </div>
+      </fieldset>
+
+      <fieldset class="form-group">
+        <legend class="h3">Where</legend>
+        <div class="field"><label class="label" for="loc4">Location <span class="opt">(optional)</span></label><input class="input" id="loc4" value="Mario's Trattoria"></div>
+      </fieldset>
+
+      <div class="form-foot">
+        <button type="submit" class="btn btn-primary">Save event</button>
+        <a class="btn btn-ghost" href="#s3">Cancel</a>
+      </div>
+    </form>
+  </div></main>
+</section>
+
+<!-- =====================================================================
+     SCREEN 5 · Event page, guest, before RSVP
+     ===================================================================== -->
+<section class="screen" id="s5" aria-label="Event page, guest before RSVP" hidden>
+  <header class="topbar"><div class="topbar-in">
+    <a class="brand" href="#s1"><svg class="mark" aria-hidden="true"><use href="#logo-mark"/></svg>Event RSVP</a>
+    <div class="topbar-actions">
+      <div class="lang"><label class="sr-only" for="lang5">Language</label><svg class="i i-globe" aria-hidden="true"><use href="#i-globe"/></svg><select id="lang5"><option>English</option><option>Français</option><option>Português (Brasil)</option></select><svg class="i i-chev" aria-hidden="true"><use href="#i-chevron-down"/></svg></div>
+      <button type="button" class="icon-btn theme-toggle" aria-pressed="true" aria-label="Dark theme"><svg class="i i-20 i-moon" aria-hidden="true"><use href="#i-moon"/></svg><svg class="i i-20 i-sun" aria-hidden="true"><use href="#i-sun"/></svg></button>
+      <a class="btn btn-secondary btn-sm" href="#"><span>Sign in<span class="wide-only">&nbsp;with Google</span></span></a>
+    </div>
+  </div></header>
+  <main class="page"><div class="col-640">
+    <div class="ev-head">
+      <h1 class="display">Community Picnic in the Park</h1>
+      <ul class="meta-list">
+        <li><svg class="i" aria-hidden="true"><use href="#i-calendar"/></svg><span>Saturday, October 24, 2026</span></li>
+        <li><svg class="i" aria-hidden="true"><use href="#i-clock"/></svg><span class="num">6:00 PM EDT <span class="tz">· New York time</span></span></li>
+        <li><svg class="i" aria-hidden="true"><use href="#i-map-pin"/></svg><span>Riverside Park</span></li>
+      </ul>
+      <p class="ev-desc prose">Bring a blanket and something to share. Games start at 6 pm.</p>
+      <div class="ev-sub">
+        <span class="going-count"><svg class="i" aria-hidden="true"><use href="#i-users"/></svg>7 people going</span>
+        <a class="btn btn-secondary" href="#"><svg class="i" aria-hidden="true"><use href="#i-calendar-plus"/></svg>Add to calendar</a>
+      </div>
+    </div>
+
+    <hr class="divider">
+
+    <form class="rsvp-form" onsubmit="return false" aria-labelledby="rsvp5t">
+      <h2 class="h2" id="rsvp5t">Will you come?</h2>
+      <div class="field">
+        <label class="label" for="gname5">Your name</label>
+        <input class="input" id="gname5" autocomplete="name" value="Jordan Reyes" aria-describedby="gname5h">
+        <p class="hint" id="gname5h">The organizer sees this name on the guest list.</p>
+      </div>
+      <fieldset class="field">
+        <legend class="label" style="margin-bottom:6px">Your answer</legend>
+        <div class="seg">
+          <label class="going"><input type="radio" name="ans5" value="going" checked><span><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Going</span></label>
+          <label class="not"><input type="radio" name="ans5" value="not"><span><svg class="i" aria-hidden="true"><use href="#i-x"/></svg>Not going</span></label>
+        </div>
+      </fieldset>
+      <div class="field">
+        <label class="label" for="ps5">How many people, including you?</label>
+        <div class="stepper">
+          <button type="button" aria-label="One less person" aria-controls="ps5"><svg class="i i-20" aria-hidden="true"><use href="#i-minus"/></svg></button>
+          <input id="ps5" type="number" inputmode="numeric" min="1" max="10" value="3" aria-describedby="ps5h">
+          <button type="button" aria-label="One more person" aria-controls="ps5"><svg class="i i-20" aria-hidden="true"><use href="#i-plus"/></svg></button>
+        </div>
+        <p class="hint" id="ps5h">Up to 10.</p>
+      </div>
+      <button type="submit" class="btn btn-primary btn-lg">Send RSVP</button>
+    </form>
+  </div></main>
+</section>
+
+<!-- =====================================================================
+     SCREEN 6 · Event page, guest, after RSVP
+     ===================================================================== -->
+<section class="screen" id="s6" aria-label="Event page, guest after RSVP" hidden>
+  <header class="topbar"><div class="topbar-in">
+    <a class="brand" href="#s1"><svg class="mark" aria-hidden="true"><use href="#logo-mark"/></svg>Event RSVP</a>
+    <div class="topbar-actions">
+      <div class="lang"><label class="sr-only" for="lang6">Language</label><svg class="i i-globe" aria-hidden="true"><use href="#i-globe"/></svg><select id="lang6"><option>English</option><option>Français</option><option>Português (Brasil)</option></select><svg class="i i-chev" aria-hidden="true"><use href="#i-chevron-down"/></svg></div>
+      <button type="button" class="icon-btn theme-toggle" aria-pressed="true" aria-label="Dark theme"><svg class="i i-20 i-moon" aria-hidden="true"><use href="#i-moon"/></svg><svg class="i i-20 i-sun" aria-hidden="true"><use href="#i-sun"/></svg></button>
+      <a class="btn btn-secondary btn-sm" href="#"><span>Sign in<span class="wide-only">&nbsp;with Google</span></span></a>
+    </div>
+  </div></header>
+  <main class="page"><div class="col-640">
+    <div class="ev-head">
+      <h1 class="display">Community Picnic in the Park</h1>
+      <ul class="meta-list">
+        <li><svg class="i" aria-hidden="true"><use href="#i-calendar"/></svg><span>Saturday, October 24, 2026</span></li>
+        <li><svg class="i" aria-hidden="true"><use href="#i-clock"/></svg><span class="num">6:00 PM EDT <span class="tz">· New York time</span></span></li>
+        <li><svg class="i" aria-hidden="true"><use href="#i-map-pin"/></svg><span>Riverside Park</span></li>
+      </ul>
+      <p class="ev-desc prose">Bring a blanket and something to share. Games start at 6 pm.</p>
+      <div class="ev-sub">
+        <span class="going-count"><svg class="i" aria-hidden="true"><use href="#i-users"/></svg>10 people going</span>
+        <a class="btn btn-secondary" href="#"><svg class="i" aria-hidden="true"><use href="#i-calendar-plus"/></svg>Add to calendar</a>
+      </div>
+    </div>
+
+    <hr class="divider">
+
+    <div class="confirm" role="status">
+      <div class="confirm-top">
+        <span class="check-badge" aria-hidden="true"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg></span>
+        <div>
+          <h2 class="h2">You're going · 3 people</h2>
+          <p class="small" style="margin-top:2px">Saved as Jordan Reyes. You can change your answer from this browser until the event starts.</p>
+        </div>
+      </div>
+      <div class="btn-row">
+        <a class="btn btn-secondary" href="#s5"><svg class="i" aria-hidden="true"><use href="#i-pencil"/></svg>Change</a>
+        <button type="button" class="btn btn-ghost-danger">Cancel RSVP</button>
+      </div>
+    </div>
+  </div></main>
+</section>
+
+<!-- =====================================================================
+     SCREEN 7 · Event page, guest, ended
+     ===================================================================== -->
+<section class="screen" id="s7" aria-label="Event page, ended" hidden>
+  <header class="topbar"><div class="topbar-in">
+    <a class="brand" href="#s1"><svg class="mark" aria-hidden="true"><use href="#logo-mark"/></svg>Event RSVP</a>
+    <div class="topbar-actions">
+      <div class="lang"><label class="sr-only" for="lang7">Language</label><svg class="i i-globe" aria-hidden="true"><use href="#i-globe"/></svg><select id="lang7"><option>English</option><option>Français</option><option>Português (Brasil)</option></select><svg class="i i-chev" aria-hidden="true"><use href="#i-chevron-down"/></svg></div>
+      <button type="button" class="icon-btn theme-toggle" aria-pressed="true" aria-label="Dark theme"><svg class="i i-20 i-moon" aria-hidden="true"><use href="#i-moon"/></svg><svg class="i i-20 i-sun" aria-hidden="true"><use href="#i-sun"/></svg></button>
+      <a class="btn btn-secondary btn-sm" href="#"><span>Sign in<span class="wide-only">&nbsp;with Google</span></span></a>
+    </div>
+  </div></header>
+  <main class="page"><div class="col-640">
+    <div class="ev-head">
+      <div class="status-row"><span class="pill pill-ended"><svg class="i" aria-hidden="true"><use href="#i-clock"/></svg>Ended</span></div>
+      <h1 class="display">Sample: Friday get-together</h1>
+      <ul class="meta-list">
+        <li><svg class="i" aria-hidden="true"><use href="#i-calendar"/></svg><span>Friday, September 18, 2026</span></li>
+        <li><svg class="i" aria-hidden="true"><use href="#i-clock"/></svg><span class="num">7:00 PM EDT <span class="tz">· New York time</span></span></li>
+        <li><svg class="i" aria-hidden="true"><use href="#i-map-pin"/></svg><span>Community Hall</span></li>
+      </ul>
+      <p class="ev-desc prose">A sample event to explore the app. Share the invite link, collect RSVPs, and delete it when you are done.</p>
+      <div class="ev-sub"><span class="going-count"><svg class="i" aria-hidden="true"><use href="#i-users"/></svg>7 people said they'd come</span></div>
+    </div>
+
+    <hr class="divider">
+
+    <div class="notice">
+      <svg class="i i-20" aria-hidden="true"><use href="#i-clock"/></svg>
+      <div>
+        <h2 class="h3">This event has ended</h2>
+        <p class="small muted" style="margin-top:2px">Replies are closed, so answers can no longer be sent or changed.</p>
+        <div class="answer-line small">
+          <span class="muted">Your answer</span>
+          <span class="pill pill-going"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Going</span>
+          <span class="num">3 people</span>
+        </div>
+      </div>
+    </div>
+  </div></main>
+</section>
+
+<!-- =====================================================================
+     SCREEN 8 · Event page, owner
+     ===================================================================== -->
+<section class="screen" id="s8" aria-label="Event page, owner" hidden>
+  <header class="topbar"><div class="topbar-in">
+    <a class="brand" href="#s1"><svg class="mark" aria-hidden="true"><use href="#logo-mark"/></svg>Event RSVP</a>
+    <div class="topbar-actions">
+      <div class="lang"><label class="sr-only" for="lang8">Language</label><svg class="i i-globe" aria-hidden="true"><use href="#i-globe"/></svg><select id="lang8"><option>English</option><option>Français</option><option>Português (Brasil)</option></select><svg class="i i-chev" aria-hidden="true"><use href="#i-chevron-down"/></svg></div>
+      <button type="button" class="icon-btn theme-toggle" aria-pressed="true" aria-label="Dark theme"><svg class="i i-20 i-moon" aria-hidden="true"><use href="#i-moon"/></svg><svg class="i i-20 i-sun" aria-hidden="true"><use href="#i-sun"/></svg></button>
+      <details class="menu"><summary aria-label="Account menu"><span class="avatar" aria-hidden="true">R</span><svg class="i" aria-hidden="true"><use href="#i-chevron-down"/></svg></summary>
+        <div class="menu-pop"><p class="who small muted">Signed in as Ramon</p><a href="#s3"><svg class="i" aria-hidden="true"><use href="#i-calendar"/></svg>My events</a><a href="#s1"><svg class="i" aria-hidden="true"><use href="#i-log-out"/></svg>Sign out</a></div>
+      </details>
+    </div>
+  </div></header>
+  <main class="page"><div class="col-640">
+    <div class="ev-head">
+      <h1 class="display">Community Picnic in the Park</h1>
+      <ul class="meta-list">
+        <li><svg class="i" aria-hidden="true"><use href="#i-calendar"/></svg><span>Saturday, October 24, 2026</span></li>
+        <li><svg class="i" aria-hidden="true"><use href="#i-clock"/></svg><span class="num">6:00 PM EDT <span class="tz">· New York time</span></span></li>
+        <li><svg class="i" aria-hidden="true"><use href="#i-map-pin"/></svg><span>Riverside Park</span></li>
+      </ul>
+      <p class="ev-desc prose">Bring a blanket and something to share. Games start at 6 pm.</p>
+    </div>
+
+    <div class="owner-tools" style="margin-top:24px">
+      <div class="panel" style="padding:16px">
+        <div class="field">
+          <label class="label" for="inv8">Invite link</label>
+          <div class="copy-row">
+            <input class="input" id="inv8" readonly value="https://event-rsvp-app-flax.vercel.app/e/demoPicnic" aria-describedby="inv8h">
+            <button type="button" class="btn btn-secondary is-copied"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Copied</button>
+          </div>
+          <p class="hint" id="inv8h">Anyone with this link can reply. Guests don't need an account.</p>
+          <p class="sr-only" aria-live="polite">Link copied</p>
+        </div>
+      </div>
+
+      <div class="owner-actions">
+        <a class="btn btn-secondary" href="#"><svg class="i" aria-hidden="true"><use href="#i-calendar-plus"/></svg>Add to calendar</a>
+        <a class="btn btn-secondary" href="#s4"><svg class="i" aria-hidden="true"><use href="#i-pencil"/></svg>Edit</a>
+        <div class="inline-confirm" role="group" aria-labelledby="del8q">
+          <p class="small" id="del8q"><svg class="i" aria-hidden="true"><use href="#i-alert"/></svg><span>Delete this event and all its RSVPs? This cannot be undone.</span></p>
+          <div class="btn-row">
+            <button type="button" class="btn btn-danger"><svg class="i" aria-hidden="true"><use href="#i-trash"/></svg>Delete</button>
+            <button type="button" class="btn btn-secondary">Keep</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <hr class="divider">
+
+    <section aria-labelledby="gl8">
+      <div class="guest-head">
+        <h2 class="h2" id="gl8">Guest list</h2>
+        <p class="small totals"><b>4</b> going · <b>1</b> declined · <b>7</b> people</p>
+      </div>
+      <table class="guests">
+        <thead><tr><th scope="col">Name</th><th scope="col">Response</th><th scope="col" class="c-people">People</th><th scope="col">Last updated</th><th scope="col"><span class="sr-only">Actions</span></th></tr></thead>
+        <tbody>
+          <tr><td class="c-name">Sam Lee</td><td class="c-resp"><span class="pill pill-going"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Going</span></td><td class="c-people"><span class="num">1</span><span class="ph"> person</span></td><td class="c-upd"><span class="ph">Updated </span>Sep 24, 10:02 AM</td><td class="c-rm"><button type="button" class="btn btn-ghost-danger" aria-label="Remove Sam Lee"><svg class="i" aria-hidden="true"><use href="#i-trash"/></svg>Remove</button></td></tr>
+          <tr><td class="c-name">Chloé Dubois</td><td class="c-resp"><span class="pill pill-declined"><svg class="i" aria-hidden="true"><use href="#i-x"/></svg>Declined</span></td><td class="c-people is-zero"><span class="num">0</span></td><td class="c-upd"><span class="ph">Updated </span>Sep 23, 8:31 PM</td><td class="c-rm"><button type="button" class="btn btn-ghost-danger" aria-label="Remove Chloé Dubois"><svg class="i" aria-hidden="true"><use href="#i-trash"/></svg>Remove</button></td></tr>
+          <tr><td class="c-name">Lucas Oliveira</td><td class="c-resp"><span class="pill pill-going"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Going</span></td><td class="c-people"><span class="num">3</span><span class="ph"> people</span></td><td class="c-upd"><span class="ph">Updated </span>Sep 23, 12:05 PM</td><td class="c-rm"><button type="button" class="btn btn-ghost-danger" aria-label="Remove Lucas Oliveira"><svg class="i" aria-hidden="true"><use href="#i-trash"/></svg>Remove</button></td></tr>
+          <tr><td class="c-name">Priya Shah</td><td class="c-resp"><span class="pill pill-going"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Going</span></td><td class="c-people"><span class="num">1</span><span class="ph"> person</span></td><td class="c-upd"><span class="ph">Updated </span>Sep 22, 6:40 PM</td><td class="c-rm"><button type="button" class="btn btn-ghost-danger" aria-label="Remove Priya Shah"><svg class="i" aria-hidden="true"><use href="#i-trash"/></svg>Remove</button></td></tr>
+          <tr><td class="c-name">Alex Martin</td><td class="c-resp"><span class="pill pill-going"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Going</span></td><td class="c-people"><span class="num">2</span><span class="ph"> people</span></td><td class="c-upd"><span class="ph">Updated </span>Sep 21, 9:12 AM</td><td class="c-rm"><button type="button" class="btn btn-ghost-danger" aria-label="Remove Alex Martin"><svg class="i" aria-hidden="true"><use href="#i-trash"/></svg>Remove</button></td></tr>
+        </tbody>
+      </table>
+    </section>
+  </div></main>
+</section>
+
+</div>
+</div>
+
+<script>
+(function () {
+  var root = document.documentElement;
+  var themeBtn = document.getElementById('mockTheme');
+  var phoneBtn = document.getElementById('mockPhone');
+  var stage = document.getElementById('stage');
+  var tabs = Array.prototype.slice.call(document.querySelectorAll('[data-screen-tab]'));
+  var ids = tabs.map(function (t) { return t.dataset.screenTab; });
+
+  function setTheme(t) {
+    root.setAttribute('data-theme', t);
+    themeBtn.textContent = 'Theme: ' + t;
+    themeBtn.setAttribute('aria-pressed', String(t === 'dark'));
+    document.querySelectorAll('.theme-toggle').forEach(function (b) { b.setAttribute('aria-pressed', String(t === 'dark')); });
+    try { localStorage.setItem('p6-theme', t); } catch (e) {}
+  }
+  function toggleTheme() { setTheme(root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'); }
+  themeBtn.addEventListener('click', toggleTheme);
+  document.querySelectorAll('.theme-toggle').forEach(function (b) { b.addEventListener('click', toggleTheme); });
+
+  phoneBtn.addEventListener('click', function () {
+    var on = stage.classList.toggle('phone');
+    phoneBtn.setAttribute('aria-pressed', String(on));
+  });
+
+  function show(id) {
+    if (ids.indexOf(id) === -1) id = 's1';
+    document.querySelectorAll('.screen').forEach(function (s) { s.hidden = s.id !== id; });
+    tabs.forEach(function (t) { t.setAttribute('aria-pressed', String(t.dataset.screenTab === id)); });
+    if (location.hash !== '#' + id) history.replaceState(null, '', '#' + id);
+  }
+  tabs.forEach(function (t) { t.addEventListener('click', function () { show(t.dataset.screenTab); }); });
+  window.addEventListener('hashchange', function () { show(location.hash.slice(1)); window.scrollTo(0, 0); });
+
+  var saved = null;
+  try { saved = localStorage.getItem('p6-theme'); } catch (e) {}
+  setTheme(saved === 'light' ? 'light' : 'dark');
+  show(location.hash.slice(1));
+  window.scrollTo(0, 0);
+})();
+</script>
+</body>
+</html>

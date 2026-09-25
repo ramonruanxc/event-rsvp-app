@@ -297,4 +297,4 @@ failures and their root causes, what I verified by hand) → **What I left out a
 | # | Date | Decision | Reason |
 |---|---|---|---|
 | A1 | 2026-09-24 | Executor model changed from Haiku to **Sonnet** | Human decision to reduce wall-clock time. Pipeline rules unchanged: TDD, attempt and revision budgets, upstream failure routing, human gates, no model escalation beyond the configured executor |
-
+| A2 | 2026-09-24 | **Phase 6 — UI/UX.** Visual redesign of every existing screen following `docs/PRODUCT.md` (strategy) and `docs/DESIGN.md` (tokens, typography, components, layout, motion), with `docs/design/phase-6-mockup.html` as the approved visual reference. Two small scope additions: (1) **theme switch** — dark by default, light available from the header, choice remembered in a cookie, no flash on load; (2) **logo** as header mark and favicon (inline SVG). No new product features. WCAG 2.2 AA in both themes. The final README (TASK-148) moves after Phase 6 | Human request: usability and product quality are evaluation criteria; the current UI is unstyled. Direction approved by the human on 2026-09-24 |
