@@ -107,7 +107,7 @@ and "Please fix the highlighted fields." would mislead. Today the only source is
 | unit (component) | Vitest + jsdom + Testing Library | `src/**/*.test.tsx`, first line `// @vitest-environment jsdom` | none |
 | integration | Vitest (node) | `src/**/*.int.test.ts` | Docker Postgres `rsvp_test` / CI service container |
 | e2e | Playwright (Chromium) | `e2e/*.spec.ts` | Docker Postgres `rsvp_test` |
-| eval | custom runner (`npm run eval`) | `evals/event-parser/` | none (real Anthropic or OpenRouter API, `--provider`) |
+| eval | custom runner (`npm run eval`) | `evals/event-parser/` | none (real OpenRouter or Anthropic API, `--provider`, default `openrouter`) |
 
 Every test title starts with the requirement ID it proves: `it('REQ-26: blocks "  maria " without a cookie', …)`.
 
@@ -1536,12 +1536,19 @@ These requirements are code in the repository and are TDD'd like product code. T
 **Rules:** none (tooling)
 **Status:** todo
 **Acceptance criteria:**
-- `npm run eval -- --provider openrouter --model openai/gpt-4o-mini` runs the same cases, scoring and gate as REQ-91
-  through `AiEventParser` with the single provider `{ name: 'openrouter', client: createOpenRouterModelClient(),
-  model }`; `--provider` defaults to `anthropic` (so `npm run eval -- --model claude-haiku-4-5` behaves as before)
+- `--provider` defaults to `openrouter` (human decision 2026-09-25, "OpenRouter is the default now"): given
+  `OPENROUTER_API_KEY` is set, when `npm run eval -- --model openai/gpt-4o-mini` runs (no `--provider`), then it runs
+  the same cases, scoring and gate as REQ-91 through `AiEventParser` with the single provider
+  `{ name: 'openrouter', client: createOpenRouterModelClient(), model }`; `--provider openrouter` gives the same result
+- Anthropic stays selectable: given `ANTHROPIC_API_KEY` is set, when `npm run eval -- --provider anthropic --model
+  claude-haiku-4-5` runs, then it uses the single provider `{ name: 'anthropic', client: createAnthropicModelClient(),
+  model }` and behaves as the REQ-91 runner did before Phase 7. Without `--provider`, `--model claude-haiku-4-5` is
+  sent to OpenRouter (an Anthropic-only id there), so Anthropic runs always pass `--provider anthropic`
 - Checks, in this order, each → exit 2 with one stderr line: unknown provider → `--provider must be one of:
   anthropic, openrouter`; the provider's key missing → `ANTHROPIC_API_KEY is not set — ask the human to provide it.`
-  or `OPENROUTER_API_KEY is not set — ask the human to provide it.`; no model → `--model is required`
+  or `OPENROUTER_API_KEY is not set — ask the human to provide it.`; no model → `--model is required`. Given neither
+  key is set, when `npm run eval -- --model openai/gpt-4o-mini` runs, then it exits 2 with
+  `OPENROUTER_API_KEY is not set — ask the human to provide it.` (the default provider's key)
 - Report label (title of REQ-91's report): `claude-haiku-4-5` for Anthropic, `openrouter:<model>` for OpenRouter
   (e.g. `openrouter:openai/gpt-4o-mini`)
 - Report file: `<date>-<model>.md` for Anthropic (unchanged) and `<date>-openrouter-<model>.md` for OpenRouter, where

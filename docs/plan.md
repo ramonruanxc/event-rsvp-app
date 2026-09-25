@@ -17,7 +17,7 @@
 | 4 | `phase-4/ai-fill` | AI event creation, rate limiter, eval runner and cases (eval run moved to TASK-217) | REQ-43–REQ-51, REQ-55, REQ-91, REQ-92 | 23 + 1 human (TASK-131 moved) |
 | 5 | `phase-5/hardening` | RSVP rate limit, honeypot, headers, XSS check, journeys | REQ-56, REQ-58, REQ-60, REQ-61 | 8 |
 | 6 | `phase-6/ui-ux` | UI/UX redesign (A2): tokens and themes, primitives, header and logo, every screen, accessibility checks, README | REQ-62–REQ-85 (+ amended REQ-19, REQ-30, REQ-34, REQ-36, REQ-38, REQ-39) | 36 (TASK-150–TASK-184 + TASK-148) |
-| 7 | `phase-7/openrouter` | OpenRouter as the default AI provider, Anthropic optional (A3): provider list (default `openrouter`) and failover in one 10 s budget, OpenRouter client, OpenAI-compatible E2E mock, key hygiene, eval `--provider`, key-provisioning script, OpenRouter eval run on 3 models (absorbs TASK-131) | REQ-86–REQ-89, REQ-93–REQ-98 | 28 + 1 human (TASK-190–TASK-217, HUMAN-06) |
+| 7 | `phase-7/openrouter` | OpenRouter as the default AI provider, Anthropic optional (A3): provider list (default `openrouter`) and failover in one 10 s budget, OpenRouter client, OpenAI-compatible E2E mock, key hygiene, eval `--provider` (default `openrouter`), key-provisioning script, OpenRouter eval run on 3 models (absorbs TASK-131) | REQ-86–REQ-89, REQ-93–REQ-98 | 28 + 1 human (TASK-190–TASK-217, HUMAN-06) |
 
 Totals: 98 requirements (94 product + 4 tooling), 185 agent tasks, 6 human tasks.
 
@@ -5298,7 +5298,7 @@ Goal: "Fill with AI" tries the providers of `AI_PROVIDERS` in order — default 
 and used only when listed explicitly (e.g. `openrouter,anthropic`) with its key (BR-119 amended 2026-09-25) — skips a
 provider without a key, fails over on an outage within the same 10 s budget when more than one provider is listed,
 never retries invalid output, and behaves the same for the organizer whichever provider answered. OpenRouter is called through its OpenAI-compatible chat completions
-endpoint with a strict JSON-schema `response_format`. The eval runner gains `--provider`; a local script provisions the
+endpoint with a strict JSON-schema `response_format`. The eval runner gains `--provider` (default `openrouter`); a local script provisions the
 OpenRouter key with a spend limit. No UI change.
 
 Order: TASK-190 → TASK-217 in document order, then HUMAN-06. Only TASK-217 calls a real API.
@@ -5329,10 +5329,11 @@ Order: TASK-190 → TASK-217 in document order, then HUMAN-06. Only TASK-217 cal
 | `src/services/ai-event-parser.test.ts` | all four existing tests | `new AiEventParser({ client: { complete }, model: 'claude-haiku-4-5' })` → `new AiEventParser({ providers: [{ name: 'anthropic', client: { complete }, model: 'claude-haiku-4-5' }] })` | TASK-192 |
 | `src/services/parse-event-text.int.test.ts` | the `@ts-expect-error AiEventParser takes no EventRepository` statement | argument → `{ events: {} as EventRepository, providers: [] }` (comment unchanged) | TASK-192 |
 | `src/services/ai-event-parser.test.ts` | `REQ-45: sends the system prompt, the delimited text and the model` | parser gets `clock: () => 0`; the expected call gains `timeoutMs: 10_000` | TASK-195 |
+| `evals/event-parser/run.test.ts` | `REQ-91: the runner exits 2 when the API key is missing` | arguments gain `'--provider', 'anthropic'` before `'--model'` (the eval default is now `openrouter`) | TASK-210 |
 
 **Existing tests that must keep passing unchanged:** all of `src/lib/ai/anthropic-model-client.test.ts` (including
 `REQ-43: no structured output is an error`, whose message `model returned no structured output` TASK-197 keeps),
-`evals/event-parser/run.test.ts`, both REQ-51 tests of `e2e/ai.spec.ts` and `e2e/journeys.spec.ts`.
+both REQ-51 tests of `e2e/ai.spec.ts` and `e2e/journeys.spec.ts`.
 
 ### TASK-190 — Provider contracts: types and error classes
 **Phase:** 7 · **Requirements:** REQ-86, REQ-88, REQ-89 · **Status:** todo · **Revision:** 2
@@ -6300,21 +6301,30 @@ fix the leak, never the test):**
 **TDD exception:** none (characterization tests, convention 13)
 
 ### TASK-209 — Eval options: provider, key check and report names
-**Phase:** 7 · **Requirements:** REQ-93 · **Status:** todo · **Revision:** 1
+**Phase:** 7 · **Requirements:** REQ-93 · **Status:** todo · **Revision:** 2
 **Files:** evals/event-parser/options.ts, evals/event-parser/options.test.ts
 **Interface:** C12 `EvalOptions`, `parseEvalOptions`, `reportLabel`, `reportFileName` (red stubs throw
 `Error('not implemented')`)
-**Test first:**
-- `REQ-93: defaults to Anthropic and the default cases and output paths` —
-  `parseEvalOptions(['--model', 'claude-haiku-4-5'], { ANTHROPIC_API_KEY: 'x' })` →
+**Test first** (red: the stubs throw; `options.ts` does not exist in the current code and `run.ts` has no
+`--provider`):
+- `REQ-93: defaults to OpenRouter and the default cases and output paths` —
+  `parseEvalOptions(['--model', 'openai/gpt-4o-mini'], { OPENROUTER_API_KEY: 'y' })` →
+  `toEqual({ provider: 'openrouter', model: 'openai/gpt-4o-mini', cases: 'evals/event-parser/cases.json', out: 'docs/evals' })`;
+  `parseEvalOptions(['--model', 'openai/gpt-4o-mini'], { ANTHROPIC_API_KEY: 'x' })` →
+  `toEqual({ error: 'OPENROUTER_API_KEY is not set — ask the human to provide it.' })` (without `--provider` the
+  Anthropic key is not enough).
+- `REQ-93: --provider anthropic needs ANTHROPIC_API_KEY` — `['--provider', 'anthropic', '--model', 'claude-haiku-4-5']`
+  with `{ OPENROUTER_API_KEY: 'y' }` → `toEqual({ error: 'ANTHROPIC_API_KEY is not set — ask the human to provide it.' })`;
+  with `{ ANTHROPIC_API_KEY: 'x' }` →
   `toEqual({ provider: 'anthropic', model: 'claude-haiku-4-5', cases: 'evals/event-parser/cases.json', out: 'docs/evals' })`.
-- `REQ-93: --provider openrouter needs OPENROUTER_API_KEY` — `['--provider', 'openrouter', '--model', 'openai/gpt-4o-mini']`
-  with `{ ANTHROPIC_API_KEY: 'x' }` → `{ error: 'OPENROUTER_API_KEY is not set — ask the human to provide it.' }`;
+- `REQ-93: --provider openrouter is accepted explicitly` — `['--provider', 'openrouter', '--model', 'openai/gpt-4o-mini']`
   with `{ OPENROUTER_API_KEY: 'y' }` → `provider: 'openrouter'`, `model: 'openai/gpt-4o-mini'`.
 - `REQ-93: rejects an unknown provider, a missing key and a missing model, in that order` —
   `['--provider', 'mistral', '--model', 'm']`, `{}` → `{ error: '--provider must be one of: anthropic, openrouter' }`;
-  `[]`, `{}` → `{ error: 'ANTHROPIC_API_KEY is not set — ask the human to provide it.' }`;
-  `['--provider', 'openrouter']`, `{ OPENROUTER_API_KEY: 'y' }` → `{ error: '--model is required' }`.
+  `[]`, `{}` → `{ error: 'OPENROUTER_API_KEY is not set — ask the human to provide it.' }` (default provider);
+  `['--provider', 'anthropic']`, `{}` → `{ error: 'ANTHROPIC_API_KEY is not set — ask the human to provide it.' }`;
+  `[]`, `{ OPENROUTER_API_KEY: 'y' }` → `{ error: '--model is required' }`;
+  `['--provider', 'anthropic']`, `{ ANTHROPIC_API_KEY: 'x' }` → `{ error: '--model is required' }`.
 - `REQ-93: report label and file name` — `reportLabel('anthropic', 'claude-haiku-4-5')` → `'claude-haiku-4-5'`;
   `reportLabel('openrouter', 'openai/gpt-4o-mini')` → `'openrouter:openai/gpt-4o-mini'`;
   `reportFileName('2026-09-24', 'anthropic', 'claude-haiku-4-5')` → `'2026-09-24-claude-haiku-4-5.md'`;
@@ -6333,7 +6343,7 @@ function readArgs(argv: string[]) {
   return parseArgs({
     args: argv,
     options: {
-      provider: { type: 'string', default: 'anthropic' },
+      provider: { type: 'string', default: 'openrouter' }, // REQ-93: OpenRouter is the default (2026-09-25)
       model: { type: 'string' },
       cases: { type: 'string', default: 'evals/event-parser/cases.json' },
       out: { type: 'string', default: 'docs/evals' },
@@ -6373,17 +6383,33 @@ export function reportFileName(date: string, provider: AiProviderName, model: st
 ```
 **Done when:** tests pass.
 **TDD exception:** none
+**Changelog:**
+- Rev 2 — human decision (OpenRouter default, eval), not a failure revision: `--provider` defaults to `openrouter`;
+  test cases rewritten for the new default and for `--provider anthropic`.
 
 ### TASK-210 — Eval runner runs through the chosen provider
-**Phase:** 7 · **Requirements:** REQ-93 · **Status:** todo · **Revision:** 1
+**Phase:** 7 · **Requirements:** REQ-93 · **Status:** todo · **Revision:** 2
 **Files:** evals/event-parser/run.ts, evals/event-parser/run.test.ts
-**Test first:** `REQ-93: the runner exits 2 when the OpenRouter key is missing` (Vitest timeout 30 s) — same shape
-as the existing REQ-91 test, with `delete env.ANTHROPIC_API_KEY; delete env.OPENROUTER_API_KEY;` and arguments
-`['--import', 'tsx', 'evals/event-parser/run.ts', '--provider', 'openrouter', '--model', 'openai/gpt-4o-mini']` →
-`status` 2 and `stderr` contains `OPENROUTER_API_KEY is not set`. Red: the runner checks `ANTHROPIC_API_KEY` first
-today.
+**Test first** (add both tests in a new `describe('eval runner provider (REQ-93)', …)` in `run.test.ts`, each with
+Vitest timeout `30_000`, same shape as the existing REQ-91 test: `const env = { ...process.env }; delete
+env.ANTHROPIC_API_KEY; delete env.OPENROUTER_API_KEY;`, then `spawnSync(process.execPath, args, { env, encoding:
+'utf8', cwd: process.cwd() })`):
+- `REQ-93: the runner defaults to OpenRouter and exits 2 when its key is missing` — args
+  `['--import', 'tsx', 'evals/event-parser/run.ts', '--model', 'openai/gpt-4o-mini']` (no `--provider`) → `status` 2
+  and `stderr` contains `OPENROUTER_API_KEY is not set`. Red: today the runner has no `--provider` and checks
+  `ANTHROPIC_API_KEY` first, so stderr says `ANTHROPIC_API_KEY is not set`.
+- `REQ-93: the runner exits 2 when the OpenRouter key is missing` — args
+  `['--import', 'tsx', 'evals/event-parser/run.ts', '--provider', 'openrouter', '--model', 'openai/gpt-4o-mini']` →
+  `status` 2 and `stderr` contains `OPENROUTER_API_KEY is not set`. Red for the same reason.
+
+**Existing test change (in the same `test:` commit):** in `REQ-91: the runner exits 2 when the API key is missing`,
+the arguments become `['--import', 'tsx', 'evals/event-parser/run.ts', '--provider', 'anthropic', '--model',
+'claude-haiku-4-5']` (title, `delete env.ANTHROPIC_API_KEY` and assertions unchanged). Without it the new default would
+send the run to OpenRouter and the test would no longer check the Anthropic key. It passes before and after the change.
 **Implementation** (`run.ts`; imports `parseEvalOptions`, `reportLabel`, `reportFileName` from `./options` and
-`createOpenRouterModelClient` from `@/lib/ai/openrouter-model-client`; the header comment mentions `--provider`):
+`createOpenRouterModelClient` from `@/lib/ai/openrouter-model-client`; the header comment becomes: runs through
+`--provider openrouter|anthropic` (default `openrouter`) and exits 2 when an option check fails, including the chosen
+provider's API key not being set):
 ```ts
 async function main(): Promise<void> {
   const parsed = parseEvalOptions(process.argv.slice(2), process.env);
@@ -6402,10 +6428,14 @@ async function main(): Promise<void> {
   // … writeFileSync, console output and exit code unchanged …
 }
 ```
-The import of `parseArgs` is removed. The existing REQ-91 test keeps passing (no `--provider` → Anthropic → missing
+The import of `parseArgs` is removed. The updated REQ-91 test keeps passing (`--provider anthropic` → missing
 `ANTHROPIC_API_KEY` → exit 2 with the same message).
-**Done when:** both runner tests pass; `npm run typecheck` passes.
+**Done when:** the three runner tests pass (`npx vitest run --project unit evals/event-parser/run.test.ts`);
+`npm run typecheck` passes.
 **TDD exception:** none
+**Changelog:**
+- Rev 2 — human decision (OpenRouter default, eval), not a failure revision: adds the default-provider runner test;
+  the REQ-91 runner test passes `--provider anthropic`.
 
 ### TASK-211 — Env file helpers
 **Phase:** 7 · **Requirements:** REQ-98 · **Status:** todo · **Revision:** 1
@@ -6720,7 +6750,7 @@ is unchanged — only a script was added).
 **TDD exception:** none (the entry point and the `package.json` script go in the `feat:` commit)
 
 ### TASK-216 — README and AI diagram mention the second provider
-**Phase:** 7 · **Requirements:** — · **Status:** todo · **Revision:** 3
+**Phase:** 7 · **Requirements:** — · **Status:** todo · **Revision:** 4
 **Files:** README.md, docs/diagrams/ai-event-parsing.mmd, docs/diagrams/ai-event-parsing.svg
 **Steps:**
 1. README, section "Run locally": after the step that copies `.env.example`, add one bullet: "AI: set
@@ -6731,10 +6761,12 @@ is unchanged — only a script was added).
    `AI_PROVIDERS=openrouter,anthropic` — providers are tried in the listed order and failover needs more than one.
    A listed provider without a key is skipped; with no key "Fill with AI" shows its fallback message and the manual
    form still works."
-2. README, section "AI evaluation" (if absent, add it right after "Tests"): the commands
-   `npm run eval -- --provider openrouter --model <id>` (the production provider) and
-   `npm run eval -- --model claude-haiku-4-5` (Anthropic, needs `ANTHROPIC_API_KEY`), and a link to
-   `docs/evals/README.md`.
+2. README, section "AI evaluation" (if absent, add it right after "Tests"; if present, replace its command lines):
+   the commands `npm run eval -- --model <openrouter-id>` (OpenRouter, the default and production provider, needs
+   `OPENROUTER_API_KEY`; e.g. `npm run eval -- --model openai/gpt-4o-mini`) and
+   `npm run eval -- --provider anthropic --model claude-haiku-4-5` (Anthropic, needs `ANTHROPIC_API_KEY`), the
+   sentence "`--provider` defaults to `openrouter`.", and a link to `docs/evals/README.md`. No command in the README may
+   show `npm run eval -- --model claude-…` without `--provider anthropic`.
 3. README, if a "Features" section lists "Fill with AI" / AI fill: append " — OpenRouter by default; optional
    Anthropic with automatic failover between the listed providers".
 4. `docs/diagrams/ai-event-parsing.mmd`: replace
@@ -6752,6 +6784,8 @@ is unchanged — only a script was added).
   failover triggers (BR-121 amended).
 - Rev 3 — human decision (OpenRouter default), not a failure revision: README and diagram present OpenRouter as the
   default and only provider, Anthropic as optional (BR-119, BR-121 amended 2026-09-25).
+- Rev 4 — human decision (OpenRouter default, eval), not a failure revision: the "AI evaluation" commands show
+  `--provider` defaulting to `openrouter` and Anthropic via `--provider anthropic`.
 
 ### TASK-217 — Evaluate the 30 cases through OpenRouter
 **Phase:** 7 · **Requirements:** REQ-93, REQ-92, REQ-91 · **Status:** todo · **Revision:** 3
