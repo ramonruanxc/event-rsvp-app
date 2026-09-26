@@ -1248,6 +1248,10 @@
   .meta-list .tz {
     color: var(--text-muted);
   }
+  /* The time of day and its zone never split across lines (REQ-151). */
+  .ev-time {
+    white-space: nowrap;
+  }
   .ev-desc {
     color: var(--text);
   }
@@ -1376,6 +1380,19 @@
   }
   .copy-row .btn {
     min-width: 112px;
+  }
+  /* Phones: the invite link takes the full width and the copy button goes under it (REQ-150). */
+  @media (max-width: 479px) {
+    .copy-row {
+      flex-direction: column;
+    }
+    .copy-row .input {
+      flex: none;
+      width: 100%;
+    }
+    .copy-row .btn {
+      width: 100%;
+    }
   }
   .owner-actions {
     display: flex;

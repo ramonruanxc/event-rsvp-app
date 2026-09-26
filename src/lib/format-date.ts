@@ -1,15 +1,17 @@
+/** Options of the event page's full date and time (BR-19, BR-76). */
+const EVENT_DATE_TIME: Intl.DateTimeFormatOptions = {
+  weekday: 'long',
+  year: 'numeric',
+  month: 'long',
+  day: 'numeric',
+  hour: 'numeric',
+  minute: '2-digit',
+  timeZoneName: 'short',
+};
+
 /** Formats an instant in the event's timezone, for the given UI locale, with a timezone label (BR-19, BR-76). */
 export function formatEventDateTime(instant: Date, timeZone: string, locale: string): string {
-  return new Intl.DateTimeFormat(locale, {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-    timeZone,
-    timeZoneName: 'short',
-  }).format(instant);
+  return new Intl.DateTimeFormat(locale, { ...EVENT_DATE_TIME, timeZone }).format(instant);
 }
 
 /** The three parts shown on a dashboard row's decorative date tile (REQ-82). */
@@ -54,5 +56,11 @@ export function formatEventDateTimeParts(
   timeZone: string,
   locale: string,
 ): EventDateTimeParts {
-  throw new Error('not implemented');
+  const parts = new Intl.DateTimeFormat(locale, { ...EVENT_DATE_TIME, timeZone }).formatToParts(
+    instant,
+  );
+  const join = (list: Intl.DateTimeFormatPart[]) => list.map((part) => part.value).join('');
+  const hour = parts.findIndex((part) => part.type === 'hour');
+  if (hour < 0) return { date: join(parts), time: '' };
+  return { date: join(parts.slice(0, hour)), time: join(parts.slice(hour)) };
 }
