@@ -92,3 +92,35 @@ test.describe('REQ-137: errors on a phone are brought into view', () => {
     await expect(name).toBeInViewport();
   });
 });
+
+test.describe('REQ-150, REQ-151: the event page on a phone', () => {
+  test('REQ-150: the French invite link field is readable, with the button under it', async ({
+    page,
+    context,
+  }) => {
+    const { id } = await signInAs(context, { email: 'phone-owner@example.com', name: 'Owner' });
+    const event = await createEvent(id);
+
+    await page.goto(`/fr/e/${event.slug}`);
+
+    const field = page.getByLabel("Lien d'invitation");
+    await expect(field).toHaveValue(/\/e\//);
+    const fieldBox = (await field.boundingBox())!;
+    const buttonBox = (await page
+      .getByRole('button', { name: "Copier le lien d'invitation" })
+      .boundingBox())!;
+    expect(fieldBox.width).toBeGreaterThanOrEqual(250);
+    expect(buttonBox.y).toBeGreaterThanOrEqual(fieldBox.y + fieldBox.height);
+  });
+
+  test('REQ-151: the time and its zone stay on one line', async ({ page }) => {
+    const owner = await createOwner();
+    const event = await createEvent(owner.id, { timezone: 'America/Sao_Paulo' });
+
+    await page.goto(`/en/e/${event.slug}`);
+
+    const time = page.locator('.ev-time');
+    await expect(time).toHaveText(/GMT-3$/);
+    expect(await time.evaluate((el) => el.getClientRects().length)).toBe(1);
+  });
+});

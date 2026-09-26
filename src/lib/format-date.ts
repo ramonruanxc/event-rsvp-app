@@ -41,3 +41,18 @@ export function formatShortDateTime(instant: Date, timeZone: string, locale: str
     timeZoneName: 'short',
   }).format(instant);
 }
+
+/** The event date and time split before the hour, so the time and zone can be kept on one line (REQ-151). */
+export interface EventDateTimeParts {
+  date: string;
+  time: string;
+}
+
+/** Splits {@link formatEventDateTime}'s text into the date part and the time-of-day + zone part (REQ-151, BR-184). */
+export function formatEventDateTimeParts(
+  instant: Date,
+  timeZone: string,
+  locale: string,
+): EventDateTimeParts {
+  throw new Error('not implemented');
+}
