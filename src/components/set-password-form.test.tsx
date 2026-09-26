@@ -82,4 +82,17 @@ describe('SetPasswordForm', () => {
     const { getByRole } = setup(true);
     expect(getByRole('status').textContent).toBe('');
   });
+
+  it('REQ-137: a wrong current password refused by the server focuses Current password', async () => {
+    const { type, save, getByLabelText } = setup(true, {
+      ok: false,
+      code: 'VALIDATION_ERROR',
+      fieldErrors: { currentPassword: 'currentPasswordIncorrect' },
+    });
+    type('Current password', 'wrong');
+    type('New password', 'new horse 12');
+    type('Confirm new password', 'new horse 12');
+    save();
+    await waitFor(() => expect(document.activeElement).toBe(getByLabelText('Current password')));
+  });
 });

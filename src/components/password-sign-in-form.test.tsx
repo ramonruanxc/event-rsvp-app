@@ -78,4 +78,10 @@ describe('PasswordSignInForm', () => {
       'Too many attempts — please try again in a few minutes.',
     );
   });
+
+  it('REQ-137: empty fields focus Email first', () => {
+    const { fill, getByLabelText } = setup(ok);
+    fill('', '');
+    expect(document.activeElement).toBe(getByLabelText('Email'));
+  });
 });

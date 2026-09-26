@@ -69,7 +69,7 @@ describe('EventForm groups, announced errors and saving state (REQ-83, REQ-69)',
     ).toBeTruthy();
   });
 
-  test('REQ-69: a required-field error is announced', async () => {
+  test('REQ-137: an empty name focuses Name, with the error described and no alert', () => {
     renderWithIntl(<EventForm submit={vi.fn()} />);
     fireEvent.change(screen.getByLabelText('Description'), { target: { value: 'Pasta night' } });
     fireEvent.change(screen.getByLabelText('Date'), { target: { value: '2099-01-01' } });
@@ -77,8 +77,25 @@ describe('EventForm groups, announced errors and saving state (REQ-83, REQ-69)',
 
     fireEvent.click(screen.getByRole('button', { name: 'Save event' }));
 
-    expect((await screen.findByRole('alert')).textContent).toBe('This field is required.');
-    expect(screen.getByLabelText('Name').getAttribute('aria-describedby')).toBe('name-error');
+    const name = screen.getByLabelText('Name');
+    expect(document.activeElement).toBe(name);
+    expect(name.getAttribute('aria-describedby')).toBe('name-error');
+    expect(document.getElementById('name-error')?.textContent).toBe('This field is required.');
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+
+  test('REQ-137: a date refused by the server focuses Date', async () => {
+    const submit = vi.fn().mockResolvedValue({
+      ok: false,
+      code: 'VALIDATION_ERROR',
+      fieldErrors: { date: 'inPast' },
+    });
+    renderWithIntl(<EventForm submit={submit} />);
+    fillValidFields();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Save event' }));
+
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByLabelText('Date')));
   });
 
   test('REQ-83: while saving, Save event keeps its label and is busy', async () => {

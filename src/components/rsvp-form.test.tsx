@@ -166,15 +166,31 @@ describe('RsvpForm', () => {
     expect(screen.queryByRole('button', { name: 'One more person' })).toBeNull();
   });
 
-  test('REQ-69: an empty name is announced as an alert', async () => {
+  test('REQ-137: an empty name focuses the name field and is described, not an alert', () => {
     renderWithIntl(<RsvpForm submit={vi.fn()} />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Send RSVP' }));
 
-    const alert = await screen.findByRole('alert');
-    expect(alert.textContent).toBe('This field is required.');
-    expect(screen.getByLabelText('Your name').getAttribute('aria-describedby')).toBe(
-      'rsvp-name-hint rsvp-name-error',
+    const input = screen.getByLabelText('Your name');
+    expect(document.activeElement).toBe(input);
+    expect(input.getAttribute('aria-describedby')).toBe('rsvp-name-hint rsvp-name-error');
+    expect(document.getElementById('rsvp-name-error')?.textContent).toBe('This field is required.');
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+
+  test('REQ-137: a party size refused by the server focuses the party size', async () => {
+    const submit = vi.fn().mockResolvedValue({
+      ok: false,
+      code: 'VALIDATION_ERROR',
+      fieldErrors: { partySize: 'partySizeRange' },
+    });
+    renderWithIntl(<RsvpForm submit={submit} />);
+    fireEvent.change(screen.getByLabelText('Your name'), { target: { value: 'Maria' } });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Send RSVP' }));
+
+    await waitFor(() =>
+      expect(document.activeElement).toBe(screen.getByLabelText('How many people, including you?')),
     );
   });
 

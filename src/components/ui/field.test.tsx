@@ -4,15 +4,15 @@ import { renderWithIntl } from '@/test/render';
 import { Alert, describedBy, Field, FieldError, FieldLabel, NeededBadge } from './field';
 
 describe('field primitives', () => {
-  it('REQ-69: FieldError is an alert with an icon and the message', () => {
-    const { getByRole } = renderWithIntl(
+  it('REQ-137: FieldError is described text with an icon, not an alert', () => {
+    const { container, queryByRole } = renderWithIntl(
       <FieldError id="name-error">This field is required.</FieldError>,
     );
-    const alert = getByRole('alert');
-    expect(alert.id).toBe('name-error');
-    expect(alert.className).toBe('field-error');
-    expect(alert.textContent).toBe('This field is required.');
-    expect(alert.querySelectorAll('svg[aria-hidden="true"]')).toHaveLength(1);
+    const error = container.querySelector('#name-error')!;
+    expect(error.className).toBe('field-error');
+    expect(error.textContent).toBe('This field is required.');
+    expect(error.querySelectorAll('svg[aria-hidden="true"]')).toHaveLength(1);
+    expect(queryByRole('alert')).toBeNull();
   });
 
   it('REQ-69: Alert is an alert with an icon', () => {

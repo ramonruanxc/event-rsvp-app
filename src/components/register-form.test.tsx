@@ -87,4 +87,10 @@ describe('RegisterForm', () => {
       view.unmount();
     }
   });
+
+  it('REQ-137: a different confirmation focuses Confirm password', () => {
+    const { fill, getByLabelText } = setup({ ok: true, data: { redirectTo: '/' } });
+    fill({ ...typed, confirmPassword: 'correct horsE' });
+    expect(document.activeElement).toBe(getByLabelText('Confirm password'));
+  });
 });

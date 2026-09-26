@@ -76,3 +76,19 @@ test.describe('REQ-131: the native date and time pickers really open', () => {
     await expect.poll(() => pickerIsOpen(time)).toBe(true);
   });
 });
+
+test.describe('REQ-137: errors on a phone are brought into view', () => {
+  test('REQ-137: an empty new-event form focuses Name inside the viewport', async ({
+    page,
+    context,
+  }) => {
+    await signInAs(context, { email: 'phone-form@example.com', name: 'Phone' });
+    await page.goto('/en/events/new');
+
+    await page.getByRole('button', { name: 'Save event' }).tap();
+
+    const name = page.getByLabel('Name', { exact: true });
+    await expect(name).toBeFocused();
+    await expect(name).toBeInViewport();
+  });
+});
