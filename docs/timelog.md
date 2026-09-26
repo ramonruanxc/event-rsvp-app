@@ -19,6 +19,7 @@ Event times are taken from session timestamps. All times in America/Fortaleza (U
 | 9 | Post-delivery: containerized one-command local run (amendment A5) | 2026-09-25 14:02:26 | 2026-09-25 14:56:51 |
 | 10 | Post-delivery: email and password sign-in alongside Google (amendment A6) | 2026-09-25 14:56:51 | 2026-09-25 17:40:17 |
 | 11 | Post-delivery: date/time pickers usable again + clearer AI-fill errors (feedback) | 2026-09-25 18:00:50 | 2026-09-25 19:10:29 |
+| 12 | Post-delivery: UX polish, mobile E2E, scope narrative, real demo recording (no new features) | 2026-09-25 21:44:38 | — |
 
 ## Pauses
 
@@ -235,6 +236,7 @@ Pipeline agents working autonomously. Reported separately from human active time
 | 2026-09-25 19:10:29 | PR #18 merged by the orchestrator (human pre-authorized); Phase 11 closed |
 | 2026-09-25 19:12:30 | Orchestrator, fresh clone of `main` with an empty database and no `.env.local`: `docker compose up --build` healthy, smoke 3/3; scripted browser journey on that container 14/14 (register → dashboard; date/time picker buttons focus their field and open the picker; AI fill without a key shows "AI fill isn't set up on this server"; create event; guest RSVP from a separate browser context; organizer sees the guest; `.ics`; sign out; wrong password shows the generic error; sign in; Account page; fr/pt-BR pages) |
 | 2026-09-25 19:14:20 | Orchestrator smoke-tested production after the Phase 11 deploy (063d50d, Vercel status success): public pages in three locales, organizer routes redirect to sign-in, demo event, `.ics`, security headers. Open for the human: confirm Fluid Compute is enabled in the Vercel project so `maxDuration = 30` applies (incident #27) |
+| 2026-09-25 21:44:38 | Human approved Phase 12 with no scope increase: UX audit with fixes only, mobile E2E and a real picker test, a forgot-password hint pointing to existing flows, a "Scope decisions" README section with cost per phase, and a demo recording of the real app (Higgsfield allowed for a cover image only) |
 
 ## Time report
 
