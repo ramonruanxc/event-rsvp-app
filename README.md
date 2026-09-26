@@ -180,6 +180,8 @@ npx tsx scripts/docker/smoke-cli.ts   # smoke check of a running docker compose 
   an explicit timezone, non-event text and a prompt-injection attempt): all seven behaved as expected (2026-09-25).
 - The one-command local run on a fresh clone with no `.env.local` (`docker compose up --build`): registered with
   email and password, signed out and signed in again (2026-09-25).
+- Fluid Compute is enabled on the Vercel project, so the new-event page's `maxDuration = 30` applies and the 20 s AI
+  budget is not cut short by the platform (2026-09-26).
 
 Agent-run smoke tests and fresh-clone verifications are recorded separately, with their actor, in the
 [timelog Events table](docs/timelog.md).
