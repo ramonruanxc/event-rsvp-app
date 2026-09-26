@@ -262,6 +262,7 @@ Pipeline agents working autonomously. Reported separately from human active time
 | 2026-09-26 01:36:21 | PR #21 merged by the orchestrator (human pre-authorized); Phase 12 closed |
 | 2026-09-26 01:38:30 | Orchestrator verified production after the f64f9ce deploy: public routes OK; `/fr/nope-page` returns 404 with the title "Cette page n'existe pas. · Event RSVP", one `<title>` element, `lang=fr` |
 | 2026-09-26 07:57:44 | Human confirmed Fluid Compute is enabled on the Vercel project, so `maxDuration = 30` applies (incident #27 follow-up closed) |
+| 2026-09-26 10:48:23 | Human tested "Fill with AI" on a phone in production with three cases (complete English event; Portuguese text with no time; prompt-injection text): all behaved as expected |
 
 ## Time report
 
