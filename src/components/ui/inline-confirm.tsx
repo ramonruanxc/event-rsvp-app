@@ -3,6 +3,7 @@
 import { CircleAlert, Trash2 } from 'lucide-react';
 import { useEffect, useId, useRef, useState } from 'react';
 import { Button } from './button';
+import { Alert } from './field';
 import { Icon } from './icon';
 
 /** Props for {@link InlineConfirm}. */
@@ -18,7 +19,10 @@ export interface InlineConfirmProps {
   error?: string | null;
 }
 
-/** Destructive action confirmed inline, with no dialog and no window.confirm (REQ-72, REQ-67). */
+/**
+ * Destructive action confirmed inline, with no dialog and no window.confirm (REQ-72, REQ-67).
+ * A failure message passed in `error` shows inside the group (REQ-142).
+ */
 export function InlineConfirm({
   triggerLabel,
   triggerAriaLabel,
@@ -27,6 +31,7 @@ export function InlineConfirm({
   cancelLabel,
   onConfirm,
   layout = 'block',
+  error,
 }: InlineConfirmProps): React.JSX.Element {
   const [open, setOpen] = useState(false);
   const [pending, setPending] = useState(false);
@@ -101,10 +106,11 @@ export function InlineConfirm({
         className="inline-confirm-row"
         onKeyDown={onKeyDown}
       >
-        <p id={questionId} className="sr-only">
+        <p id={questionId} className="inline-confirm-q small">
           {question}
         </p>
         {buttons}
+        {error && <Alert>{error}</Alert>}
       </div>
     );
   }
@@ -116,6 +122,7 @@ export function InlineConfirm({
         <span>{question}</span>
       </p>
       <div className="btn-row">{buttons}</div>
+      {error && <Alert>{error}</Alert>}
     </div>
   );
 }

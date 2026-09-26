@@ -19,7 +19,7 @@ export async function OwnerGuestList({ view, locale }: OwnerGuestListProps) {
   return (
     <section aria-labelledby="guest-list-heading">
       <div className="guest-head">
-        <h2 className="h2" id="guest-list-heading">
+        <h2 className="h2" id="guest-list-heading" tabIndex={-1}>
           {t('event.guestList')}
         </h2>
         <p className="small totals">

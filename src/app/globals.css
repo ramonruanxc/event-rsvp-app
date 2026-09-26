@@ -1638,6 +1638,34 @@
     justify-content: flex-end;
     gap: 8px;
   }
+  /* Remove confirmation in a guest row (REQ-143): on phones the open confirmation takes the whole
+     stacked row and shows its question; the table layout (>= 640 px) hides the question. */
+  .inline-confirm-row .inline-confirm-q,
+  .inline-confirm-row .alert,
+  .btn-row > .alert {
+    flex-basis: 100%;
+  }
+  @media (max-width: 639px) {
+    .guests tr:has(.inline-confirm-row) {
+      grid-template-areas: 'name name name' 'resp ppl ppl' 'upd upd upd' 'rm rm rm';
+    }
+    .guests tr:has(.inline-confirm-row) .inline-confirm-row {
+      display: flex;
+    }
+  }
+  @media (min-width: 640px) {
+    .inline-confirm-row .inline-confirm-q {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+  }
 }
 
 @keyframes reveal {
