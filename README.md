@@ -26,6 +26,52 @@ An organizer creates an event, shares one link, and sees who is coming; a guest 
 seconds, no account needed. Built end to end — code, tests, spec and docs — by a pipeline of Claude agents from a
 human-approved specification (see [How AI was used](#how-ai-was-used)).
 
+## Scope decisions
+
+Three layers, in the order they were built. Wall clock and agent run time are from
+[docs/timelog.md](docs/timelog.md); human active time is the self-reported 3h 30m for phases 1–6 only — phases
+8–11 ran agent-only, after delivery.
+
+**Core — the challenge's own requirements, phases 0–5, delivered and usable**
+
+| Phase | What shipped | Wall clock | Agent run time |
+|---|---|---|---|
+| 0 — Walking skeleton | Scaffold, tooling, CI, first TDD behavior, live URL | 1h 22m | 1h 10m |
+| 1 — Events core | Domain, all repositories, event create/edit/delete, dashboard | 1h 47m | 1h 52m |
+| 2 — RSVP flow | Guest RSVP with no account, edit/cancel their own, duplicate names blocked, RSVP closes at start | 57m | 56m |
+| 3 — Sharing & demo | Sample event, invite link, `.ics`, home page, seeded demo event | 34m | 37m |
+| 4 — AI event creation | "Fill with AI", rate limiter, eval runner and cases | 3h 47m | 3h 48m |
+| 5 — Hardening | RSVP rate limit, honeypot, security headers, XSS check | not separately recorded — built in a parallel worktree, merged together with phase 6 |
+
+**Deliberate bonuses — planned before execution started, phases 6–7**
+
+| Phase | What shipped | Why | Wall clock | Agent run time* |
+|---|---|---|---|---|
+| 6 — UI/UX + i18n | Visual redesign, dark/light theme, logo, EN/FR/PT-BR | Usability and product quality are evaluation criteria; the app was unstyled | 4h 07m | 5h 37m |
+| 7 — AI provider resilience | Second AI provider (OpenRouter) with failover, alongside Anthropic | Anthropic credits were pending; a second provider adds resilience and a cost comparison | 2h 52m | 4h 46m |
+
+\* Agent run time exceeds wall clock because independent agents ran in parallel git worktrees.
+
+**After delivery — each triggered by a concrete, later signal, phases 8–11**
+
+| Phase | What shipped | Trigger | Wall clock | Agent run time |
+|---|---|---|---|---|
+| 8 — Harder AI eval | Stricter eval gate (each case run ×3, a held-out case set, a per-category minimum) + reasoning control | The existing eval was saturated at 100%; a harder eval was needed to measure and pick a cheaper model | 2h 46m | 46m (eval run) |
+| 9 — Containerize | `docker compose up --build`: one command, no Node install | A fresh-clone test surfaced friction (missing step, obsolete command, undocumented requirement) | 54m | 50m |
+| 10 — Email/password sign-in | Register, sign in, Account page, Google-account linking rules | The evaluator needs no Google test-user access to sign in | 2h 43m | 2h 12m |
+| 11 — Feedback fixes | Date/time pickers reachable again, one clear reason per AI-fill failure | Fixes from external reviewer feedback | 1h 09m | 1h 02m |
+
+**Stopped here.** Three things deliberately not built:
+- Capacity limits on RSVPs — explicitly decided out of scope ("No capacity limit").
+- Password reset and email verification — both need email sending, which is out of scope; signing in with Google
+  on the same email is the documented workaround.
+- CSV export — listed in the brief's out-of-scope list.
+
+Full list and reasons: ["What I left out"](#what-i-left-out) below and
+[business-rules.md § Out of scope](docs/business-rules.md#out-of-scope). Every scope addition after the initial
+brief is its own row in the
+[design brief's amendments table](docs/design/2026-09-24-design-brief.md#amendments).
+
 ## Features
 
 ### Core
@@ -47,6 +93,48 @@ human-approved specification (see [How AI was used](#how-ai-was-used)).
 - **Demo** — a public, seeded event lets evaluators RSVP without creating anything.
 - **Dark/light theme** — dark by default, switchable, both checked against WCAG 2.2 AA.
 - **One-command local run** — `docker compose up --build`; Node is not required.
+
+## Technical highlights
+
+- **AI fill resolves relative dates against the organizer's own timezone and reports missing fields instead of
+  inventing them.** "Tomorrow" or "next Friday" only mean something relative to *when* and *where* the organizer
+  is; a wrong guess would put a real invitation at the wrong time. The model's raw output is validated field by
+  field against a zod schema, and any field it could not find comes back `null`, never a guess. See
+  [src/lib/ai/prompt.ts](src/lib/ai/prompt.ts) and [src/lib/ai/output.ts](src/lib/ai/output.ts).
+- **Prompt-injection defenses checked by an evaluation harness, not just by eye.** Untrusted text is delimited once
+  and the model is told to treat it as data; the eval runs every case **3 times** (all 3 must pass), holds out
+  about a third of the cases from prompt tuning, and gates **each category** separately (not just the overall
+  score), so a single weak spot cannot hide behind a good average. See
+  [src/lib/ai/prompt.ts](src/lib/ai/prompt.ts), [evals/event-parser/score.ts](evals/event-parser/score.ts) and
+  [docs/evals/README.md](docs/evals/README.md).
+- **A provider-agnostic AI client with failover inside one shared time budget.** Providers are tried in order
+  within a single deadline; an outage (timeout, 5xx, no key) moves to the next provider, but a bad model output is
+  never retried elsewhere, because that is a prompt problem, not an outage — each cause maps to its own error. See
+  [src/services/ai-event-parser.ts](src/services/ai-event-parser.ts) and
+  [src/lib/ai/providers-config.ts](src/lib/ai/providers-config.ts).
+- **Guests edit their own RSVP with no account, via a hashed edit token in a cookie.** The token lives in the
+  browser; only its hash is stored server-side, so the database never holds a value that could be replayed if
+  leaked. See [src/lib/edit-token-cookie.ts](src/lib/edit-token-cookie.ts) and
+  [src/services/submit-rsvp.ts](src/services/submit-rsvp.ts).
+- **Duplicate-guest detection and guest-name privacy are both enforced by the same normalized name key.** A
+  database-level unique constraint on (event, normalized name) blocks duplicates race-safely, and the same
+  normalization keeps names visible to the organizer only — never to other guests. See
+  [src/services/submit-rsvp.ts](src/services/submit-rsvp.ts) and
+  [src/repositories/prisma/prisma-rsvp-repository.ts](src/repositories/prisma/prisma-rsvp-repository.ts).
+- **Every rate limit stores a salted hash of the IP or email, never the raw value.** Abuse protection (RSVP spam,
+  brute-forced sign-ins) works without turning the rate-limit table into a log of who visited. See
+  [src/lib/client-ip.ts](src/lib/client-ip.ts) and
+  [src/services/sign-in-with-password.ts](src/services/sign-in-with-password.ts).
+- **Password auth closes both a timing side-channel and an account pre-hijacking path.** A fixed-cost dummy scrypt
+  hash is compared even when the email does not exist, so a failed sign-in takes the same time either way; linking
+  a Google account clears any password that was set before the email was verified and ends the sessions it opened,
+  so registering with someone else's email first cannot be used to steal the account. See
+  [src/lib/password.ts](src/lib/password.ts) and
+  [src/services/link-google-account.ts](src/services/link-google-account.ts).
+- **A one-command container that is production-safe by construction.** `docker compose up --build` generates its
+  own `AUTH_SECRET` when none is supplied and always runs migrate → seed → serve on start, so a fresh clone with no
+  `.env.local` still works end to end. See [scripts/docker/start.ts](scripts/docker/start.ts) and
+  [scripts/docker/start-plan.ts](scripts/docker/start-plan.ts).
 
 ## Run locally
 
