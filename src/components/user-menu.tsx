@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { Calendar, ChevronDown, LogOut, UserRound } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
@@ -13,7 +13,11 @@ export interface UserMenuProps {
   signOutAction: () => Promise<void>;
 }
 
-/** Signed-in account menu: avatar initial, "My events" and "Sign out" (REQ-80). */
+/**
+ * Signed-in account menu: avatar initial, "My events" and "Sign out" (REQ-80).
+ * It closes on Escape (focus back on its summary), when focus moves outside it, and on a pointer
+ * press outside it (REQ-145).
+ */
 export function UserMenu({ name, initial, signOutAction }: UserMenuProps): React.JSX.Element {
   const t = useTranslations();
   const ref = useRef<HTMLDetailsElement>(null);
@@ -21,8 +25,30 @@ export function UserMenu({ name, initial, signOutAction }: UserMenuProps): React
     if (ref.current) ref.current.open = false;
   };
 
+  useEffect(() => {
+    function onPointerDown(event: Event) {
+      const menu = ref.current;
+      if (menu?.open && !menu.contains(event.target as Node)) menu.open = false;
+    }
+    document.addEventListener('pointerdown', onPointerDown);
+    return () => document.removeEventListener('pointerdown', onPointerDown);
+  }, []);
+
+  function onKeyDown(event: React.KeyboardEvent<HTMLDetailsElement>) {
+    const menu = ref.current;
+    if (event.key !== 'Escape' || !menu?.open) return;
+    menu.open = false;
+    menu.querySelector('summary')?.focus();
+  }
+
+  function onBlur(event: React.FocusEvent<HTMLDetailsElement>) {
+    const menu = ref.current;
+    const next = event.relatedTarget;
+    if (menu?.open && next instanceof Node && !menu.contains(next)) menu.open = false;
+  }
+
   return (
-    <details className="menu" ref={ref}>
+    <details className="menu" ref={ref} onKeyDown={onKeyDown} onBlur={onBlur}>
       <summary aria-label={t('nav.accountMenu')}>
         <span className="avatar" aria-hidden="true">
           {initial}
