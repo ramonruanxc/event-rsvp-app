@@ -8,6 +8,7 @@ import { toLocalParts } from '@/domain/event-time';
 import { getServices } from '@/lib/container';
 import { requireUserId } from '@/lib/session';
 import { Icon } from '@/components/ui/icon';
+import { Link } from '@/i18n/navigation';
 import { updateEventAction } from '../actions';
 
 /** Localized page title (REQ-134). */
@@ -48,6 +49,9 @@ export default async function EditEventPage({
             <Icon icon={Clock} size={20} />
             <div>
               <h1 className="h3">{t('event.ended')}</h1>
+              <p className="mt-2">
+                <Link href={`/e/${slug}`}>{t('eventForm.backToEvent')}</Link>
+              </p>
             </div>
           </div>
         </div>
@@ -61,6 +65,7 @@ export default async function EditEventPage({
       <div className="col-640">
         <div className="page-head">
           <h1 className="h2">{t('eventForm.titleEdit')}</h1>
+          <Link href={`/e/${slug}`}>{t('eventForm.backToEvent')}</Link>
         </div>
         <EventForm
           initialValues={{

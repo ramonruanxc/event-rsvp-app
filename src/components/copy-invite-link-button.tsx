@@ -20,7 +20,11 @@ export interface CopyInviteLinkButtonProps {
  * Read-only invite link field with a button that copies it to the clipboard, confirming with a
  * polite live region and a temporary "Copied" label (REQ-38, REQ-79, REQ-85, BR-51).
  */
-export function CopyInviteLinkButton({ slug, copiedMs = 2000 }: CopyInviteLinkButtonProps) {
+export function CopyInviteLinkButton({
+  slug,
+  copiedMs = 2000,
+  ended = false,
+}: CopyInviteLinkButtonProps) {
   const t = useTranslations();
   const [url, setUrl] = useState('');
   const [copied, setCopied] = useState(false);
@@ -62,7 +66,7 @@ export function CopyInviteLinkButton({ slug, copiedMs = 2000 }: CopyInviteLinkBu
           </Button>
         </div>
         <p className="hint" id="invite-link-hint">
-          {t('event.inviteHint')}
+          {ended ? t('event.endedHint') : t('event.inviteHint')}
         </p>
         <p className="sr-only" aria-live="polite">
           {copied ? t('event.linkCopied') : ''}

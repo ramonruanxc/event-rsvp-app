@@ -42,7 +42,8 @@
   },
   "totals": {
     "summary": "{going, plural, one {# vient} other {# viennent}} · {declined, plural, one {# décliné} other {# déclinés}} · {people, plural, one {# personne} other {# personnes}}",
-    "peopleGoing": "{count, plural, one {# personne y va} other {# personnes y vont}}"
+    "peopleGoing": "{count, plural, one {# personne vient} other {# personnes viennent}}",
+    "peopleWent": "{count, plural, one {# personne est venue} other {# personnes sont venues}}"
   },
   "eventForm": {
     "titleNew": "Nouvel événement",
@@ -60,7 +61,8 @@
     "groupWhere": "Où",
     "timezoneHint": "Les invités voient la date et l'heure dans ce fuseau horaire.",
     "openDatePicker": "Ouvrir le calendrier",
-    "openTimePicker": "Ouvrir le sélecteur d'heure"
+    "openTimePicker": "Ouvrir le sélecteur d'heure",
+    "backToEvent": "Retour à l'événement"
   },
   "ai": {
     "label": "Décrivez votre événement",
@@ -97,6 +99,7 @@
     "removeNamed": "Retirer {name}",
     "removeConfirm": "Retirer {name} de la liste des invités ?",
     "declined": "Décliné",
+    "pillGoing": "Vient",
     "actions": "Actions",
     "updatedPrefix": "Mis à jour",
     "peopleSuffix": "{count, plural, one {personne} other {personnes}}"

@@ -42,7 +42,8 @@
   },
   "totals": {
     "summary": "{going, plural, one {# confirmado} other {# confirmados}} · {declined, plural, one {# recusado} other {# recusados}} · {people, plural, one {# pessoa} other {# pessoas}}",
-    "peopleGoing": "{count, plural, one {# pessoa confirmada} other {# pessoas confirmadas}}"
+    "peopleGoing": "{count, plural, one {# pessoa confirmada} other {# pessoas confirmadas}}",
+    "peopleWent": "{count, plural, one {# pessoa foi} other {# pessoas foram}}"
   },
   "eventForm": {
     "titleNew": "Novo evento",
@@ -60,7 +61,8 @@
     "groupWhere": "Onde",
     "timezoneHint": "Os convidados veem a data e a hora neste fuso horário.",
     "openDatePicker": "Abrir calendário",
-    "openTimePicker": "Abrir seletor de horário"
+    "openTimePicker": "Abrir seletor de horário",
+    "backToEvent": "Voltar ao evento"
   },
   "ai": {
     "label": "Descreva seu evento",
@@ -97,6 +99,7 @@
     "removeNamed": "Remover {name}",
     "removeConfirm": "Remover {name} da lista de convidados?",
     "declined": "Recusou",
+    "pillGoing": "Vai",
     "actions": "Ações",
     "updatedPrefix": "Atualizado",
     "peopleSuffix": "{count, plural, one {pessoa} other {pessoas}}"

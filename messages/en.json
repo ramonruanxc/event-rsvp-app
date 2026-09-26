@@ -42,7 +42,8 @@
   },
   "totals": {
     "summary": "{going} going · {declined} declined · {people, plural, one {# person} other {# people}}",
-    "peopleGoing": "{count, plural, one {# person going} other {# people going}}"
+    "peopleGoing": "{count, plural, one {# person going} other {# people going}}",
+    "peopleWent": "{count, plural, one {# person went} other {# people went}}"
   },
   "eventForm": {
     "titleNew": "New event",
@@ -60,7 +61,8 @@
     "groupWhere": "Where",
     "timezoneHint": "Guests see the date and time in this timezone.",
     "openDatePicker": "Open calendar",
-    "openTimePicker": "Open time picker"
+    "openTimePicker": "Open time picker",
+    "backToEvent": "Back to event"
   },
   "ai": {
     "label": "Describe your event",
@@ -97,6 +99,7 @@
     "removeNamed": "Remove {name}",
     "removeConfirm": "Remove {name} from the guest list?",
     "declined": "Declined",
+    "pillGoing": "Going",
     "actions": "Actions",
     "updatedPrefix": "Updated",
     "peopleSuffix": "{count, plural, one {person} other {people}}"

@@ -53,7 +53,7 @@ export async function OwnerGuestList({ view, locale }: OwnerGuestListProps) {
                 <td className="c-name">{row.name}</td>
                 <td className="c-resp">
                   {row.status === 'GOING' ? (
-                    <StatusPill status="going">{t('rsvp.going')}</StatusPill>
+                    <StatusPill status="going">{t('event.pillGoing')}</StatusPill>
                   ) : (
                     <StatusPill status="declined">{t('event.declined')}</StatusPill>
                   )}

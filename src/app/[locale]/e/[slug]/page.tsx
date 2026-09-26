@@ -59,7 +59,7 @@ export default async function EventPage({
         <EventDetails event={view.event} totals={view.totals} locale={locale} ended={view.ended} />
         {view.role === 'owner' && (
           <div className="owner-tools mt-6">
-            <CopyInviteLinkButton slug={slug} />
+            <CopyInviteLinkButton slug={slug} ended={view.ended} />
             <div className="owner-actions">
               {!view.ended && (
                 <Link className={buttonClass('secondary')} href={`/e/${slug}/edit`}>

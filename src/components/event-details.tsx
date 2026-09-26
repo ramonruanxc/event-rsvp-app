@@ -45,12 +45,14 @@ export async function EventDetails({ event, totals, locale, ended }: EventDetail
       <div className="ev-sub">
         <span className="going-count">
           <Icon icon={Users} />
-          {t('totals.peopleGoing', { count: totals.people })}
+          {t(ended ? 'totals.peopleWent' : 'totals.peopleGoing', { count: totals.people })}
         </span>
-        <a className={buttonClass('secondary')} href={`/e/${event.slug}/calendar.ics`} download>
-          <Icon icon={CalendarPlus} />
-          {t('event.addToCalendar')}
-        </a>
+        {!ended && (
+          <a className={buttonClass('secondary')} href={`/e/${event.slug}/calendar.ics`} download>
+            <Icon icon={CalendarPlus} />
+            {t('event.addToCalendar')}
+          </a>
+        )}
       </div>
     </div>
   );
