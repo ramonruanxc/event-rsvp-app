@@ -33,7 +33,20 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
+      testIgnore: /mobile\.spec\.ts$/,
       use: { ...devices['Desktop Chrome'], locale: 'en-US', timezoneId: 'America/New_York' },
+    },
+    {
+      // Phone journeys at the audit's 375 px width, with touch (REQ-159). Pixel 7 runs on
+      // Chromium, so CI needs no other browser.
+      name: 'mobile',
+      testMatch: /mobile\.spec\.ts$/,
+      use: {
+        ...devices['Pixel 7'],
+        viewport: { width: 375, height: 812 },
+        locale: 'en-US',
+        timezoneId: 'America/New_York',
+      },
     },
   ],
   webServer: [
