@@ -201,7 +201,7 @@ describe('EventForm — Fill with AI (REQ-51)', () => {
     await waitFor(() => {
       const button = screen.getByRole('button', { name: 'Fill with AI' }) as HTMLButtonElement;
       expect(button.getAttribute('aria-busy')).toBe('true');
-      expect(button.disabled).toBe(true);
+      expect(button.getAttribute('aria-disabled')).toBe('true');
     });
     expect(screen.getByRole('status').textContent).toBe('Filling…');
   });

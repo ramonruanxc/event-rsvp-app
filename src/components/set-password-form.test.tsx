@@ -47,12 +47,12 @@ describe('SetPasswordForm', () => {
   });
 
   it('REQ-120: saving shows "Password saved.", empties the fields and refreshes', async () => {
-    const { type, save, findByRole, getByLabelText, submit } = setup(true);
+    const { type, save, getByRole, getByLabelText, submit } = setup(true);
     type('Current password', 'correct horse');
     type('New password', 'new horse 12');
     type('Confirm new password', 'new horse 12');
     save();
-    expect((await findByRole('status')).textContent).toBe('Password saved.');
+    await waitFor(() => expect(getByRole('status').textContent).toBe('Password saved.'));
     expect(submit).toHaveBeenCalledWith({
       currentPassword: 'correct horse',
       newPassword: 'new horse 12',
@@ -76,5 +76,10 @@ describe('SetPasswordForm', () => {
     save();
     const error = await findByText('The current password is incorrect.');
     expect(error.closest('[id]')?.id).toBe('account-current-error');
+  });
+
+  it('REQ-136: the status region exists before saving, so "Password saved." is announced', () => {
+    const { getByRole } = setup(true);
+    expect(getByRole('status').textContent).toBe('');
   });
 });
