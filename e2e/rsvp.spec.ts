@@ -143,3 +143,26 @@ test.describe('REQ-29: the guest page of an ended event', () => {
     await expect(page.getByRole('button', { name: 'Cancel RSVP' })).toHaveCount(0);
   });
 });
+
+test.describe('REQ-138: from Not going to Going', () => {
+  test('REQ-138: a guest who said Not going can come after all', async ({ page }) => {
+    const owner = await createOwner();
+    const event = await createEvent(owner.id);
+
+    await page.goto(`/en/e/${event.slug}`);
+    await page.getByLabel('Your name').fill('Maria');
+    await page.getByLabel('Not going').check();
+    await page.getByRole('button', { name: 'Send RSVP' }).click();
+    await expect(page.getByRole('heading', { name: "You're not going" })).toBeVisible();
+
+    await page.getByRole('button', { name: 'Change' }).click();
+    await page.getByLabel('Going', { exact: true }).check();
+    await expect(page.getByLabel('How many people, including you?')).toHaveValue('1');
+    await page.getByRole('button', { name: 'Send RSVP' }).click();
+
+    await expect(page.getByRole('heading', { name: "You're going · 1 person" })).toBeVisible();
+    const rsvp = await db.rsvp.findFirst();
+    expect(rsvp?.status).toBe('GOING');
+    expect(rsvp?.partySize).toBe(1);
+  });
+});

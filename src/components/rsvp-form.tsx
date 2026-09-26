@@ -37,6 +37,8 @@ export interface RsvpFormProps {
   initial?: RsvpFormValues;
   submit: (values: RsvpFormValues, honeypot: string) => Promise<ActionResult<OwnRsvp>>;
   onDone?: () => void;
+  /** When given (editing an existing RSVP), shows "Keep my answer", which calls it (REQ-139). */
+  onKeep?: () => void;
 }
 
 /** Guest RSVP form: name, Going/Not going, party size when Going (REQ-31, REQ-26, REQ-57). */

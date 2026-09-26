@@ -213,3 +213,76 @@ describe('RsvpForm', () => {
     expect(container.querySelectorAll('svg:not([aria-hidden="true"])')).toHaveLength(0);
   });
 });
+
+describe('RsvpForm party size and Keep my answer (REQ-138, REQ-139)', () => {
+  test('REQ-138: switching a Not going answer to Going starts at one person', async () => {
+    const submit = vi.fn().mockResolvedValue({
+      ok: true,
+      data: { name: 'Maria', status: 'GOING', partySize: 1 },
+    });
+    renderWithIntl(
+      <RsvpForm submit={submit} initial={{ name: 'Maria', status: 'NOT_GOING', partySize: 0 }} />,
+    );
+
+    fireEvent.click(screen.getByLabelText('Going'));
+
+    const size = screen.getByLabelText('How many people, including you?') as HTMLInputElement;
+    expect(size.value).toBe('1');
+    expect(
+      (screen.getByRole('button', { name: 'One less person' }) as HTMLButtonElement).disabled,
+    ).toBe(true);
+    fireEvent.click(screen.getByRole('button', { name: 'Send RSVP' }));
+    await waitFor(() =>
+      expect(submit).toHaveBeenCalledWith({ name: 'Maria', status: 'GOING', partySize: 1 }, ''),
+    );
+  });
+
+  test('REQ-138: the party size can be cleared and retyped', () => {
+    renderWithIntl(<RsvpForm submit={vi.fn()} />);
+    const size = screen.getByLabelText('How many people, including you?') as HTMLInputElement;
+
+    fireEvent.change(size, { target: { value: '' } });
+    expect(size.value).toBe('');
+    fireEvent.change(size, { target: { value: '3' } });
+    expect(size.value).toBe('3');
+  });
+
+  test('REQ-138: an emptied party size is refused with the range message', async () => {
+    const submit = vi.fn();
+    renderWithIntl(<RsvpForm submit={submit} />);
+    fireEvent.change(screen.getByLabelText('Your name'), { target: { value: 'Maria' } });
+    fireEvent.change(screen.getByLabelText('How many people, including you?'), {
+      target: { value: '' },
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Send RSVP' }));
+
+    expect(await screen.findByText('Enter a number from 1 to 10.')).toBeTruthy();
+    expect(submit).not.toHaveBeenCalled();
+  });
+
+  test('REQ-139: with onKeep the form offers Keep my answer, which calls it', () => {
+    const onKeep = vi.fn();
+    const submit = vi.fn();
+    renderWithIntl(
+      <RsvpForm
+        submit={submit}
+        onKeep={onKeep}
+        initial={{ name: 'Maria', status: 'GOING', partySize: 3 }}
+      />,
+    );
+    const keep = screen.getByRole('button', { name: 'Keep my answer' });
+
+    fireEvent.click(keep);
+
+    expect(keep.getAttribute('type')).toBe('button');
+    expect(onKeep).toHaveBeenCalledTimes(1);
+    expect(submit).not.toHaveBeenCalled();
+  });
+
+  test('REQ-139: without onKeep there is no Keep my answer button', () => {
+    renderWithIntl(<RsvpForm submit={vi.fn()} />);
+
+    expect(screen.queryByRole('button', { name: 'Keep my answer' })).toBeNull();
+  });
+});
