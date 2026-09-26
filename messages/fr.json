@@ -184,6 +184,7 @@
     "GOOGLE_ACCOUNT_EXISTS": "Cet e-mail a déjà un compte qui utilise Google. Connectez-vous avec Google, puis définissez un mot de passe dans Compte."
   },
   "notFound": {
+    "title": "Cette page n'existe pas.",
     "hint": "Le lien est peut-être mal saisi, ou l'événement a été supprimé.",
     "home": "Aller à l'accueil"
   },
