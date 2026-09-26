@@ -132,11 +132,9 @@ export function SetPasswordForm({ hasPassword, submit }: SetPasswordFormProps): 
           <FieldError id="account-confirm-error">{errorFor('confirmPassword')}</FieldError>
         )}
       </Field>
-      {saved && (
-        <p className="small" role="status">
-          {t('account.passwordSaved')}
-        </p>
-      )}
+      <p className="small" role="status">
+        {saved ? t('account.passwordSaved') : null}
+      </p>
       <div className="form-foot">
         <Button type="submit" variant="primary" loading={submitting}>
           {t('account.savePassword')}
