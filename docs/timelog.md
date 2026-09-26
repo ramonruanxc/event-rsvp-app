@@ -19,7 +19,7 @@ Event times are taken from session timestamps. All times in America/Fortaleza (U
 | 9 | Post-delivery: containerized one-command local run (amendment A5) | 2026-09-25 14:02:26 | 2026-09-25 14:56:51 |
 | 10 | Post-delivery: email and password sign-in alongside Google (amendment A6) | 2026-09-25 14:56:51 | 2026-09-25 17:40:17 |
 | 11 | Post-delivery: date/time pickers usable again + clearer AI-fill errors (feedback) | 2026-09-25 18:00:50 | 2026-09-25 19:10:29 |
-| 12 | Post-delivery: UX polish, mobile E2E, scope narrative, real demo recording (no new features) | 2026-09-25 21:44:38 | — |
+| 12 | Post-delivery: UX polish, mobile E2E, scope narrative, real demo recording (no new features) | 2026-09-25 21:44:38 | 2026-09-26 01:36:21 |
 
 ## Pauses
 
@@ -145,6 +145,8 @@ Pipeline agents working autonomously. Reported separately from human active time
 | Reviewer PR #20 | sonnet | 2026-09-26 00:45:40 | 2026-09-26 00:54:02 | 8m 22s | APPROVE, 0 findings |
 | Analyst: doc-sync PR #20 | sonnet | 2026-09-26 00:54:20 | 2026-09-26 00:59:31 | 5m 11s | statuses, DESIGN.md, flows diagram, README counts, scope doc |
 | Implementer: not-found page title (incident #29) | sonnet | 2026-09-26 01:10:00 | 2026-09-26 01:24:44 | 14m 40s | fixed, attempt 1 |
+| Analyst: README demo embed | sonnet | 2026-09-26 01:25:00 | 2026-09-26 01:26:05 | 1m 05s | GIF + MP4 in Start here |
+| Reviewer PR #21 | sonnet | 2026-09-26 01:27:00 | 2026-09-26 01:32:24 | 5m 24s | APPROVE, 1 nit (CHANGELOG heading, fixed by the orchestrator) |
 
 ## Events
 
@@ -256,6 +258,9 @@ Pipeline agents working autonomously. Reported separately from human active time
 | 2026-09-26 01:05:30 | Orchestrator, fresh clone of `main`: `npm ci` (lockfile untouched), `docker:journey` healthy, smoke 3/3, container journey 1/1 |
 | 2026-09-26 01:07:30 | Orchestrator recorded a 34 s demo of the real app (local container with the OpenRouter key): register, Fill with AI, save, invite link, guest RSVP in a second browser, organizer sees the guest; MP4 + GIF in `docs/media/` |
 | 2026-09-26 01:08:45 | Orchestrator smoke-tested production after the Phase 12 deploy: localized page titles, forgot-password hint, localized 404 with a way home; found the 404 kept the generic title (incident #29) |
+| 2026-09-26 01:36:08 | Orchestrator ran the battery on the PR #21 head: unit 531/531 (Node 22), integration 27/27, E2E 114/114, container smoke 3/3 + journey 1/1; CI 10/10 |
+| 2026-09-26 01:36:21 | PR #21 merged by the orchestrator (human pre-authorized); Phase 12 closed |
+| 2026-09-26 01:38:30 | Orchestrator verified production after the f64f9ce deploy: public routes OK; `/fr/nope-page` returns 404 with the title "Cette page n'existe pas. · Event RSVP", one `<title>` element, `lang=fr` |
 
 ## Time report
 
