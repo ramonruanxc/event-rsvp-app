@@ -2492,7 +2492,10 @@ UX-26) cite the closest existing rule.
 **Status:** todo
 **Acceptance criteria:**
 - `formatEventDateTimeParts(instant, timeZone, locale): { date: string; time: string }` (`src/lib/format-date.ts`)
-  splits `formatEventDateTime`'s text before its `hour` part; `date + time` equals `formatEventDateTime(...)`.
+  splits `formatEventDateTime`'s text before its `hour` part; `date + time` equals `formatEventDateTime(...)`
+  character for character. Both halves are cut from the `format()` string at the summed length of the
+  `formatToParts()` parts before the first `hour` part (on Node 22/24 `formatToParts()` has U+202F before AM/PM where
+  `format()` has a space, so its values must not be joined; incident 28).
   Example: `2026-10-02T23:00:00Z`, `America/Sao_Paulo`, `en` → `date` "Friday, October 2, 2026 at ", `time`
   "8:00 PM GMT-3" (the space before PM may be U+202F)
 - `EventDetails` renders `<span class="num">{date}<span class="ev-time">{time}</span></span>`, and `.ev-time` has
@@ -2889,6 +2892,34 @@ These requirements are code in the repository and are TDD'd like product code. T
   REQ-151 (UX-15)
 **Test level:** e2e
 
+### REQ-160 — A permanent regression battery, including a journey against the container
+**Rules:** none (tooling)
+**Status:** todo
+**Acceptance criteria:**
+- `docker/compose.journey.yml` overrides only `app.environment` with `ANTHROPIC_API_KEY: ''` and
+  `OPENROUTER_API_KEY: ''`, so a stack started with `docker compose -f docker-compose.yml -f
+  docker/compose.journey.yml up …` has no AI provider whatever `.env.local` holds (`environment` wins over
+  `env_file`). `docker-compose.yml` is unchanged (REQ-112)
+- `playwright.container.config.ts`: `testDir: './e2e/container'`, one project `container` (Desktop Chrome, en-US,
+  America/New_York), `baseURL` `http://localhost:${APP_PORT ?? 3000}`, **no webServer**, `outputDir`
+  `test-results/container`. The `chromium` project of `playwright.config.ts` ignores `e2e/container/`; the `mobile`
+  project already matches only `mobile.spec.ts`
+- `e2e/container/journey.spec.ts`, one serial journey against the running container, with no database access (it
+  uses a fresh email per run): register → `/en/dashboard`; on the new-event page the AI panel reads "AI fill isn't
+  set up on this server — fill the form below." with no "Fill with AI" button; "Open calendar" / "Open time picker"
+  focus Date / Time; save → event page; a guest in a separate browser context RSVPs for 2 → "You're going · 2
+  people"; the organizer sees the guest's row "Going" and "1 going · 0 declined · 2 people"; `/e/<slug>/calendar.ics`
+  → 200, `text/calendar`, `SUMMARY:<event name>`; sign out; a wrong password → "Email or password is incorrect.";
+  the right password → `/en/dashboard` showing the event
+- CI `container-smoke`: starts the stack with the override, runs the existing smoke check, installs Chromium and
+  runs the journey; on failure uploads `test-results/container`; `docker compose down -v` always
+- `npm run test:container` runs the journey; `npm run test:all` starts `db`, then runs unit, integration, E2E (both
+  projects), the stack with the override, the smoke check and the journey, stopping at the first failure; it honours
+  `E2E_PORT` and `APP_PORT` from the shell and leaves the stack running. The README Tests section lists it in one line
+- `docs/design/2026-09-25-ux-audit.md` ends with a "Regression coverage" table: every UX-01…UX-27 → the test file(s)
+  and one test title that cover it
+**Test level:** e2e (container)
+
 ---
 
 ## Coverage — every business rule
@@ -3097,4 +3128,4 @@ REQ-133; REQ-47, REQ-51, REQ-87, REQ-88, REQ-95 and REQ-101 amended).
 BR-173 … BR-190 added in Phase 12 (REQ-134 … REQ-158), which also amends BR-35 and BR-36 (REQ-141; REQ-31 and REQ-84
 amended) and amends REQ-54, REQ-69, REQ-71, REQ-72, REQ-80 and REQ-85. Findings without a rule of their own (UX-16, UX-17,
 UX-23, UX-25, UX-26) are covered by REQ-138, REQ-153, REQ-149, REQ-148 and REQ-146, citing the closest existing rule.
-Tooling: REQ-90, REQ-91, REQ-92, REQ-93, REQ-100 … REQ-107, REQ-159.
+Tooling: REQ-90, REQ-91, REQ-92, REQ-93, REQ-100 … REQ-107, REQ-159, REQ-160.
