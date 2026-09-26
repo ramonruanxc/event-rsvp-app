@@ -1,12 +1,17 @@
 'use client';
 
-import { useState, type FormEvent } from 'react';
+import { useRef, useState, type FormEvent } from 'react';
+import { flushSync } from 'react-dom';
 import { useTranslations } from 'next-intl';
 import { ValidationError, type FieldErrors } from '@/domain/errors';
 import { signInInputSchema, type SignInFormValues } from '@/domain/schemas';
 import type { ActionResult } from '@/lib/action-result';
+import { focusFirstInvalid } from '@/lib/focus';
 import { Alert, describedBy, Field, FieldError, FieldLabel } from '@/components/ui/field';
 import { Button } from '@/components/ui/button';
+
+/** Maps PasswordSignInForm field names to their control ids (REQ-137). */
+const SIGN_IN_FIELD_IDS = { email: 'signin-email', password: 'signin-password' } as const;
 
 /** Props of {@link PasswordSignInForm}. */
 export interface PasswordSignInFormProps {
@@ -30,18 +35,27 @@ export function PasswordSignInForm({
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
 
   function errorFor(field: 'email' | 'password'): string | null {
     const key = fieldErrors[field];
     return key ? t(`validation.${key}`) : null;
   }
 
+  /** Shows field errors, then focuses the first invalid field (REQ-137). */
+  function showFieldErrors(errors: FieldErrors) {
+    flushSync(() => {
+      setFieldErrors(errors);
+      setFormError(null);
+    });
+    focusFirstInvalid(formRef.current, errors, SIGN_IN_FIELD_IDS);
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const parsed = signInInputSchema.safeParse({ email, password });
     if (!parsed.success) {
-      setFieldErrors(ValidationError.fromZod(parsed.error).fieldErrors);
-      setFormError(null);
+      showFieldErrors(ValidationError.fromZod(parsed.error).fieldErrors);
       return;
     }
     setFieldErrors({});
@@ -54,7 +68,7 @@ export function PasswordSignInForm({
     }
     setSubmitting(false);
     if (result.code === 'VALIDATION_ERROR') {
-      setFieldErrors(result.fieldErrors ?? {});
+      showFieldErrors(result.fieldErrors ?? {});
       return;
     }
     if (result.code === 'INVALID_CREDENTIALS') setPassword('');
@@ -64,7 +78,7 @@ export function PasswordSignInForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} noValidate>
+    <form ref={formRef} onSubmit={handleSubmit} noValidate>
       {formError && <Alert>{formError}</Alert>}
       <Field>
         <FieldLabel htmlFor="signin-email">{t('auth.email')}</FieldLabel>

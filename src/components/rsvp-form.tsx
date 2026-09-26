@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, type FormEvent } from 'react';
+import { useRef, useState, type FormEvent } from 'react';
+import { flushSync } from 'react-dom';
 import { Check, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from '@/i18n/navigation';
@@ -8,6 +9,7 @@ import { ValidationError, type ErrorCode, type FieldErrors } from '@/domain/erro
 import { rsvpInputSchema } from '@/domain/schemas';
 import type { RsvpStatus, OwnRsvp } from '@/domain/types';
 import type { ActionResult } from '@/lib/action-result';
+import { focusFirstInvalid } from '@/lib/focus';
 import {
   Alert,
   describedBy,
@@ -19,6 +21,9 @@ import {
 import { Button } from '@/components/ui/button';
 import { SegmentedControl } from '@/components/ui/segmented-control';
 import { Stepper } from '@/components/ui/stepper';
+
+/** Maps RsvpForm field names to their control ids (REQ-137). */
+const RSVP_FIELD_IDS = { name: 'rsvp-name', partySize: 'rsvp-party-size' } as const;
 
 /** Values collected by {@link RsvpForm}. */
 export interface RsvpFormValues {
@@ -45,10 +50,20 @@ export function RsvpForm({ initial, submit, onDone }: RsvpFormProps) {
   const [formError, setFormError] = useState<ErrorCode | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [honeypot, setHoneypot] = useState('');
+  const formRef = useRef<HTMLFormElement>(null);
 
   function errorFor(field: 'name' | 'status' | 'partySize'): string | null {
     const key = fieldErrors[field];
     return key ? t(`validation.${key}`) : null;
+  }
+
+  /** Shows field errors, then focuses the first invalid field (REQ-137). */
+  function showFieldErrors(errors: FieldErrors) {
+    flushSync(() => {
+      setFieldErrors(errors);
+      setFormError(null);
+    });
+    focusFirstInvalid(formRef.current, errors, RSVP_FIELD_IDS);
   }
 
   /**
@@ -68,8 +83,7 @@ export function RsvpForm({ initial, submit, onDone }: RsvpFormProps) {
     const values: RsvpFormValues = { name, status, partySize };
     const parsed = rsvpInputSchema.safeParse(values);
     if (!parsed.success) {
-      setFieldErrors(ValidationError.fromZod(parsed.error).fieldErrors);
-      setFormError(null);
+      showFieldErrors(ValidationError.fromZod(parsed.error).fieldErrors);
       return;
     }
 
@@ -85,14 +99,20 @@ export function RsvpForm({ initial, submit, onDone }: RsvpFormProps) {
       return;
     }
     if (result.code === 'VALIDATION_ERROR') {
-      setFieldErrors(result.fieldErrors ?? {});
+      showFieldErrors(result.fieldErrors ?? {});
     } else {
       setFormError(result.code);
     }
   }
 
   return (
-    <form className="rsvp-form" onSubmit={handleSubmit} noValidate aria-labelledby="rsvp-title">
+    <form
+      ref={formRef}
+      className="rsvp-form"
+      onSubmit={handleSubmit}
+      noValidate
+      aria-labelledby="rsvp-title"
+    >
       <h2 className="h2" id="rsvp-title">
         {t('rsvp.title')}
       </h2>

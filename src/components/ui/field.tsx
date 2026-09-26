@@ -55,7 +55,7 @@ export function FieldHint({
   );
 }
 
-/** Announced field-level error message with an alert icon (REQ-69). */
+/** Field-level error with an alert icon, read through its input's aria-describedby; not a live region, so one failed submit makes at most one alert (REQ-69, REQ-137). */
 export function FieldError({
   id,
   children,
@@ -64,7 +64,7 @@ export function FieldError({
   children: React.ReactNode;
 }): React.JSX.Element {
   return (
-    <p id={id} className="field-error" role="alert">
+    <p id={id} className="field-error">
       <Icon icon={CircleAlert} />
       <span>{children}</span>
     </p>

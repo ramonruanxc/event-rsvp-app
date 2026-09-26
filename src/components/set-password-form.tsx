@@ -1,11 +1,13 @@
 'use client';
 
-import { useState, type FormEvent } from 'react';
+import { useRef, useState, type FormEvent } from 'react';
+import { flushSync } from 'react-dom';
 import { useTranslations } from 'next-intl';
 import { useRouter } from '@/i18n/navigation';
 import { ValidationError, type FieldErrors } from '@/domain/errors';
 import { setPasswordInputSchema, type SetPasswordFormValues } from '@/domain/schemas';
 import type { ActionResult } from '@/lib/action-result';
+import { focusFirstInvalid } from '@/lib/focus';
 import {
   Alert,
   describedBy,
@@ -15,6 +17,13 @@ import {
   FieldLabel,
 } from '@/components/ui/field';
 import { Button } from '@/components/ui/button';
+
+/** Maps SetPasswordForm field names to their control ids (REQ-137). */
+const ACCOUNT_FIELD_IDS = {
+  currentPassword: 'account-current',
+  newPassword: 'account-new',
+  confirmPassword: 'account-confirm',
+} as const;
 
 /** Props of {@link SetPasswordForm}. */
 export interface SetPasswordFormProps {
@@ -33,6 +42,7 @@ export function SetPasswordForm({ hasPassword, submit }: SetPasswordFormProps): 
   const [formError, setFormError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
 
   function errorFor(field: 'currentPassword' | 'newPassword' | 'confirmPassword'): string | null {
     const key = fieldErrors[field];
@@ -49,8 +59,11 @@ export function SetPasswordForm({ hasPassword, submit }: SetPasswordFormProps): 
     if (hasPassword && currentPassword === '' && !errors.currentPassword)
       errors.currentPassword = 'required';
     if (Object.keys(errors).length > 0) {
-      setFieldErrors(errors);
-      setSaved(false);
+      flushSync(() => {
+        setFieldErrors(errors);
+        setSaved(false);
+      });
+      focusFirstInvalid(formRef.current, errors, ACCOUNT_FIELD_IDS);
       return;
     }
     setFieldErrors({});
@@ -67,12 +80,15 @@ export function SetPasswordForm({ hasPassword, submit }: SetPasswordFormProps): 
       router.refresh();
       return;
     }
-    if (result.code === 'VALIDATION_ERROR') setFieldErrors(result.fieldErrors ?? {});
-    else setFormError(t(`errors.${result.code}`));
+    if (result.code === 'VALIDATION_ERROR') {
+      const errors = result.fieldErrors ?? {};
+      flushSync(() => setFieldErrors(errors));
+      focusFirstInvalid(formRef.current, errors, ACCOUNT_FIELD_IDS);
+    } else setFormError(t(`errors.${result.code}`));
   }
 
   return (
-    <form onSubmit={handleSubmit} noValidate>
+    <form ref={formRef} onSubmit={handleSubmit} noValidate>
       <h2 className="h3">
         {t(hasPassword ? 'account.changePasswordTitle' : 'account.setPasswordTitle')}
       </h2>

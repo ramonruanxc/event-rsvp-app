@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
+import { flushSync } from 'react-dom';
 import { CalendarDays, Check, ChevronDown, Clock, Sparkles } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from '@/i18n/navigation';
@@ -8,6 +9,7 @@ import { ValidationError, type ErrorCode, type FieldErrors } from '@/domain/erro
 import { eventInputSchema, type EventFormValues } from '@/domain/schemas';
 import type { ActionResult } from '@/lib/action-result';
 import { detectBrowserTimeZone } from '@/lib/browser-timezone';
+import { focusFirstInvalid } from '@/lib/focus';
 import type { AiField, ParseEventResult } from '@/lib/ai/types';
 import {
   Alert,
@@ -22,6 +24,16 @@ import { Icon } from '@/components/ui/icon';
 import { Button } from '@/components/ui/button';
 
 type FieldName = 'name' | 'description' | 'date' | 'time' | 'timezone' | 'location';
+
+/** Maps EventForm field names to their control ids (REQ-137). */
+const EVENT_FIELD_IDS: Record<FieldName, string> = {
+  name: 'name',
+  description: 'description',
+  date: 'date',
+  time: 'time',
+  timezone: 'timezone',
+  location: 'location',
+};
 
 /** Props of {@link EventForm}: optional prefilled values, the submit handler and the AI fill action. */
 export interface EventFormProps {
@@ -76,6 +88,7 @@ export function EventForm({ initialValues, submit, aiFill }: EventFormProps) {
   const [filledCount, setFilledCount] = useState<number | null>(null);
   const dateRef = useRef<HTMLInputElement>(null);
   const timeRef = useRef<HTMLInputElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
 
   // Only the browser knows its own timezone; deferred to an effect so the server-rendered
   // markup (which cannot know it) matches the first client render (REQ-13).
@@ -92,6 +105,15 @@ export function EventForm({ initialValues, submit, aiFill }: EventFormProps) {
   function errorFor(field: FieldName): string | null {
     const key = fieldErrors[field];
     return key ? t(`validation.${key}`) : null;
+  }
+
+  /** Shows field errors, then focuses the first invalid field (REQ-137). */
+  function showFieldErrors(errors: FieldErrors) {
+    flushSync(() => {
+      setFieldErrors(errors);
+      setFormError(null);
+    });
+    focusFirstInvalid(formRef.current, errors, EVENT_FIELD_IDS);
   }
 
   async function handleAiFill() {
@@ -129,8 +151,7 @@ export function EventForm({ initialValues, submit, aiFill }: EventFormProps) {
     const values: EventFormValues = { name, description, date, time, timezone, location };
     const parsed = eventInputSchema.safeParse(values);
     if (!parsed.success) {
-      setFieldErrors(ValidationError.fromZod(parsed.error).fieldErrors);
-      setFormError(null);
+      showFieldErrors(ValidationError.fromZod(parsed.error).fieldErrors);
       return;
     }
 
@@ -145,7 +166,7 @@ export function EventForm({ initialValues, submit, aiFill }: EventFormProps) {
       return;
     }
     if (result.code === 'VALIDATION_ERROR') {
-      setFieldErrors(result.fieldErrors ?? {});
+      showFieldErrors(result.fieldErrors ?? {});
     } else {
       setFormError(result.code);
     }
@@ -166,7 +187,7 @@ export function EventForm({ initialValues, submit, aiFill }: EventFormProps) {
     missing.includes(field) ? <NeededBadge>{t('ai.needed')}</NeededBadge> : undefined;
 
   return (
-    <form onSubmit={handleSubmit} noValidate>
+    <form ref={formRef} onSubmit={handleSubmit} noValidate>
       {aiFill && (
         <div className="ai-panel">
           <label className="label" htmlFor="ai-text">
