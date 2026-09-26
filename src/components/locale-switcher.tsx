@@ -6,6 +6,9 @@ import { routing } from '@/i18n/routing';
 import { usePathname, useRouter } from '@/i18n/navigation';
 import { Icon } from '@/components/ui/icon';
 
+/** sessionStorage flag: put focus back on the language select after a locale change (REQ-144). */
+export const LOCALE_REFOCUS_KEY = 'locale-select-refocus';
+
 /**
  * Select control to switch the active locale while staying on the current page (REQ-54).
  * Named by `aria-label` with no visible `<label>` (BR-105 exception, REQ-68, REQ-80); collapses
