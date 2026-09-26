@@ -116,11 +116,29 @@ describe('CI smoke job (REQ-113)', () => {
       .map((l) => l.trim());
     expect(job.filter((l) => l.startsWith('- run:') || l.startsWith('run:'))).toEqual([
       '- run: npm ci',
-      '- run: docker compose up --build -d --wait --wait-timeout 300',
+      '- run: npm run docker:journey',
       '- run: npx tsx scripts/docker/smoke-cli.ts',
+      '- run: npx playwright install --with-deps chromium',
+      '- run: npm run test:container',
       'run: docker compose logs app',
       'run: docker compose down -v',
     ]);
     expect(job).toContain('- if: always()');
+  });
+
+  it('REQ-160: container-smoke runs the journey on a stack started without AI keys', () => {
+    const scripts = JSON.parse(read('package.json')).scripts as Record<string, string>;
+    expect(scripts['docker:journey']).toBe(
+      'docker compose -f docker-compose.yml -f docker/compose.journey.yml up --build -d --wait --wait-timeout 300',
+    );
+    expect(scripts['test:container']).toBe('playwright test -c playwright.container.config.ts');
+    expect(scripts['test:all']).toBe(
+      'docker compose up -d --wait db && npm run test:unit && npm run test:int && npm run test:e2e && npm run docker:journey && tsx scripts/docker/smoke-cli.ts && npm run test:container',
+    );
+    const override = read('docker/compose.journey.yml');
+    expect(override).toContain("ANTHROPIC_API_KEY: ''");
+    expect(override).toContain("OPENROUTER_API_KEY: ''");
+    expect(read('playwright.container.config.ts')).not.toContain('webServer');
+    expect(read('playwright.config.ts')).toContain('/[\\\\/]e2e[\\\\/]container[\\\\/]/');
   });
 });
