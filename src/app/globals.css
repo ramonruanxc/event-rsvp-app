@@ -1163,6 +1163,12 @@
   .ai-panel .textarea {
     background: var(--surface);
   }
+  /* The AI panel's place when no provider is configured (REQ-156). */
+  .ai-off {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+  }
   .ai-foot {
     display: flex;
     flex-wrap: wrap;

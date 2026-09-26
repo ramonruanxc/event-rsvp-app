@@ -72,7 +72,8 @@
     "missingHint": "Not found in your text — please fill it.",
     "notAnEvent": "Couldn't find event details in that text.",
     "filled": "{count, plural, one {Filled # field} other {Filled # fields}} · check them below",
-    "needed": "Needed"
+    "needed": "Needed",
+    "emptyText": "Describe your event first — for example, “Team dinner next Friday 7pm at Mario's”."
   },
   "event": {
     "edit": "Edit",

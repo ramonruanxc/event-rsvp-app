@@ -72,7 +72,8 @@
     "missingHint": "Introuvable dans votre texte — veuillez le remplir.",
     "notAnEvent": "Impossible de trouver les détails d'un événement dans ce texte.",
     "filled": "{count, plural, one {# champ rempli} other {# champs remplis}} · vérifiez-les ci-dessous",
-    "needed": "Requis"
+    "needed": "Requis",
+    "emptyText": "Décrivez d'abord votre événement — par exemple, « Dîner d'équipe vendredi prochain 19h chez Mario »."
   },
   "event": {
     "edit": "Modifier",

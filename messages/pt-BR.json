@@ -72,7 +72,8 @@
     "missingHint": "Não encontrado no seu texto — por favor, preencha.",
     "notAnEvent": "Não foi possível encontrar detalhes de evento nesse texto.",
     "filled": "{count, plural, one {# campo preenchido} other {# campos preenchidos}} · confira abaixo",
-    "needed": "Necessário"
+    "needed": "Necessário",
+    "emptyText": "Descreva seu evento primeiro — por exemplo, “Jantar da equipe sexta-feira que vem às 19h no Mario's”."
   },
   "event": {
     "edit": "Editar",
