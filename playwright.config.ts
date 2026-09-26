@@ -33,7 +33,7 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
-      testIgnore: /mobile\.spec\.ts$/,
+      testIgnore: [/mobile\.spec\.ts$/, /[\\/]e2e[\\/]container[\\/]/],
       use: { ...devices['Desktop Chrome'], locale: 'en-US', timezoneId: 'America/New_York' },
     },
     {

@@ -127,6 +127,7 @@ locales — all passing in CI (Node 22). `npm run trace` checks that every requi
 npm run test:unit     # Vitest, no database
 npm run test:int      # Vitest, Docker Postgres (rsvp_test)
 npm run test:e2e      # Playwright, Docker Postgres (rsvp_test); uses E2E_PORT (default 3000)
+npm run test:all      # db, unit, integration, E2E (both projects), then the docker compose journey; honours E2E_PORT and APP_PORT
 npm run trace         # traceability check
 npx tsx scripts/docker/smoke-cli.ts   # smoke check of a running docker compose stack
 ```
