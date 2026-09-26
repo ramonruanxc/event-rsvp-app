@@ -54,4 +54,18 @@ test.describe('REQ-39: the home page', () => {
     );
     await expect(main.getByRole('link', { name: 'Sign in', exact: true })).toHaveCount(0);
   });
+
+  test('REQ-149: the preview card is one link to the demo, named by its caption', async ({
+    page,
+  }) => {
+    await page.goto('/en');
+
+    const figure = page.getByRole('figure');
+    const link = figure.getByRole('link', {
+      name: 'What a guest sees after tapping your link. One page, one answer.',
+    });
+    await expect(link).toHaveAttribute('href', '/en/e/demoPicnic');
+    await expect(figure.getByRole('link')).toHaveCount(1);
+    await expect(link.locator('.ip-card')).toHaveAttribute('aria-hidden', 'true');
+  });
 });

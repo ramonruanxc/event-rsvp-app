@@ -84,4 +84,21 @@ describe('PasswordSignInForm', () => {
     fill('', '');
     expect(document.activeElement).toBe(getByLabelText('Email'));
   });
+
+  it('REQ-147: the password field always carries the forgot-password hint', () => {
+    const { getByLabelText } = setup(ok);
+    expect(getByLabelText('Password').getAttribute('aria-describedby')).toBe('signin-password-hint');
+    expect(document.getElementById('signin-password-hint')?.textContent).toBe(
+      'Forgot your password? If your email is a Google account, use Continue with Google above, then set a new password in Account.',
+    );
+  });
+
+  it('REQ-147: with a password error the hint and the error both describe the field', async () => {
+    const { fill, getByLabelText, findByText } = setup(ok);
+    fill('ana@example.com', '');
+    await findByText('This field is required.');
+    expect(getByLabelText('Password').getAttribute('aria-describedby')).toBe(
+      'signin-password-hint signin-password-error',
+    );
+  });
 });

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from 'vitest';
-import { fireEvent, waitFor } from '@testing-library/react';
+import { fireEvent, waitFor, within } from '@testing-library/react';
 import type { ActionResult } from '@/lib/action-result';
 import { renderWithIntl } from '@/test/render';
 import { RegisterForm } from './register-form';
@@ -92,5 +92,15 @@ describe('RegisterForm', () => {
     const { fill, getByLabelText } = setup({ ok: true, data: { redirectTo: '/' } });
     fill({ ...typed, confirmPassword: 'correct horsE' });
     expect(document.activeElement).toBe(getByLabelText('Confirm password'));
+  });
+
+  it('REQ-148: in the email-taken message, Sign in links to the sign-in page with the callback', async () => {
+    const view = setup({ ok: false, code: 'EMAIL_TAKEN' });
+    view.fill(typed);
+    const alert = await view.findByRole('alert');
+    expect(alert.textContent).toBe('An account with this email already exists. Sign in instead.');
+    expect(within(alert).getByRole('link', { name: 'Sign in' }).getAttribute('href')).toBe(
+      '/en/sign-in?callbackUrl=%2Fen%2Fdashboard',
+    );
   });
 });
