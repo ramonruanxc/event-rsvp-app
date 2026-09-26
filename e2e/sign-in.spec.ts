@@ -47,7 +47,9 @@ test.describe('REQ-126: the sign-in page', () => {
 });
 
 test.describe('REQ-146, REQ-147: the sign-in page', () => {
-  test('REQ-147: the forgot-password hint is under Password before any attempt', async ({ page }) => {
+  test('REQ-147: the forgot-password hint is under Password before any attempt', async ({
+    page,
+  }) => {
     await page.goto('/en/sign-in');
     await expect(page.locator('#signin-password-hint')).toHaveText(
       'Forgot your password? If your email is a Google account, use Continue with Google above, then set a new password in Account.',
@@ -63,9 +65,7 @@ test.describe('REQ-146, REQ-147: the sign-in page', () => {
   }) => {
     await page.goto('/en/sign-in');
     await expect(page.getByRole('banner').getByRole('link', { name: 'Sign in' })).toHaveCount(0);
-    const heading = (await page
-      .getByRole('heading', { level: 1, name: 'Sign in' })
-      .boundingBox())!;
+    const heading = (await page.getByRole('heading', { level: 1, name: 'Sign in' }).boundingBox())!;
     const google = (await page
       .locator('main')
       .getByRole('link', { name: 'Continue with Google' })

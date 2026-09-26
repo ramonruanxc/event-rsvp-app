@@ -146,7 +146,10 @@
     "haveAccount": "Já tem uma conta?",
     "signInLink": "Entrar",
     "tooManyAttempts": "Muitas tentativas — tente novamente em alguns minutos.",
-    "signInFailed": "Não foi possível concluir a entrada. Tente novamente."
+    "signInFailed": "Não foi possível concluir a entrada. Tente novamente.",
+    "forgotPasswordHint": "Esqueceu a senha? Se o seu e-mail é uma conta Google, use \"Continuar com o Google\" acima e depois defina uma nova senha em Conta.",
+    "or": "ou",
+    "emailTakenRich": "Já existe uma conta com este e-mail. <link>Entre com ela</link>."
   },
   "account": {
     "title": "Conta",

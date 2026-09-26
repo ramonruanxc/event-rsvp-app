@@ -40,7 +40,7 @@ export default async function SignInPage({
     <main className="page">
       <div className="col-640">
         <div className="panel">
-          <h1 className="h2">{t('auth.signInTitle')}</h1>
+          <h1 className="h2 mb-4">{t('auth.signInTitle')}</h1>
           {typeof query.error === 'string' && <Alert>{t('auth.signInFailed')}</Alert>}
           <div className="btn-row">
             <a
@@ -51,7 +51,9 @@ export default async function SignInPage({
               {t('auth.continueWithGoogle')}
             </a>
           </div>
-          <hr className="divider" />
+          <p className="divider-or">
+            <span>{t('auth.or')}</span>
+          </p>
           <PasswordSignInForm callbackUrl={callbackUrl} submit={signInWithPasswordAction} />
           <hr className="divider" />
           <p className="small muted">{t('auth.noAccount')}</p>

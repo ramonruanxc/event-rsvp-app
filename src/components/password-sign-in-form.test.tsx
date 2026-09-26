@@ -87,7 +87,9 @@ describe('PasswordSignInForm', () => {
 
   it('REQ-147: the password field always carries the forgot-password hint', () => {
     const { getByLabelText } = setup(ok);
-    expect(getByLabelText('Password').getAttribute('aria-describedby')).toBe('signin-password-hint');
+    expect(getByLabelText('Password').getAttribute('aria-describedby')).toBe(
+      'signin-password-hint',
+    );
     expect(document.getElementById('signin-password-hint')?.textContent).toBe(
       'Forgot your password? If your email is a Google account, use Continue with Google above, then set a new password in Account.',
     );

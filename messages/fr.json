@@ -146,7 +146,10 @@
     "haveAccount": "Vous avez déjà un compte ?",
     "signInLink": "Se connecter",
     "tooManyAttempts": "Trop de tentatives — veuillez réessayer dans quelques minutes.",
-    "signInFailed": "La connexion n'a pas pu aboutir. Veuillez réessayer."
+    "signInFailed": "La connexion n'a pas pu aboutir. Veuillez réessayer.",
+    "forgotPasswordHint": "Mot de passe oublié ? Si votre e-mail est un compte Google, utilisez « Continuer avec Google » ci-dessus, puis définissez un nouveau mot de passe dans Compte.",
+    "or": "ou",
+    "emailTakenRich": "Un compte existe déjà avec cet e-mail. <link>Connectez-vous</link> plutôt."
   },
   "account": {
     "title": "Compte",

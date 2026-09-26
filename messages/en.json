@@ -146,7 +146,10 @@
     "haveAccount": "Already have an account?",
     "signInLink": "Sign in",
     "tooManyAttempts": "Too many attempts — please try again in a few minutes.",
-    "signInFailed": "Sign-in couldn't be completed. Please try again."
+    "signInFailed": "Sign-in couldn't be completed. Please try again.",
+    "forgotPasswordHint": "Forgot your password? If your email is a Google account, use Continue with Google above, then set a new password in Account.",
+    "or": "or",
+    "emailTakenRich": "An account with this email already exists. <link>Sign in</link> instead."
   },
   "account": {
     "title": "Account",

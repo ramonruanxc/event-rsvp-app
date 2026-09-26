@@ -7,7 +7,14 @@ import { ValidationError, type FieldErrors } from '@/domain/errors';
 import { signInInputSchema, type SignInFormValues } from '@/domain/schemas';
 import type { ActionResult } from '@/lib/action-result';
 import { focusFirstInvalid } from '@/lib/focus';
-import { Alert, describedBy, Field, FieldError, FieldLabel } from '@/components/ui/field';
+import {
+  Alert,
+  describedBy,
+  Field,
+  FieldError,
+  FieldHint,
+  FieldLabel,
+} from '@/components/ui/field';
 import { Button } from '@/components/ui/button';
 
 /** Maps PasswordSignInForm field names to their control ids (REQ-137). */
@@ -104,8 +111,12 @@ export function PasswordSignInForm({
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           aria-invalid={fieldErrors.password ? 'true' : undefined}
-          aria-describedby={describedBy(fieldErrors.password && 'signin-password-error')}
+          aria-describedby={describedBy(
+            'signin-password-hint',
+            fieldErrors.password && 'signin-password-error',
+          )}
         />
+        <FieldHint id="signin-password-hint">{t('auth.forgotPasswordHint')}</FieldHint>
         {errorFor('password') && (
           <FieldError id="signin-password-error">{errorFor('password')}</FieldError>
         )}

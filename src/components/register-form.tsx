@@ -2,7 +2,7 @@
 
 import { useRef, useState, type FormEvent } from 'react';
 import { flushSync } from 'react-dom';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { ValidationError, type FieldErrors } from '@/domain/errors';
 import { registerInputSchema, type RegisterFormValues } from '@/domain/schemas';
 import type { ActionResult } from '@/lib/action-result';
@@ -42,12 +42,13 @@ export function RegisterForm({
   navigate = (url) => window.location.assign(url),
 }: RegisterFormProps): React.JSX.Element {
   const t = useTranslations();
+  const locale = useLocale();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
-  const [formError, setFormError] = useState<string | null>(null);
+  const [formError, setFormError] = useState<React.ReactNode>(null);
   const [submitting, setSubmitting] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -84,6 +85,13 @@ export function RegisterForm({
     }
     if (result.code === 'VALIDATION_ERROR') {
       showFieldErrors(result.fieldErrors ?? {});
+      return;
+    }
+    if (result.code === 'EMAIL_TAKEN') {
+      const signInHref = `/${locale}/sign-in?callbackUrl=${encodeURIComponent(callbackUrl)}`;
+      setFormError(
+        t.rich('auth.emailTakenRich', { link: (chunks) => <a href={signInHref}>{chunks}</a> }),
+      ); // REQ-148
       return;
     }
     setFormError(
