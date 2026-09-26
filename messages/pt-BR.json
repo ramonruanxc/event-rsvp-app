@@ -118,7 +118,8 @@
     "partySizeHint": "Até 10.",
     "decrease": "Uma pessoa a menos",
     "increase": "Uma pessoa a mais",
-    "savedAs": "Salvo como {name}. Você pode alterar sua resposta neste navegador até o início do evento."
+    "savedAs": "Salvo como {name}. Você pode alterar sua resposta neste navegador até o início do evento.",
+    "keep": "Manter minha resposta"
   },
   "sample": {
     "name": "Exemplo: Encontro de sexta-feira",

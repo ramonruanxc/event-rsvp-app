@@ -42,12 +42,13 @@ export interface RsvpFormProps {
 }
 
 /** Guest RSVP form: name, Going/Not going, party size when Going (REQ-31, REQ-26, REQ-57). */
-export function RsvpForm({ initial, submit, onDone }: RsvpFormProps) {
+export function RsvpForm({ initial, submit, onDone, onKeep }: RsvpFormProps) {
   const t = useTranslations();
   const router = useRouter();
   const [name, setName] = useState(initial?.name ?? '');
   const [status, setStatus] = useState<RsvpStatus>(initial?.status ?? 'GOING');
-  const [partySize, setPartySize] = useState(initial?.partySize ?? 1);
+  // A stored Not going answer has 0; Going starts at one person (REQ-138, BR-173).
+  const [partySize, setPartySize] = useState(Math.max(1, initial?.partySize ?? 1));
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState<ErrorCode | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -187,6 +188,11 @@ export function RsvpForm({ initial, submit, onDone }: RsvpFormProps) {
       <Button type="submit" variant="primary" size="lg" loading={submitting}>
         {t('rsvp.submit')}
       </Button>
+      {onKeep && (
+        <Button variant="secondary" size="lg" onClick={onKeep}>
+          {t('rsvp.keep')}
+        </Button>
+      )}
     </form>
   );
 }

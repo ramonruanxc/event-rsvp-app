@@ -118,7 +118,8 @@
     "partySizeHint": "Jusqu'à 10.",
     "decrease": "Une personne de moins",
     "increase": "Une personne de plus",
-    "savedAs": "Enregistré au nom de {name}. Vous pouvez modifier votre réponse depuis ce navigateur jusqu'au début de l'événement."
+    "savedAs": "Enregistré au nom de {name}. Vous pouvez modifier votre réponse depuis ce navigateur jusqu'au début de l'événement.",
+    "keep": "Garder ma réponse"
   },
   "sample": {
     "name": "Exemple : Soirée du vendredi",

@@ -118,7 +118,8 @@
     "partySizeHint": "Up to 10.",
     "decrease": "One less person",
     "increase": "One more person",
-    "savedAs": "Saved as {name}. You can change your answer from this browser until the event starts."
+    "savedAs": "Saved as {name}. You can change your answer from this browser until the event starts.",
+    "keep": "Keep my answer"
   },
   "sample": {
     "name": "Sample: Friday get-together",

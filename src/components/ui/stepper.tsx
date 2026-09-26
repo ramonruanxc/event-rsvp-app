@@ -37,13 +37,14 @@ export function Stepper({
       >
         <Icon icon={Minus} size={20} />
       </button>
+      {/* 0 is an empty field: React would write "0" back into a cleared number input (REQ-138) */}
       <input
         id={id}
         type="number"
         inputMode="numeric"
         min={min}
         max={max}
-        value={value}
+        value={value === 0 ? '' : value}
         onChange={(e) => onChange(Number(e.target.value))}
         aria-describedby={describedBy}
         aria-invalid={invalid ? 'true' : undefined}
