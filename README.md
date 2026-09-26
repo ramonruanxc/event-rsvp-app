@@ -28,8 +28,9 @@ human-approved specification (see [How AI was used](#how-ai-was-used)).
 
 ## Scope decisions
 
-- **Core (phases 0–5)** — the challenge's own requirements: events, RSVP, sharing/demo, AI fill, hardening.
-  Delivered and usable.
+- **Core (phases 0–5)** — the challenge's requirements plus its listed bonuses (deploy, SSO, AI): events, RSVP,
+  sharing/demo, and hardening are the requirements; a live deploy, Google sign-in, and AI fill (phase 4) are the
+  bonuses built alongside them. Delivered and usable.
 - **Deliberate bonuses (phases 6–7)** — added during execution, by human request: UI/UX redesign (amendment A2 —
   usability and product quality are evaluation criteria) and a second AI provider for resilience (amendment A3 —
   Anthropic credits were pending).

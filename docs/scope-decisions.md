@@ -4,17 +4,20 @@ Detail behind the README's "Scope decisions" section: what was built in each lay
 and agent run time are derived from timestamps recorded in [docs/timelog.md](timelog.md) (the Phases and Events
 tables for start/end, the Agent runs table for run durations); see that file for pauses and per-run detail.
 
-## Core — the challenge's own requirements (phases 0–5)
+## Core — the challenge's requirements plus its listed bonuses (phases 0–5)
 
-Delivered and usable end to end.
+Delivered and usable end to end. The challenge listed four bonuses — "deploy with a live URL; authentication with
+SSO and roles/permissions; AI features; extra creative features" — and phases 0–5 deliver the requirements
+alongside three of them (deploy, SSO, AI), built together rather than as separate later phases: phase 0's live URL
+is the deploy bonus, phase 1's auth is the SSO bonus, and phase 4's "Fill with AI" is the AI bonus.
 
 | Phase | What shipped | Wall clock | Agent run time |
 |---|---|---|---|
-| 0 — Walking skeleton | Scaffold, tooling, CI, first TDD behavior, live URL | 1h 22m | 1h 10m |
-| 1 — Events core | Domain, all repositories, event create/edit/delete, dashboard | 1h 47m | 1h 52m |
+| 0 — Walking skeleton | Scaffold, tooling, CI, first TDD behavior, live URL (deploy bonus) | 1h 22m | 1h 10m |
+| 1 — Events core | Domain, all repositories, event create/edit/delete, dashboard, Google sign-in (SSO bonus) | 1h 47m | 1h 52m |
 | 2 — RSVP flow | Guest RSVP with no account, edit/cancel their own, duplicate names blocked, RSVP closes at start | 57m | 56m |
 | 3 — Sharing & demo | Sample event, invite link, `.ics`, home page, seeded demo event | 34m | 37m |
-| 4 — AI event creation | "Fill with AI", rate limiter, eval runner and cases | 3h 47m | 3h 48m |
+| 4 — AI event creation | "Fill with AI" (AI bonus), rate limiter, eval runner and cases | 3h 47m | 3h 48m |
 | 5 — Hardening | RSVP rate limit, honeypot, security headers, XSS check | not separately recorded — built in a parallel worktree, merged together with phase 6 | — |
 
 Internationalization (EN/FR/PT-BR, browser-locale detection) was part of the original design brief, decided during
