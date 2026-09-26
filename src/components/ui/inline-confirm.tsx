@@ -14,6 +14,8 @@ export interface InlineConfirmProps {
   cancelLabel: string;
   onConfirm: () => Promise<void>;
   layout?: 'block' | 'row';
+  /** Message shown as an alert inside the group, e.g. why the action failed (REQ-142). */
+  error?: string | null;
 }
 
 /** Destructive action confirmed inline, with no dialog and no window.confirm (REQ-72, REQ-67). */

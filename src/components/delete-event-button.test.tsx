@@ -38,4 +38,17 @@ describe('DeleteEventButton', () => {
     await waitFor(() => expect(deleteAction).toHaveBeenCalledTimes(1));
     expect(nav.push).toHaveBeenCalledWith('/dashboard');
   });
+
+  test('REQ-142: a failed delete says why and stays on the page', async () => {
+    nav.push.mockClear();
+    const deleteAction = vi.fn().mockResolvedValue({ ok: false, code: 'NOT_OWNER' });
+    renderWithIntl(<DeleteEventButton deleteAction={deleteAction} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Delete event' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
+
+    expect((await screen.findByRole('alert')).textContent).toBe('Only the organizer can do this.');
+    expect(nav.push).not.toHaveBeenCalled();
+    expect(screen.getByRole('group')).toBeTruthy();
+  });
 });

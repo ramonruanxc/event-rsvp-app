@@ -48,4 +48,15 @@ describe('PasswordNotice', () => {
     await waitFor(() => expect(dismiss).toHaveBeenCalled());
     expect(getByRole('status')).not.toBeNull();
   });
+
+  it('REQ-140: a successful Dismiss moves focus to the main content', async () => {
+    const dismiss = vi.fn(async (): Promise<ActionResult<null>> => ({ ok: true, data: null }));
+    const { getByRole } = renderWithIntl(
+      <main>
+        <PasswordNotice dismiss={dismiss} />
+      </main>,
+    );
+    fireEvent.click(getByRole('button', { name: 'Dismiss' }));
+    await waitFor(() => expect(document.activeElement).toBe(getByRole('main')));
+  });
 });

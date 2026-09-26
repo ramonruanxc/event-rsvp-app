@@ -134,3 +134,47 @@ test.describe('REQ-34: an ended event', () => {
     await expect(page.getByRole('link', { name: 'Edit' })).toHaveCount(0);
   });
 });
+
+test.describe('REQ-143, REQ-140: removing a guest', () => {
+  test('REQ-143: at 375 px the Remove question is visible; at 1280 px it is hidden', async ({
+    page,
+    context,
+  }) => {
+    const { id } = await signInAs(context, { email: 'owner-q@example.com', name: 'OwnerQ' });
+    const event = await createEvent(id);
+    await createRsvp(event.id, 'Maria', 'GOING', 3);
+
+    await page.setViewportSize({ width: 375, height: 800 });
+    await page.goto(`/en/e/${event.slug}`);
+    await page.getByRole('button', { name: 'Remove Maria' }).click();
+
+    const question = page.getByText('Remove Maria from the guest list?');
+    expect((await question.boundingBox())!.width).toBeGreaterThan(100);
+    await expect(question).toBeInViewport();
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,
+      ),
+    ).toBe(true);
+
+    await page.setViewportSize({ width: 1280, height: 800 });
+    expect((await question.boundingBox())!.width).toBeLessThanOrEqual(1);
+  });
+
+  test('REQ-140: after Remove, focus is on the Guest list heading', async ({ page, context }) => {
+    const { id } = await signInAs(context, { email: 'owner-f@example.com', name: 'OwnerF' });
+    const event = await createEvent(id);
+    await createRsvp(event.id, 'Maria', 'GOING', 3);
+    await createRsvp(event.id, 'João', 'NOT_GOING');
+
+    await page.goto(`/en/e/${event.slug}`);
+    await page.getByRole('button', { name: 'Remove Maria' }).click();
+    await page
+      .getByRole('row', { name: /Maria/ })
+      .getByRole('button', { name: 'Remove', exact: true })
+      .click();
+
+    await expect(page.getByText('Maria')).toHaveCount(0);
+    await expect(page.getByRole('heading', { name: 'Guest list' })).toBeFocused();
+  });
+});

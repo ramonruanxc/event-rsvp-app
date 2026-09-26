@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { fireEvent } from '@testing-library/react';
+import { fireEvent, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { renderWithIntl } from '@/test/render';
 import { InlineConfirm } from './inline-confirm';
@@ -80,8 +80,7 @@ describe('InlineConfirm', () => {
     expect(getByRole('button', { name: 'Delete' }).getAttribute('aria-busy')).toBe('true');
   });
 
-  it("REQ-72: the row layout keeps the question as the group's name without showing it", () => {
-    const onConfirm = vi.fn();
+  it('REQ-143: the row layout names the group with its question, shown as text on phones', () => {
     const { getByRole, getByText } = renderWithIntl(
       <InlineConfirm
         layout="row"
@@ -90,11 +89,32 @@ describe('InlineConfirm', () => {
         question="Remove Maria from the guest list?"
         confirmLabel="Remove"
         cancelLabel="Keep"
-        onConfirm={onConfirm}
+        onConfirm={vi.fn()}
       />,
     );
     fireEvent.click(getByRole('button', { name: 'Remove Maria' }));
     expect(getByRole('group', { name: 'Remove Maria from the guest list?' })).not.toBeNull();
-    expect(getByText('Remove Maria from the guest list?').className).toBe('sr-only');
+    expect(getByText('Remove Maria from the guest list?').className).toBe('inline-confirm-q small');
+  });
+
+  it('REQ-142: an error shows as an alert inside the group, in both layouts', () => {
+    for (const layout of ['block', 'row'] as const) {
+      const { getByRole, unmount } = renderWithIntl(
+        <InlineConfirm
+          layout={layout}
+          triggerLabel="Remove"
+          question="Remove Maria from the guest list?"
+          confirmLabel="Remove"
+          cancelLabel="Keep"
+          onConfirm={vi.fn()}
+          error="Something went wrong. Please try again."
+        />,
+      );
+      fireEvent.click(getByRole('button', { name: 'Remove' }));
+      expect(within(getByRole('group')).getByRole('alert').textContent, layout).toBe(
+        'Something went wrong. Please try again.',
+      );
+      unmount();
+    }
   });
 });
