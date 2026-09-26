@@ -111,7 +111,7 @@
     "youreGoing": "You're going · {count, plural, one {# person} other {# people}}",
     "youreNotGoing": "You're not going",
     "change": "Change",
-    "cancel": "Cancel RSVP",
+    "cancel": "I can't go",
     "formRejected": "We couldn't send your RSVP. Please try again.",
     "nameHint": "The organizer sees this name on the guest list.",
     "answer": "Your answer",

@@ -95,6 +95,14 @@
     outline: 2px solid var(--link);
     outline-offset: 2px;
   }
+  /* Headings and <main> get focus only from script, to announce a result (REQ-140); they are
+     not controls, so they draw no ring. */
+  h1[tabindex='-1']:focus,
+  h2[tabindex='-1']:focus,
+  h3[tabindex='-1']:focus,
+  main[tabindex='-1']:focus {
+    outline: none;
+  }
   /* BEND: Chromium's native date/time widget adds an extra internal "clear" tab stop that
      reports document.activeElement as the host input but matches neither :focus nor
      :focus-visible, so no ring is drawn while it briefly holds keyboard focus (REQ-66).

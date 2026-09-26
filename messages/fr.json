@@ -111,7 +111,7 @@
     "youreGoing": "Vous venez · {count, plural, one {# personne} other {# personnes}}",
     "youreNotGoing": "Vous ne venez pas",
     "change": "Modifier",
-    "cancel": "Annuler ma réponse",
+    "cancel": "Je ne viens plus",
     "formRejected": "Nous n'avons pas pu envoyer votre réponse. Veuillez réessayer.",
     "nameHint": "L'organisateur voit ce nom sur la liste des invités.",
     "answer": "Votre réponse",

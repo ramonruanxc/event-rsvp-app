@@ -36,7 +36,7 @@ export interface RsvpFormValues {
 export interface RsvpFormProps {
   initial?: RsvpFormValues;
   submit: (values: RsvpFormValues, honeypot: string) => Promise<ActionResult<OwnRsvp>>;
-  onDone?: () => void;
+  onDone?: (rsvp: OwnRsvp) => void;
   /** When given (editing an existing RSVP), shows "Keep my answer", which calls it (REQ-139). */
   onKeep?: () => void;
 }
@@ -98,7 +98,7 @@ export function RsvpForm({ initial, submit, onDone, onKeep }: RsvpFormProps) {
 
     if (result.ok) {
       router.refresh();
-      onDone?.();
+      onDone?.(result.data);
       return;
     }
     if (result.code === 'VALIDATION_ERROR') {

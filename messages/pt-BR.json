@@ -111,7 +111,7 @@
     "youreGoing": "Você vai · {count, plural, one {# pessoa} other {# pessoas}}",
     "youreNotGoing": "Você não vai",
     "change": "Alterar",
-    "cancel": "Cancelar confirmação",
+    "cancel": "Não vou mais",
     "formRejected": "Não foi possível enviar sua confirmação. Tente novamente.",
     "nameHint": "O organizador vê este nome na lista de convidados.",
     "answer": "Sua resposta",
