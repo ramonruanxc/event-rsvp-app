@@ -57,9 +57,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - The not-found page shows a localized title instead of the generic default: `not-found.tsx` cannot export page
   metadata, so an effect now sets it from `notFound.title` once mounted (REQ-134, REQ-135, incident #29).
-
-### Fixed
-
 - The event date and time fields can be picked again from the browser's native picker, not only typed: clicking the
   field, or a labelled icon button inside it, opens the picker; the REQ-66 fix that hid Chromium's built-in
   calendar/clock icon is unchanged (REQ-131, incident #26).
