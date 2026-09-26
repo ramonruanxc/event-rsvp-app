@@ -1,6 +1,6 @@
 import { Calendar, CalendarPlus, MapPin, Users } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
-import { formatEventDateTime } from '@/lib/format-date';
+import { formatEventDateTimeParts } from '@/lib/format-date';
 import type { EventRecord, Totals } from '@/domain/types';
 import { buttonClass } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
@@ -17,6 +17,7 @@ export interface EventDetailsProps {
 /** Read-only presentation of an event's name, description, time, location and RSVP count (REQ-15, REQ-84). */
 export async function EventDetails({ event, totals, locale, ended }: EventDetailsProps) {
   const t = await getTranslations();
+  const when = formatEventDateTimeParts(event.startsAt, event.timezone, locale);
   return (
     <div className="ev-head">
       {ended && (
@@ -28,7 +29,10 @@ export async function EventDetails({ event, totals, locale, ended }: EventDetail
       <ul className="meta-list">
         <li>
           <Icon icon={Calendar} />
-          <span className="num">{formatEventDateTime(event.startsAt, event.timezone, locale)}</span>
+          <span className="num">
+            {when.date}
+            <span className="ev-time">{when.time}</span>
+          </span>
         </li>
         {event.location && (
           <li>
@@ -41,12 +45,14 @@ export async function EventDetails({ event, totals, locale, ended }: EventDetail
       <div className="ev-sub">
         <span className="going-count">
           <Icon icon={Users} />
-          {t('totals.peopleGoing', { count: totals.people })}
+          {t(ended ? 'totals.peopleWent' : 'totals.peopleGoing', { count: totals.people })}
         </span>
-        <a className={buttonClass('secondary')} href={`/e/${event.slug}/calendar.ics`} download>
-          <Icon icon={CalendarPlus} />
-          {t('event.addToCalendar')}
-        </a>
+        {!ended && (
+          <a className={buttonClass('secondary')} href={`/e/${event.slug}/calendar.ics`} download>
+            <Icon icon={CalendarPlus} />
+            {t('event.addToCalendar')}
+          </a>
+        )}
       </div>
     </div>
   );

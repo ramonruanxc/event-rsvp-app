@@ -37,6 +37,13 @@ export function parseAiProviders(value: string | undefined): AiProviderName[] {
   return names;
 }
 
+/** True when a provider listed in AI_PROVIDERS has a non-blank key, i.e. buildAiProviders would return one (REQ-156, BR-137). */
+export function isAiConfigured(env: ProviderEnv): boolean {
+  return parseAiProviders(env.AI_PROVIDERS).some(
+    (name) => (env[PROVIDER_KEY_ENV[name]] ?? '').trim() !== '',
+  );
+}
+
 /** Builds the provider list in AI_PROVIDERS order, skipping providers without a key (BR-119, BR-120). */
 export function buildAiProviders(
   env: ProviderEnv,

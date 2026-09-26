@@ -69,7 +69,7 @@ describe('EventForm groups, announced errors and saving state (REQ-83, REQ-69)',
     ).toBeTruthy();
   });
 
-  test('REQ-69: a required-field error is announced', async () => {
+  test('REQ-137: an empty name focuses Name, with the error described and no alert', () => {
     renderWithIntl(<EventForm submit={vi.fn()} />);
     fireEvent.change(screen.getByLabelText('Description'), { target: { value: 'Pasta night' } });
     fireEvent.change(screen.getByLabelText('Date'), { target: { value: '2099-01-01' } });
@@ -77,8 +77,25 @@ describe('EventForm groups, announced errors and saving state (REQ-83, REQ-69)',
 
     fireEvent.click(screen.getByRole('button', { name: 'Save event' }));
 
-    expect((await screen.findByRole('alert')).textContent).toBe('This field is required.');
-    expect(screen.getByLabelText('Name').getAttribute('aria-describedby')).toBe('name-error');
+    const name = screen.getByLabelText('Name');
+    expect(document.activeElement).toBe(name);
+    expect(name.getAttribute('aria-describedby')).toBe('name-error');
+    expect(document.getElementById('name-error')?.textContent).toBe('This field is required.');
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+
+  test('REQ-137: a date refused by the server focuses Date', async () => {
+    const submit = vi.fn().mockResolvedValue({
+      ok: false,
+      code: 'VALIDATION_ERROR',
+      fieldErrors: { date: 'inPast' },
+    });
+    renderWithIntl(<EventForm submit={submit} />);
+    fillValidFields();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Save event' }));
+
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByLabelText('Date')));
   });
 
   test('REQ-83: while saving, Save event keeps its label and is busy', async () => {
@@ -201,7 +218,7 @@ describe('EventForm — Fill with AI (REQ-51)', () => {
     await waitFor(() => {
       const button = screen.getByRole('button', { name: 'Fill with AI' }) as HTMLButtonElement;
       expect(button.getAttribute('aria-busy')).toBe('true');
-      expect(button.disabled).toBe(true);
+      expect(button.getAttribute('aria-disabled')).toBe('true');
     });
     expect(screen.getByRole('status').textContent).toBe('Filling…');
   });
@@ -393,5 +410,76 @@ describe('EventForm date and time pickers (REQ-131)', () => {
     expect(calendar.getAttribute('type')).toBe('button');
     expect(clock.getAttribute('type')).toBe('button');
     expect(when.getAllByRole('button')).toHaveLength(2);
+  });
+});
+
+describe('EventForm AI panel and timezone labels (REQ-155 to REQ-158)', () => {
+  test('REQ-155: Fill with AI with an empty description asks for one and calls nothing', () => {
+    const aiFill = vi.fn();
+    renderWithIntl(<EventForm submit={vi.fn()} aiFill={aiFill} />);
+    fireEvent.change(screen.getByLabelText('Describe your event'), { target: { value: '   ' } });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Fill with AI' }));
+
+    expect(screen.getByRole('alert').textContent).toBe(
+      "Describe your event first — for example, “Team dinner next Friday 7pm at Mario's”.",
+    );
+    expect(aiFill).not.toHaveBeenCalled();
+    expect(document.activeElement).toBe(screen.getByLabelText('Describe your event'));
+  });
+
+  test('REQ-156: without an AI key the form says so and offers no AI fill', () => {
+    renderWithIntl(<EventForm submit={vi.fn()} aiNotConfigured />);
+
+    expect(
+      screen.getByText("AI fill isn't set up on this server — fill the form below."),
+    ).toBeTruthy();
+    expect(screen.queryByLabelText('Describe your event')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Fill with AI' })).toBeNull();
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+
+  test('REQ-157: editing a flagged field clears its Needed flag only', async () => {
+    const aiFill = vi.fn().mockResolvedValue({
+      ok: true,
+      data: {
+        fields: {
+          name: 'Team dinner',
+          description: null,
+          date: '2026-10-02',
+          time: '19:00',
+          timezone: 'America/New_York',
+          location: null,
+        },
+        missing: ['description', 'location'],
+        timezoneFromText: true,
+        notAnEvent: false,
+      },
+    });
+    const { container } = renderWithIntl(<EventForm submit={vi.fn()} aiFill={aiFill} />);
+    fireEvent.change(screen.getByLabelText('Describe your event'), {
+      target: { value: 'Team dinner next Friday 7pm' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Fill with AI' }));
+    await waitFor(() => expect(screen.getAllByText('Needed')).toHaveLength(2));
+
+    fireEvent.change(screen.getByLabelText('Location (optional)'), {
+      target: { value: "Mario's" },
+    });
+
+    expect(screen.getAllByText('Needed')).toHaveLength(1);
+    expect(screen.getByLabelText('Location (optional)').getAttribute('aria-invalid')).toBeNull();
+    expect(container.querySelector('#location-missing')).toBeNull();
+    expect(container.querySelector('.field.is-missing #location')).toBeNull();
+    expect(screen.getByLabelText('Description').getAttribute('aria-invalid')).toBe('true');
+  });
+
+  test('REQ-158: timezone options read with spaces and keep their ids', () => {
+    renderWithIntl(<EventForm submit={vi.fn()} initialValues={{ timezone: 'America/New_York' }} />);
+    const select = screen.getByLabelText('Timezone') as HTMLSelectElement;
+    const option = Array.from(select.options).find((o) => o.value === 'America/New_York');
+
+    expect(option?.textContent).toBe('America/New York');
+    expect(select.value).toBe('America/New_York');
   });
 });

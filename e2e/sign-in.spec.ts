@@ -45,3 +45,40 @@ test.describe('REQ-126: the sign-in page', () => {
     await expect(page).toHaveURL(/\/en\/events\/new$/);
   });
 });
+
+test.describe('REQ-146, REQ-147: the sign-in page', () => {
+  test('REQ-147: the forgot-password hint is under Password before any attempt', async ({
+    page,
+  }) => {
+    await page.goto('/en/sign-in');
+    await expect(page.locator('#signin-password-hint')).toHaveText(
+      'Forgot your password? If your email is a Google account, use Continue with Google above, then set a new password in Account.',
+    );
+    await page.goto('/fr/sign-in');
+    await expect(page.locator('#signin-password-hint')).toHaveText(
+      'Mot de passe oublié ? Si votre e-mail est un compte Google, utilisez « Continuer avec Google » ci-dessus, puis définissez un nouveau mot de passe dans Compte.',
+    );
+  });
+
+  test('REQ-146: no header Sign in link on the auth pages, a gap under the heading, an "or" divider', async ({
+    page,
+  }) => {
+    await page.goto('/en/sign-in');
+    await expect(page.getByRole('banner').getByRole('link', { name: 'Sign in' })).toHaveCount(0);
+    const heading = (await page.getByRole('heading', { level: 1, name: 'Sign in' }).boundingBox())!;
+    const google = (await page
+      .locator('main')
+      .getByRole('link', { name: 'Continue with Google' })
+      .boundingBox())!;
+    expect(google.y - (heading.y + heading.height)).toBeGreaterThanOrEqual(16);
+    await expect(page.locator('main .divider-or')).toHaveText('or');
+
+    await page.goto('/en/register');
+    await expect(page.getByRole('banner').getByRole('link', { name: 'Sign in' })).toHaveCount(0);
+
+    await page.goto('/en');
+    await expect(
+      page.getByRole('banner').getByRole('link', { name: 'Sign in', exact: true }),
+    ).toBeVisible();
+  });
+});

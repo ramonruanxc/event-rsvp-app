@@ -1,5 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { dateTileParts, formatEventDateTime, formatShortDateTime } from './format-date';
+import {
+  dateTileParts,
+  formatEventDateTime,
+  formatEventDateTimeParts,
+  formatShortDateTime,
+} from './format-date';
 
 describe('formatEventDateTime', () => {
   const instant = new Date('2026-10-02T23:00:00.000Z');
@@ -70,5 +75,23 @@ describe('formatShortDateTime', () => {
       'en',
     ).replace(/\s/g, ' ');
     expect(result).toBe('Sep 24, 10:02 AM EDT');
+  });
+});
+
+describe('formatEventDateTimeParts (REQ-151)', () => {
+  const instant = new Date('2026-10-02T23:00:00.000Z');
+
+  it('REQ-151: splits before the hour and joins back to the full text in every locale', () => {
+    for (const locale of ['en', 'fr', 'pt-BR']) {
+      const { date, time } = formatEventDateTimeParts(instant, 'America/Sao_Paulo', locale);
+      expect(date + time, locale).toBe(formatEventDateTime(instant, 'America/Sao_Paulo', locale));
+      expect(time, locale).toMatch(/^(8|20):00/);
+    }
+  });
+
+  it('REQ-151: in English the date ends with "at " and the time keeps its zone', () => {
+    const { date, time } = formatEventDateTimeParts(instant, 'America/Sao_Paulo', 'en');
+    expect(date).toBe('Friday, October 2, 2026 at ');
+    expect(time).toMatch(/^8:00\sPM\sGMT-3$/);
   });
 });

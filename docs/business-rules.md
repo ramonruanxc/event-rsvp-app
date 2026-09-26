@@ -252,16 +252,22 @@ BR-10's cascade).
 #### BR-35 — Returning guest sees their RSVP status
 **Rule:** A guest returning to the event page in the same browser (holding a valid edit-token cookie for that
 event) sees, instead of a blank RSVP form: "You're going · N people" (where N is their party size) with "Change"
-and "Cancel RSVP" actions when their response is "Going", or "You're not going" with only a "Change" action when
-their response is "Not going" (a "Cancel RSVP" action on an already "Not going" RSVP would change nothing).
+and "I can't go" actions when their response is "Going", or "You're not going" with only a "Change" action when
+their response is "Not going" (an "I can't go" action on an already "Not going" RSVP would change nothing).
 **Source:** design brief §2 "RSVPs"; DESIGN.md; approved mockup
 **Amended:** 2026-09-24 — human decision (DOC-Q3.1)
 **Amended:** 2026-09-25 — human decision (DOC-Q4)
+**Amended:** 2026-09-25 — Phase 12 UX audit (UX-24): the action's label changed from "Cancel RSVP" to "I can't go"
+("Je ne viens plus", "Não vou mais"); the label promised deletion it did not perform (see BR-36). Behavior is
+unchanged.
 
 #### BR-36 — Cancel sets response to Not going, does not delete
-**Rule:** Using "Cancel" on an existing RSVP sets its response to "Not going" rather than deleting the RSVP record.
+**Rule:** Using "I can't go" on an existing RSVP sets its response to "Not going" rather than deleting the RSVP
+record.
 **Rationale:** The organizer wants to know who declined, not just who is missing from the list.
 **Source:** design brief §2 "RSVPs"
+**Amended:** 2026-09-25 — Phase 12 UX audit (UX-24): renamed from "Cancel" to "I can't go" for the same reason
+recorded at BR-35; this rule's behavior (sets Not going, does not delete) is unchanged.
 
 #### BR-37 — Same-browser duplicate name is treated as an edit
 **Rule:** If a guest submits a name that matches (case-insensitive, trimmed) an existing RSVP on the same event, and
@@ -1015,6 +1021,162 @@ only on the generated `AUTH_SECRET` (BR-134) and not on external OAuth credentia
 **Rationale:** Extends the containerized local run (amendment A5) to the new sign-in method: unlike Google sign-in
 (BR-136), email/password does not require the reader to supply their own credentials.
 **Source:** design brief §6 amendment A5; §6 amendment A6
+
+---
+
+### UX polish (Phase 12)
+
+Added from the 2026-09-25 UX audit (`docs/design/2026-09-25-ux-audit.md`), covering gaps the audit found that no
+existing rule addressed. Where the audit's finding was already covered by an existing rule, it is recorded as a
+defect against that rule instead of a new one here — see the audit's Disposition table for the full mapping of
+every finding (UX-01…UX-27) to a BR or a defect.
+
+#### BR-173 — Changing an RSVP answer to Going resets party size to a valid value
+**Rule:** When a guest changes an existing RSVP's response from "Not going" to "Going", the party size presented
+and submitted is reset to a valid value in the 1–10 range (BR-26), rather than keeping the stored 0 (BR-27) from
+the prior "Not going" answer.
+**Rationale:** A guest reversing their answer to say they can come after all must not be met with a validation
+error caused by a value they did not choose.
+**Source:** UX audit UX-01 (High).
+**Added:** 2026-09-25 — Phase 12.
+
+#### BR-174 — Every page has a localized document title
+**Rule:** Every page renders a `<title>` (and description) in the active locale, drawn from that page's entry in
+the message catalogs' `meta.title` / `meta.description` keys (e.g. the event name on the guest/owner event page;
+"My events", "New event", "Edit event", "Account", "Sign in", "Create an account" elsewhere).
+**Rationale:** A blank title leaves browser tabs, history, bookmarks, screen-reader page announcements, and
+invite-link previews in chat apps with no identifying text.
+**Source:** UX audit UX-02 (High); WCAG 2.4.2 Page Titled (A).
+**Added:** 2026-09-25 — Phase 12.
+
+#### BR-175 — Locale control commits only on explicit selection
+**Rule:** The header's language control changes the active locale only on an explicit selection (a pointer choice,
+Enter, or a blur that leaves the value changed), never merely from arrow-key navigation while the control is
+focused. After the locale changes, focus remains on (or returns to) the language control.
+**Rationale:** Changing context (navigating to a translated URL) on a single arrow-key press, before the user has
+confirmed a choice, violates predictable operation and can strand keyboard focus.
+**Source:** UX audit UX-03 (High); WCAG 3.2.2 On Input (A).
+**Added:** 2026-09-25 — Phase 12.
+
+#### BR-176 — Focus is managed deliberately through every async action
+**Rule:** For every async action (sign in, register, RSVP send/change/cancel, owner remove/delete, AI fill, save
+event, save password, dismiss notice): (1) a control that becomes disabled while the action is in flight remains
+focusable — the trigger uses `aria-disabled` and ignores activation, rather than the `disabled` attribute, so focus
+is never dropped to `<body>`; (2) if the action fails validation, focus moves to the first invalid field; (3) if the
+action succeeds and replaces the control's surrounding content with a result or confirmation, focus moves to that
+result's heading.
+**Rationale:** Losing focus to `<body>` after every async submit forces a keyboard user to re-navigate from the
+header on every attempt, and a validation error the user cannot see (off-screen at narrow widths) is effectively
+invisible.
+**Source:** UX audit UX-04 (High), UX-05 (Medium, focus part), UX-06 (Medium, focus part); WCAG 2.4.3 Focus Order
+(A), 2.4.7.
+**Added:** 2026-09-25 — Phase 12.
+
+#### BR-177 — One alert region per submission
+**Rule:** A single validation failure produces at most one `role="alert"` region (a form-level summary). Individual
+field-level errors are exposed as plain text tied to their input via `aria-describedby`, not each wrapped in its own
+`role="alert"`.
+**Rationale:** Several simultaneous `role="alert"` regions on one failed submission cause assistive technology to
+announce the same generic message repeatedly with no field names, which is less useful than one summary plus
+per-field described-by text.
+**Source:** UX audit UX-05 (Medium); WCAG 3.3.1, 4.1.3.
+**Added:** 2026-09-25 — Phase 12.
+
+#### BR-178 — Guest can back out of "Change" without resubmitting
+**Rule:** While editing an existing RSVP (the "Change" state), a "Keep my answer" action is available alongside
+"Send RSVP" that exits editing and leaves the existing RSVP unchanged, without requiring a submission or a page
+reload.
+**Source:** UX audit UX-07 (Medium); Nielsen N3 (user control and freedom).
+**Added:** 2026-09-25 — Phase 12.
+
+#### BR-179 — Distinct message for "Fill with AI" on empty input
+**Rule:** Triggering "Fill with AI" with empty input text shows a message specific to that case (telling the
+organizer to describe their event first), rather than the generic "fix the highlighted fields" message, since no
+field is highlighted when there is no input to evaluate.
+**Source:** UX audit UX-08 (Medium); Nielsen N9.
+**Added:** 2026-09-25 — Phase 12.
+
+#### BR-180 — Account menu closes predictably
+**Rule:** The header's account menu closes on Escape (returning focus to its trigger), when keyboard focus moves
+outside it, and on a pointer interaction outside it.
+**Source:** UX audit UX-09 (Medium); Nielsen N3; WCAG 2.1.1.
+**Added:** 2026-09-25 — Phase 12.
+
+#### BR-181 — Localized not-found handling, for routes and for event slugs
+**Rule:** Both an unmatched route under a locale (e.g. `/en/nope`) and a reference to an event slug that does not
+exist render within that locale's themed layout — with the header, the correct `lang` attribute, a message
+explaining the likely cause, and a link back to the home page — rather than the framework's default, unstyled,
+English-only page.
+**Source:** UX audit UX-10 (Medium), UX-20 (Low); WCAG 3.1.1 Language of Page (A); Nielsen N9, N3.
+**Added:** 2026-09-25 — Phase 12.
+
+#### BR-182 — Forgot-password hint on sign-in
+**Rule:** The sign-in page shows an always-visible hint under the password field (not only after a failed attempt)
+telling a user who forgot their password that, if their email is a Google account, they can use "Continue with
+Google" and then set a new password from Account (BR-159). It does not offer or imply an email-based password
+reset.
+**Rationale:** The only recovery path already exists (Google sign-in on the same email clears the password per
+BR-163 and shows the cleared-password notice, BR-164); nothing previously pointed a forgetful user to it.
+**Source:** UX audit UX-13 (Medium); Nielsen N10, N9.
+**Added:** 2026-09-25 — Phase 12.
+
+#### BR-183 — AI panel reflects an unconfigured server before the organizer types
+**Rule:** When no AI provider is configured on the server (the condition in BR-137), the "Fill with AI" panel
+reflects that state before the organizer enters any text (disabled with BR-137's message, or not rendered), rather
+than only after a fill attempt is made.
+**Rationale:** Without this, an organizer's typed description is discarded once they learn, only after clicking,
+that AI fill was never available for their session.
+**Source:** UX audit UX-14 (Medium); Nielsen N5.
+**Added:** 2026-09-25 — Phase 12.
+
+#### BR-184 — Event date/time display does not break inside the time+zone token
+**Rule:** The event page's formatted date/time keeps the time-of-day and timezone-offset text together, with no
+line break inside that token, at every supported viewport width.
+**Source:** UX audit UX-15 (Medium); Nielsen N8; readability.
+**Added:** 2026-09-25 — Phase 12.
+
+#### BR-185 — Ended-event copy reflects that the event has ended
+**Rule:** On an ended event's guest and organizer views: the invite-reply hint (e.g. "Anyone with this link can
+reply") is replaced with an ended-specific message; "Add to calendar" is not shown; and the attendee count uses
+past-tense phrasing (e.g. "2 people went").
+**Source:** UX audit UX-18 (Low); Nielsen N2 (match with the real world).
+**Added:** 2026-09-25 — Phase 12.
+
+#### BR-186 — Edit page links back to the event
+**Rule:** The event edit page, and the notice shown in place of the edit form for an ended event, each include a
+text link back to the event page.
+**Source:** UX audit UX-19 (Low); Nielsen N3.
+**Added:** 2026-09-25 — Phase 12.
+
+#### BR-187 — AI "missing" flag clears when the organizer fills the field
+**Rule:** A form field the AI reported as missing (BR-56, BR-57) has its "missing" flag — badge, warning tint, and
+`aria-invalid` — cleared as soon as the organizer edits that field, without waiting for another "Fill with AI" call.
+**Rationale:** Extends BR-57: highlighting a field the organizer has already filled in keeps a false warning in
+front of them.
+**Source:** UX audit UX-21 (Low); extends BR-57.
+**Added:** 2026-09-25 — Phase 12.
+
+#### BR-188 — Inline removal confirmation shows a visible question on narrow layouts
+**Rule:** In the narrow (stacked-row) guest-list layout, an inline "Remove" confirmation shows its confirmation
+question (e.g. "Remove [name] from the guest list?") as visible text above the "Remove"/"Keep" actions, not only as
+screen-reader-only text. The ≥ 640 px table layout may keep the question `sr-only`.
+**Source:** UX audit UX-22 (Low); Nielsen N1; DESIGN.md "Inline confirm".
+**Added:** 2026-09-25 — Phase 12.
+
+#### BR-189 — Timezone option labels are readable
+**Rule:** The timezone select displays each IANA identifier with underscores replaced by spaces (e.g.
+"America/New York"); the option's underlying value, and the pre-selection of the browser-detected zone, are
+unaffected by this display change.
+**Source:** UX audit UX-27 (Low); Nielsen N2.
+**Added:** 2026-09-25 — Phase 12.
+
+#### BR-190 — Failures of Delete event, Remove RSVP, and Create sample event show a message
+**Rule:** When Delete event, Remove RSVP, or Create sample event fails, the UI shows the existing mapped, translated
+error message for the failure (per BR-83), rather than silently stopping the loading state with no message.
+**Rationale:** Closes a gap BR-83 did not make explicit: that a message is always shown on failure, not only that a
+shown message is mapped and translated.
+**Source:** UX audit UX-12 (Medium); Nielsen N1; WCAG 3.3.1.
+**Added:** 2026-09-25 — Phase 12.
 
 ---
 

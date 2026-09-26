@@ -1,0 +1,8 @@
+# Container regression journey (REQ-160): the app runs with no AI key, whatever .env.local
+# holds, so the journey sees the "AI fill isn't set up" state (REQ-156). Use it on top of the
+# main file: docker compose -f docker-compose.yml -f docker/compose.journey.yml up …
+services:
+  app:
+    environment:
+      ANTHROPIC_API_KEY: ''
+      OPENROUTER_API_KEY: ''

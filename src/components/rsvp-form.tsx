@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, type FormEvent } from 'react';
+import { useRef, useState, type FormEvent } from 'react';
+import { flushSync } from 'react-dom';
 import { Check, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from '@/i18n/navigation';
@@ -8,6 +9,7 @@ import { ValidationError, type ErrorCode, type FieldErrors } from '@/domain/erro
 import { rsvpInputSchema } from '@/domain/schemas';
 import type { RsvpStatus, OwnRsvp } from '@/domain/types';
 import type { ActionResult } from '@/lib/action-result';
+import { focusFirstInvalid } from '@/lib/focus';
 import {
   Alert,
   describedBy,
@@ -20,6 +22,9 @@ import { Button } from '@/components/ui/button';
 import { SegmentedControl } from '@/components/ui/segmented-control';
 import { Stepper } from '@/components/ui/stepper';
 
+/** Maps RsvpForm field names to their control ids (REQ-137). */
+const RSVP_FIELD_IDS = { name: 'rsvp-name', partySize: 'rsvp-party-size' } as const;
+
 /** Values collected by {@link RsvpForm}. */
 export interface RsvpFormValues {
   name: string;
@@ -31,24 +36,37 @@ export interface RsvpFormValues {
 export interface RsvpFormProps {
   initial?: RsvpFormValues;
   submit: (values: RsvpFormValues, honeypot: string) => Promise<ActionResult<OwnRsvp>>;
-  onDone?: () => void;
+  onDone?: (rsvp: OwnRsvp) => void;
+  /** When given (editing an existing RSVP), shows "Keep my answer", which calls it (REQ-139). */
+  onKeep?: () => void;
 }
 
 /** Guest RSVP form: name, Going/Not going, party size when Going (REQ-31, REQ-26, REQ-57). */
-export function RsvpForm({ initial, submit, onDone }: RsvpFormProps) {
+export function RsvpForm({ initial, submit, onDone, onKeep }: RsvpFormProps) {
   const t = useTranslations();
   const router = useRouter();
   const [name, setName] = useState(initial?.name ?? '');
   const [status, setStatus] = useState<RsvpStatus>(initial?.status ?? 'GOING');
-  const [partySize, setPartySize] = useState(initial?.partySize ?? 1);
+  // A stored Not going answer has 0; Going starts at one person (REQ-138, BR-173).
+  const [partySize, setPartySize] = useState(Math.max(1, initial?.partySize ?? 1));
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState<ErrorCode | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [honeypot, setHoneypot] = useState('');
+  const formRef = useRef<HTMLFormElement>(null);
 
   function errorFor(field: 'name' | 'status' | 'partySize'): string | null {
     const key = fieldErrors[field];
     return key ? t(`validation.${key}`) : null;
+  }
+
+  /** Shows field errors, then focuses the first invalid field (REQ-137). */
+  function showFieldErrors(errors: FieldErrors) {
+    flushSync(() => {
+      setFieldErrors(errors);
+      setFormError(null);
+    });
+    focusFirstInvalid(formRef.current, errors, RSVP_FIELD_IDS);
   }
 
   /**
@@ -68,8 +86,7 @@ export function RsvpForm({ initial, submit, onDone }: RsvpFormProps) {
     const values: RsvpFormValues = { name, status, partySize };
     const parsed = rsvpInputSchema.safeParse(values);
     if (!parsed.success) {
-      setFieldErrors(ValidationError.fromZod(parsed.error).fieldErrors);
-      setFormError(null);
+      showFieldErrors(ValidationError.fromZod(parsed.error).fieldErrors);
       return;
     }
 
@@ -81,18 +98,24 @@ export function RsvpForm({ initial, submit, onDone }: RsvpFormProps) {
 
     if (result.ok) {
       router.refresh();
-      onDone?.();
+      onDone?.(result.data);
       return;
     }
     if (result.code === 'VALIDATION_ERROR') {
-      setFieldErrors(result.fieldErrors ?? {});
+      showFieldErrors(result.fieldErrors ?? {});
     } else {
       setFormError(result.code);
     }
   }
 
   return (
-    <form className="rsvp-form" onSubmit={handleSubmit} noValidate aria-labelledby="rsvp-title">
+    <form
+      ref={formRef}
+      className="rsvp-form"
+      onSubmit={handleSubmit}
+      noValidate
+      aria-labelledby="rsvp-title"
+    >
       <h2 className="h2" id="rsvp-title">
         {t('rsvp.title')}
       </h2>
@@ -165,6 +188,11 @@ export function RsvpForm({ initial, submit, onDone }: RsvpFormProps) {
       <Button type="submit" variant="primary" size="lg" loading={submitting}>
         {t('rsvp.submit')}
       </Button>
+      {onKeep && (
+        <Button variant="secondary" size="lg" onClick={onKeep}>
+          {t('rsvp.keep')}
+        </Button>
+      )}
     </form>
   );
 }

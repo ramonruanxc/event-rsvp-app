@@ -22,4 +22,37 @@ describe('RemoveRsvpButton', () => {
     await waitFor(() => expect(removeAction).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(nav.refresh).toHaveBeenCalledTimes(1));
   });
+
+  test('REQ-142: a failed removal says why and does not refresh', async () => {
+    nav.refresh.mockClear();
+    const removeAction = vi.fn().mockResolvedValue({ ok: false, code: 'INTERNAL_ERROR' });
+    renderWithIntl(<RemoveRsvpButton name="Maria" removeAction={removeAction} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Remove Maria' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Remove' }));
+
+    expect((await screen.findByRole('alert')).textContent).toBe(
+      'Something went wrong. Please try again.',
+    );
+    expect(nav.refresh).not.toHaveBeenCalled();
+  });
+
+  test('REQ-140: a successful removal moves focus to the Guest list heading', async () => {
+    const removeAction = vi.fn().mockResolvedValue({ ok: true, data: null });
+    renderWithIntl(
+      <>
+        <h2 id="guest-list-heading" tabIndex={-1}>
+          Guest list
+        </h2>
+        <RemoveRsvpButton name="Maria" removeAction={removeAction} />
+      </>,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Remove Maria' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Remove' }));
+
+    await waitFor(() =>
+      expect(document.activeElement).toBe(screen.getByRole('heading', { name: 'Guest list' })),
+    );
+  });
 });

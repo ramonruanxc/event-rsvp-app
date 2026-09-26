@@ -54,3 +54,45 @@ describe('UserMenu', () => {
     expect(items).toEqual(['My events', 'Account', 'Sign out']);
   });
 });
+
+describe('UserMenu closing (REQ-145)', () => {
+  function openMenu() {
+    const view = renderWithIntl(<UserMenu name="Ana" initial="A" signOutAction={vi.fn()} />);
+    const details = view.container.querySelector('details')!;
+    details.open = true;
+    return { ...view, details };
+  }
+
+  it('REQ-145: Escape closes the menu and puts focus on its summary', () => {
+    const { details, getByText, getByLabelText } = openMenu();
+    getByText('My events').focus();
+
+    fireEvent.keyDown(getByText('My events'), { key: 'Escape' });
+
+    expect(details.open).toBe(false);
+    expect(document.activeElement).toBe(getByLabelText('Account menu'));
+  });
+
+  it('REQ-145: focus moving outside the menu closes it; moving inside keeps it open', () => {
+    const outside = document.createElement('button');
+    document.body.appendChild(outside);
+    const { details, getByText } = openMenu();
+
+    fireEvent.focusOut(getByText('My events'), { relatedTarget: getByText('Account') });
+    expect(details.open).toBe(true);
+
+    fireEvent.focusOut(getByText('Sign out'), { relatedTarget: outside });
+    expect(details.open).toBe(false);
+    outside.remove();
+  });
+
+  it('REQ-145: a pointer press outside closes the menu; one inside does not', () => {
+    const { details, getByText } = openMenu();
+
+    fireEvent.pointerDown(getByText('Signed in as Ana'));
+    expect(details.open).toBe(true);
+
+    fireEvent.pointerDown(document.body);
+    expect(details.open).toBe(false);
+  });
+});

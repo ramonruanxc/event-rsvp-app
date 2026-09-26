@@ -611,6 +611,8 @@ in TASK-266.
 - Component: `RsvpForm` renders the party-size label text exactly "How many people, including you?"
 **Amended (DOC-Q3.1):** BR-35 wording "You're going · N people" / "Cancel RSVP" replaces "You're going (N)" /
 "Cancel"; unit and E2E tests updated in TASK-176.
+**Amended (Phase 12):** the action is labelled "I can't go" (BR-35, BR-36 amended, REQ-141); tests updated in
+TASK-278.
 **Test level:** unit (component) + e2e
 
 ### Guest list visibility
@@ -923,6 +925,8 @@ updated in TASK-266.
 - Given any page, the header has a select labelled "Language" with options "English", "Français", "Português (Brasil)"
 - Choosing "Français" on `/en/e/<slug>` navigates to `/fr/e/<slug>` and the UI labels are French
 - A later visit to `/` (same browser) goes to `/fr` (choice remembered by next-intl's `NEXT_LOCALE` cookie)
+**Amended (Phase 12):** the locale changes only on an explicit choice, and focus returns to the select (REQ-144,
+TASK-280).
 **Test level:** e2e
 
 ### Abuse protection & security
@@ -1137,6 +1141,8 @@ the default already applied in this spec (REQ-31, REQ-84, TASK-176).
   "Please fix the highlighted fields."
 - Component: `RsvpForm` submitted with an empty name → an element with `role="alert"` has the text "This field is
   required."; `EventForm` submitted with an empty name (other fields valid) → same
+**Amended (Phase 12):** a field error is described text (no `role="alert"`) and focus moves to the first invalid
+field; form-level alerts are unchanged (REQ-137, BR-177); tests updated in TASK-276.
 **Test level:** unit (component)
 
 ### REQ-70 — Status is never conveyed by color alone
@@ -1163,6 +1169,8 @@ the default already applied in this spec (REQ-31, REQ-84, TASK-176).
   `aria-hidden="true"`) on the home, guest event, owner event, dashboard and new-event pages is at least 24×24 px
 - E2E (guest event page): the "Going" and "Not going" radios (hit area = their segment), "One less person",
   "One more person" and "Send RSVP" are each at least 44×44 px
+**Amended (Phase 12):** a loading button is `aria-disabled`, not `disabled`, so it keeps focus (REQ-136); test
+updated in TASK-275.
 **Test level:** unit (component) + e2e
 
 ### REQ-72 — Destructive actions are confirmed inline
@@ -1178,6 +1186,8 @@ the default already applied in this spec (REQ-31, REQ-84, TASK-176).
   confirm "Delete", cancel "Keep"; confirming deletes and goes to `/<locale>/dashboard` (REQ-19)
 - Remove RSVP: trigger text "Remove", accessible name "Remove Maria"; question "Remove Maria from the guest list?"
   (visually hidden, labels the group); confirm "Remove", cancel "Keep"; confirming removes and refreshes (REQ-30)
+**Amended (Phase 12):** the row layout shows its question below 640 px (REQ-143) and a failed action shows its
+message in the group (REQ-142); tests updated in TASK-279.
 **Test level:** unit (component) + e2e
 
 ### REQ-73 — Guest event page works at 375 px without horizontal scrolling
@@ -1268,6 +1278,8 @@ the default already applied in this spec (REQ-31, REQ-84, TASK-176).
   → `'É'`; `userInitial(null, null)` and `userInitial('', '')` → `'?'`
 **Amended (A6):** one "Sign in" label leading to the sign-in page, and the "Account" menu link; tests updated in
 TASK-264 (menu) and TASK-266 (header).
+**Amended (Phase 12):** the header "Sign in" link is not shown on the sign-in and register pages (REQ-146,
+TASK-284).
 **Test level:** unit + unit (component) + e2e
 
 ### REQ-81 — Home page
@@ -1338,6 +1350,8 @@ TASK-266.
   sent or changed." and, when the browser has an RSVP, its line ("You're going · 3 people") with a check (or x) icon;
   no form, no buttons
 - An ended event shows the "Ended" pill (clock icon) above its title, for guests and owner
+**Amended (Phase 12):** "Cancel RSVP" reads "I can't go" (REQ-141); after Change the form also offers "Keep my
+answer" (REQ-139); tests updated in TASK-277 and TASK-278.
 **Test level:** unit (component) + e2e
 
 ### REQ-85 — Owner event page
@@ -1354,6 +1368,8 @@ TASK-266.
   visually hidden: the `thead` box is at most 1 px wide) and a 375 px page has no horizontal scroll
 - `formatShortDateTime(new Date('2026-09-24T14:02:00.000Z'), 'America/New_York', 'en')` with every whitespace
   character replaced by a plain space → `'Sep 24, 10:02 AM EDT'`
+**Amended (Phase 12):** the Going pill uses `event.pillGoing` (REQ-153); below 480 px the invite field and button
+stack (REQ-150); an ended event shows the ended hint instead of the invite hint (REQ-152).
 **Test level:** unit + e2e
 
 ### AI providers (amendment A3)
@@ -2185,6 +2201,380 @@ regression check. Opening the native picker itself is not asserted (Playwright c
   latency gate stays `< 8 000 ms` (REQ-103)
 **Test level:** unit
 
+### UX polish (Phase 12)
+
+From the 2026-09-25 UX audit (`docs/design/2026-09-25-ux-audit.md`, findings UX-01…UX-27, all in scope) and
+BR-173…BR-190, BR-35/BR-36 (amended). Fixes only: no new feature, no new route other than the catch-all that sends
+unknown paths to the existing not-found page, no migration, no new environment variable. The only new dependency is
+`axe-core` as an explicit dev dependency, pinned to the version already installed through `eslint-config-next`
+(4.13.0), for the E2E accessibility checks. Findings with no business rule of their own (UX-16, UX-17, UX-23, UX-25,
+UX-26) cite the closest existing rule.
+
+| Finding | Requirement |
+|---|---|
+| UX-01, UX-16 | REQ-138 |
+| UX-02 | REQ-134 |
+| UX-03 | REQ-144 |
+| UX-04 | REQ-136 |
+| UX-05 | REQ-137 |
+| UX-06 | REQ-140 (and REQ-136 for the Account status message) |
+| UX-07 | REQ-139 |
+| UX-08 | REQ-155 |
+| UX-09 | REQ-145 |
+| UX-10, UX-20 | REQ-135 |
+| UX-11 | REQ-150 |
+| UX-12 | REQ-142 |
+| UX-13 | REQ-147 |
+| UX-14 | REQ-156 |
+| UX-15 | REQ-151 |
+| UX-17 | REQ-153 |
+| UX-18 | REQ-152 |
+| UX-19 | REQ-154 |
+| UX-21 | REQ-157 |
+| UX-22 | REQ-143 |
+| UX-23 | REQ-149 |
+| UX-24 | REQ-141 |
+| UX-25 | REQ-148 |
+| UX-26 | REQ-146 |
+| UX-27 | REQ-158 |
+| Audit recommendation: mobile project, real picker test | REQ-159 (tooling), REQ-131 |
+
+### REQ-134 — Every page has a localized title
+**Rules:** BR-174
+**Status:** done
+**Acceptance criteria:**
+- `src/app/[locale]/layout.tsx` exports `generateMetadata`: `title: { default: meta.title, template: "%s · " +
+  meta.title }` and `description: meta.description`, read with `getTranslations({ locale })`. An unsupported locale
+  returns `{}` (the layout then calls `notFound()` as today)
+- Each page exports `generateMetadata` returning only its `title`, which the template completes:
+
+  | Path | Key | en | fr | pt-BR |
+  |---|---|---|---|---|
+  | `/<locale>` | (none, default) | Event RSVP | Event RSVP | Event RSVP |
+  | `/sign-in` | `auth.signInTitle` | Sign in · Event RSVP | Connexion · Event RSVP | Entrar · Event RSVP |
+  | `/register` | `auth.registerTitle` | Create an account · Event RSVP | Créer un compte · Event RSVP | Criar uma conta · Event RSVP |
+  | `/dashboard` | `dashboard.title` | My events · Event RSVP | Mes événements · Event RSVP | Meus eventos · Event RSVP |
+  | `/events/new` | `eventForm.titleNew` | New event · Event RSVP | Nouvel événement · Event RSVP | Novo evento · Event RSVP |
+  | `/e/<slug>/edit` | `eventForm.titleEdit` | Edit event · Event RSVP | Modifier l'événement · Event RSVP | Editar evento · Event RSVP |
+  | `/account` | `account.title` | Account · Event RSVP | Compte · Event RSVP | Conta · Event RSVP |
+  | `/e/<slug>` | the event name as entered (BR-77) | Team dinner · Event RSVP | same | same |
+  | not found (REQ-135) | (none, default) | Event RSVP | Event RSVP | Event RSVP |
+
+- The event page's title reads the event with `getEventPage.execute({ slug, userId: null, editToken: null })`; a
+  `NotFoundError` gives `{}` (the page itself then renders the not-found page)
+- `<meta name="description">` holds the locale's `meta.description`, e.g. en "Create an event, share one link, see
+  who's coming."
+- E2E: the axe-core rules `document-title` and `html-has-lang` report no violation on the home, sign-in, register,
+  guest event, owner event, dashboard, new event, edit event and account pages, an unknown path and an unknown event
+  slug
+**Test level:** e2e
+
+### REQ-135 — Unknown paths and unknown events show the localized not-found page
+**Rules:** BR-181
+**Status:** done
+**Acceptance criteria:**
+- `src/app/[locale]/[...rest]/page.tsx` calls `notFound()`, so an unmatched path under a locale (`/en/nope`,
+  `/fr/nope/deeper`) renders `src/app/[locale]/not-found.tsx` inside the locale layout: HTTP 404, `<html lang>` equal
+  to the locale and carrying `data-theme`, and the site header (`banner`)
+- The not-found page shows, in order: the heading `errors.NOT_FOUND`, the text `notFound.hint`, and a link
+  `notFound.home` to `/<locale>`:
+
+  | Locale | Heading | `notFound.hint` | `notFound.home` |
+  |---|---|---|---|
+  | en | This page does not exist. | The link may be mistyped, or the event was deleted. | Go to the home page |
+  | fr | Cette page n'existe pas. | Le lien est peut-être mal saisi, ou l'événement a été supprimé. | Aller à l'accueil |
+  | pt-BR | Esta página não existe. | O link pode estar digitado errado, ou o evento foi excluído. | Ir para a página inicial |
+
+- An unknown event slug (`/en/e/unknown0001`) already calls `notFound()` (REQ-33) and shows the same page
+**Test level:** e2e
+
+### REQ-136 — A busy button keeps keyboard focus
+**Rules:** BR-176
+**Status:** done
+**Acceptance criteria:**
+- `Button` with `loading`: no `disabled` attribute; `aria-disabled="true"` and `aria-busy="true"`, spinner as
+  before; a click is cancelled (`event.preventDefault()`) and `onClick` is not called, so a loading submit button
+  does not submit its form again. The `disabled` prop keeps its meaning. The existing `.btn[aria-disabled='true']`
+  rule keeps the disabled look
+- Focus therefore stays on the button while its action runs. After a failure that is not a field error, focus is
+  on that button, never on `<body>`. E2E: a wrong password on the sign-in page (focus on "Sign in"), a duplicate
+  RSVP name (focus on "Send RSVP"), an AI fill failure `[[mock-error]] party` (focus on "Fill with AI")
+- The Account form renders its `role="status"` element always (empty until saved) and writes "Password saved."
+  into it, so the message is announced (a live region added already filled is often not read)
+**Amends:** REQ-71 ("a loading button is disabled" becomes "a loading button is `aria-disabled`")
+**Test level:** unit (component) + e2e
+
+### REQ-137 — A failed validation moves focus to the first invalid field, with one alert at most
+**Rules:** BR-176, BR-177, BR-106
+**Status:** done
+**Acceptance criteria:**
+- `focusFirstInvalid(root, fieldErrors, idByField): boolean` (`src/lib/focus.ts`) focuses the first `input`,
+  `textarea` or `select` inside `root`, in document order, whose id is `idByField[field]` for a field with an error;
+  it ignores fields with no id (e.g. `form`) and returns whether it focused something
+- The RSVP, event, sign-in, register and account forms, on a field validation failure (client-side, or a server
+  `VALIDATION_ERROR` with `fieldErrors`), render the errors first (`flushSync`) and then call `focusFirstInvalid`.
+  Id maps: RSVP `name → rsvp-name`, `partySize → rsvp-party-size`; event form: each field's id is its name; sign-in
+  `email → signin-email`, `password → signin-password`; register `name → register-name`, `email →
+  register-email`, `password → register-password`, `confirmPassword → register-confirm`; account
+  `currentPassword → account-current`, `newPassword → account-new`, `confirmPassword → account-confirm`
+- `FieldError` is `<p id class="field-error">` with its icon and text and **no** `role="alert"`; the input's
+  `aria-describedby` still includes the error id, so the error is read when focus lands. The form-level `Alert`
+  keeps `role="alert"`. A client-side validation failure renders no `role="alert"`
+- Examples: RSVP with an empty name → focus on "Your name", `aria-describedby` = `rsvp-name-hint rsvp-name-error`;
+  event form with an empty name → focus on "Name"; server `{ date: 'inPast' }` → focus on "Date"; sign-in with both
+  fields empty → focus on "Email"; register with a different confirmation → focus on "Confirm password"; Account
+  with a server `{ currentPassword: 'currentPasswordIncorrect' }` → focus on "Current password"
+- Mobile (375 px, REQ-159): the new-event form submitted empty → "Name" is focused and inside the viewport
+**Amends:** REQ-69 (field errors are described text, not alerts; form-level alerts unchanged)
+**Test level:** unit + unit (component) + e2e
+
+### REQ-138 — Going after Not going starts at one person; the party size can be cleared and retyped
+**Rules:** BR-173, BR-26
+**Status:** done
+**Acceptance criteria:**
+- `RsvpForm` starts the party size at `Math.max(1, initial?.partySize ?? 1)`. Given the stored RSVP `Maria`,
+  Not going, 0: Change → Going → the stepper shows 1 ("One less person" disabled) → Send RSVP sends
+  `{ name: 'Maria', status: 'GOING', partySize: 1 }` → "You're going · 1 person"
+- `Stepper` shows the value 0 as an empty field: clearing the field shows `''` (not `0`), and typing 3 then shows
+  `3` (not `03`). Submitting the empty field while Going still shows "Enter a number from 1 to 10." (BR-26)
+- E2E: a guest answers Not going, then Change → Going → Send RSVP; the page shows "You're going · 1 person" and the
+  stored RSVP is `GOING`, 1
+**Test level:** unit (component) + e2e
+
+### REQ-139 — "Keep my answer" leaves Change without sending
+**Rules:** BR-178
+**Status:** done
+**Acceptance criteria:**
+- `RsvpForm` prop `onKeep?: () => void`: when given, a secondary large button `rsvp.keep` follows "Send RSVP"
+  (en "Keep my answer", fr "Garder ma réponse", pt-BR "Manter minha resposta")
+- `GuestRsvpPanel` passes `onKeep` only while editing an existing RSVP (never on a first RSVP). Activating it
+  returns to the status view with the stored answer, calls no action, and puts focus on "Change"
+**Test level:** unit (component) + e2e
+
+### REQ-140 — Focus moves to the result after a successful async action
+**Rules:** BR-176
+**Status:** done
+**Acceptance criteria:**
+- `GuestRsvpPanel` shows the answer returned by the action at once (it keeps it in state, so it does not wait for
+  the page refresh) and moves focus: after Send RSVP (first RSVP or edit) to the status heading ("You're going · 3
+  people" `h2`, or "You're not going" `h3`, both `tabIndex={-1}`); after Change to "Your name"; after "I can't go"
+  to "You're not going"; after "Keep my answer" to "Change"
+- Owner: after a successful Remove, focus goes to the "Guest list" heading (`#guest-list-heading`,
+  `tabIndex={-1}`), then the page refreshes
+- Password notice: after a successful Dismiss, focus goes to `<main>` (given `tabIndex = -1`)
+- A heading or `<main>` focused by script draws no outline (`h1/h2/h3/main[tabindex='-1']:focus { outline: none }`);
+  controls keep the REQ-66 ring
+**Test level:** unit (component) + e2e
+
+### REQ-141 — The decline action reads "I can't go"
+**Rules:** BR-35, BR-36
+**Status:** done
+**Acceptance criteria:**
+- `rsvp.cancel`: en "I can't go", fr "Je ne viens plus", pt-BR "Não vou mais"
+- Behavior unchanged: the RSVP becomes Not going with party size 0 and is not deleted (REQ-28); the button is still
+  shown only on a Going RSVP (DOC-Q4)
+**Amends:** REQ-31 and REQ-84 (the label "Cancel RSVP")
+**Test level:** unit (component) + e2e
+
+### REQ-142 — Failed Delete event, Remove RSVP and Create sample event say why
+**Rules:** BR-190, BR-83
+**Status:** done
+**Acceptance criteria:**
+- `InlineConfirm` prop `error?: string | null`: when set, an `Alert` with that text is rendered inside the group,
+  after the buttons (both layouts)
+- `DeleteEventButton`: `{ ok: false, code }` → the group shows `errors.<code>` (e.g. `INTERNAL_ERROR` "Something went
+  wrong. Please try again.", `NOT_OWNER` "Only the organizer can do this.") and nothing navigates
+- `RemoveRsvpButton`: `{ ok: false, code }` → the group shows `errors.<code>`; no refresh
+- `CreateSampleButton`: `{ ok: false, code }` → an `Alert` with `errors.<code>` after the button; the button is
+  usable again
+- A new attempt clears the previous message first
+**Test level:** unit (component)
+
+### REQ-143 — The Remove question is visible on phones
+**Rules:** BR-188
+**Status:** done
+**Acceptance criteria:**
+- Row layout of `InlineConfirm`: the question is `<p id class="inline-confirm-q small">`, still the group's name.
+  Below 640 px it is visible text above "Remove" / "Keep", and the open confirmation takes the full width of the
+  stacked row (under the guest's details); from 640 px it is visually hidden (the table layout)
+- E2E at 375 px: after Remove on Maria's row, "Remove Maria from the guest list?" is visible and inside the viewport,
+  and the page does not scroll horizontally; at 1280 px the question's box is at most 1 px wide
+**Amends:** REQ-72 (the question of the row layout is visible below 640 px)
+**Test level:** unit (component) + e2e
+
+### REQ-144 — The language select changes the page only on an explicit choice
+**Rules:** BR-175, BR-75, BR-104
+**Status:** done
+**Acceptance criteria:**
+- On the focused, closed select, arrow keys only move the selection (a `change` that happens while a key is held
+  down does not navigate)
+- The page switches locale on: Enter; a `change` with no key held (pointer or touch picker); leaving the select
+  (`blur`) with a value different from the current locale. Each choice navigates once
+- Before navigating the select stores `sessionStorage['locale-select-refocus'] = '1'`; on mount (and on a locale
+  change) it removes the flag and focuses itself, so focus is on `#locale-select` after the change
+- E2E: on `/en`, focus the select, ArrowDown twice → still on `/en`; Enter → `/pt-BR`, the select is focused and
+  shows "Português (Brasil)". REQ-54 (choosing Français with the pointer) is unchanged
+**Amends:** REQ-54 (navigation on explicit choice only)
+**Test level:** unit (component) + e2e
+
+### REQ-145 — The account menu closes predictably
+**Rules:** BR-180
+**Status:** done
+**Acceptance criteria:**
+- Open menu + Escape (from anywhere inside it) → closed, focus on its summary ("Account menu")
+- Open menu + focus moving to an element outside it → closed; moving between its items keeps it open
+- Open menu + a pointer press outside it → closed; a press inside keeps it open
+- E2E: open with the keyboard, Escape → "My events" is hidden and "Account menu" is focused
+**Test level:** unit (component) + e2e
+
+### REQ-146 — Sign-in and register pages: no self-link, spacing, and an "or" divider
+**Rules:** BR-154
+**Status:** done
+**Acceptance criteria:**
+- The header's "Sign in" link is not rendered on `/<locale>/sign-in` and `/<locale>/register` (client component
+  `HeaderSignInLink`, reading `usePathname()` from `@/i18n/navigation`: `'/sign-in'` or `'/register'`); it is
+  rendered on every other signed-out page, unchanged
+- The sign-in heading has a 16 px gap under it (`mb-4`)
+- The divider between Google and the email/password form reads `auth.or` (en "or", fr "ou", pt-BR "ou") between
+  two lines (`<p class="divider-or">`); the divider above "New here?" is unchanged
+- Audit finding UX-26 (no business rule of its own)
+**Amends:** REQ-80 (the header link is hidden on the two auth pages)
+**Test level:** unit (component) + e2e
+
+### REQ-147 — The sign-in page tells a forgetful user what to do
+**Rules:** BR-182
+**Status:** done
+**Acceptance criteria:**
+- Under the Password field, always visible: `FieldHint` `id="signin-password-hint"` with `auth.forgotPasswordHint`;
+  the password input's `aria-describedby` is `signin-password-hint` (plus ` signin-password-error` when there is an
+  error)
+- Texts: en "Forgot your password? If your email is a Google account, use Continue with Google above, then set a new
+  password in Account."; fr "Mot de passe oublié ? Si votre e-mail est un compte Google, utilisez « Continuer avec
+  Google » ci-dessus, puis définissez un nouveau mot de passe dans Compte."; pt-BR "Esqueceu a senha? Se o seu e-mail
+  é uma conta Google, use "Continuar com o Google" acima e depois defina uma nova senha em Conta."
+- The button and menu names in the text match `auth.continueWithGoogle` and `nav.account` in each catalog; no
+  email reset is offered or implied
+**Test level:** unit (component) + e2e
+
+### REQ-148 — "Sign in" in the email-taken message is a link
+**Rules:** BR-83, BR-154
+**Status:** done
+**Acceptance criteria:**
+- On `EMAIL_TAKEN` the register form's alert shows `auth.emailTakenRich`, whose text equals `errors.EMAIL_TAKEN`
+  ("An account with this email already exists. Sign in instead."), with the `<link>` part as an `<a>` to
+  `/<locale>/sign-in?callbackUrl=<encodeURIComponent(callbackUrl)>`: en "Sign in", fr "Connectez-vous", pt-BR "Entre
+  com ela"
+- Audit finding UX-25 (no business rule of its own)
+**Test level:** unit (component)
+
+### REQ-149 — The home preview card is one link to the demo
+**Rules:** BR-52
+**Status:** done
+**Acceptance criteria:**
+- The decorative card is wrapped in one link to `/<locale>/e/demoPicnic`, named by the caption
+  (`aria-labelledby="invite-preview-caption"` on the link, `id="invite-preview-caption"` on the `figcaption`); the
+  card stays `aria-hidden="true"`
+- Audit finding UX-23 (no business rule of its own)
+**Test level:** e2e
+
+### REQ-150 — The invite link is readable on phones
+**Rules:** BR-116, BR-51
+**Status:** done
+**Acceptance criteria:**
+- Below 480 px the invite field and the "Copy invite link" button stack: the field takes the full width, the button
+  is full width under it. The label stays "Copy invite link" (BR-51, DOC-Q3)
+- Mobile E2E (375 px, French owner page): the field is at least 250 px wide and the button's top is at or below the
+  field's bottom (the audit measured 67 px)
+**Test level:** e2e
+
+### REQ-151 — The time and zone of an event stay on one line
+**Rules:** BR-184, BR-76
+**Status:** done
+**Acceptance criteria:**
+- `formatEventDateTimeParts(instant, timeZone, locale): { date: string; time: string }` (`src/lib/format-date.ts`)
+  splits `formatEventDateTime`'s text before its `hour` part; `date + time` equals `formatEventDateTime(...)`
+  character for character. Both halves are cut from the `format()` string at the summed length of the
+  `formatToParts()` parts before the first `hour` part (on Node 22/24 `formatToParts()` has U+202F before AM/PM where
+  `format()` has a space, so its values must not be joined; incident 28).
+  Example: `2026-10-02T23:00:00Z`, `America/Sao_Paulo`, `en` → `date` "Friday, October 2, 2026 at ", `time`
+  "8:00 PM GMT-3" (the space before PM may be U+202F)
+- `EventDetails` renders `<span class="num">{date}<span class="ev-time">{time}</span></span>`, and `.ev-time` has
+  `white-space: nowrap`
+- Mobile E2E (375 px): on an event in `America/Sao_Paulo`, `.ev-time` ends with "GMT-3" and is one line box
+  (`getClientRects().length === 1`)
+**Test level:** unit + e2e
+
+### REQ-152 — An ended event reads as ended
+**Rules:** BR-185
+**Status:** done
+**Acceptance criteria:**
+- Ended event, owner: the invite hint is `event.endedHint` ("Replies are closed, so answers can no longer be sent or
+  changed.") instead of "Anyone with this link can reply…"
+- Ended event, guest and owner: no "Add to calendar" link; the count uses `totals.peopleWent`: en "{count, plural,
+  one {# person went} other {# people went}}", fr "{count, plural, one {# personne est venue} other {# personnes
+  sont venues}}", pt-BR "{count, plural, one {# pessoa foi} other {# pessoas foram}}"
+- Upcoming events are unchanged ("3 people going", "Add to calendar", the invite hint)
+**Test level:** unit (component) + e2e
+
+### REQ-153 — The owner's response pill speaks in the third person
+**Rules:** BR-73, BR-78
+**Status:** done
+**Acceptance criteria:**
+- The owner's guest list pill for Going uses `event.pillGoing`: en "Going", fr "Vient", pt-BR "Vai" (the guest's
+  radio keeps `rsvp.going`: "Je viens", "Vou")
+- fr `totals.peopleGoing` becomes "{count, plural, one {# personne vient} other {# personnes viennent}}", matching
+  "viennent" in `totals.summary`
+- Audit finding UX-17 (no business rule of its own)
+**Amends:** REQ-85 (pill label key)
+**Test level:** e2e
+
+### REQ-154 — The edit page links back to the event
+**Rules:** BR-186
+**Status:** done
+**Acceptance criteria:**
+- `/e/<slug>/edit` shows a text link `eventForm.backToEvent` (en "Back to event", fr "Retour à l'événement", pt-BR
+  "Voltar ao evento") to `/<locale>/e/<slug>` in the page head, and the same link in the ended-event notice
+**Test level:** e2e
+
+### REQ-155 — Fill with AI on an empty description says what to do
+**Rules:** BR-179
+**Status:** done
+**Acceptance criteria:**
+- "Fill with AI" with an empty or blank description calls no action, shows `ai.emptyText` in the panel's `Alert`
+  and focuses the description box
+- Texts: en "Describe your event first — for example, “Team dinner next Friday 7pm at Mario's”."; fr "Décrivez
+  d'abord votre événement — par exemple, « Dîner d'équipe vendredi prochain 19h chez Mario »."; pt-BR "Descreva seu
+  evento primeiro — por exemplo, “Jantar da equipe sexta-feira que vem às 19h no Mario's”."
+**Test level:** unit (component)
+
+### REQ-156 — Without an AI key the panel says so before any typing
+**Rules:** BR-183, BR-137
+**Status:** done
+**Acceptance criteria:**
+- `isAiConfigured(env): boolean` (`src/lib/ai/providers-config.ts`) is true exactly when `parseAiProviders(
+  env.AI_PROVIDERS)` has a provider whose key variable is non-blank (the rule `buildAiProviders` applies)
+- The new-event page passes `aiFill` only when `isAiConfigured(process.env)`; otherwise it passes
+  `aiNotConfigured`. `EventForm` with `aiNotConfigured` and no `aiFill` renders, where the panel was, a note with
+  the `errors.AI_NOT_CONFIGURED` text ("AI fill isn't set up on this server — fill the form below."), not an alert,
+  and no description box or "Fill with AI" button
+**Test level:** unit + unit (component)
+
+### REQ-157 — A "Needed" flag clears when the organizer edits that field
+**Rules:** BR-187, BR-57
+**Status:** done
+**Acceptance criteria:**
+- After a fill that flagged `location`, typing in "Location (optional)" removes its "Needed" badge, its
+  `is-missing` tint, `aria-invalid` and the `#location-missing` hint; other flagged fields stay flagged
+**Test level:** unit (component)
+
+### REQ-158 — Timezone options are readable
+**Rules:** BR-189
+**Status:** done
+**Acceptance criteria:**
+- Each timezone option shows its id with every `_` replaced by a space ("America/New York"); its `value` stays the
+  IANA id ("America/New_York"); the detected zone is still selected
+**Test level:** unit (component)
+
 ---
 
 ## Tooling requirements
@@ -2487,6 +2877,49 @@ These requirements are code in the repository and are TDD'd like product code. T
   prompt-injection 89%. At `omit` it has not been measured against the Phase 8 gate
 **Test level:** unit + runner test against the local OpenRouter mock
 
+### REQ-159 — A mobile Playwright project runs the core journeys at 375 px
+**Rules:** none (tooling)
+**Status:** done
+**Acceptance criteria:**
+- `playwright.config.ts` has a second project `mobile`: `devices['Pixel 7']` (Chromium, touch, `isMobile`) with the
+  viewport overridden to 375 × 812, `locale: 'en-US'`, `timezoneId: 'America/New_York'`, and
+  `testMatch: /mobile\.spec\.ts$/`. The `chromium` project gets `testIgnore: /mobile\.spec\.ts$/`. `npm run
+  test:e2e` runs both; CI still installs Chromium only (Pixel 7 is Chromium)
+- `e2e/mobile.spec.ts` covers, by tapping: a guest RSVPs (party of 2) and sees the confirmation; an organizer creates
+  an event and lands on its page with the invite link; and REQ-131 for real: tapping the Date field, and tapping
+  "Open time picker", each leave that input matching `:open` (the native picker is open; Escape closes it)
+- Later tasks add the audit's screen-position checks to this file: REQ-137 (UX-05), REQ-150 (UX-11),
+  REQ-151 (UX-15)
+**Test level:** e2e
+
+### REQ-160 — A permanent regression battery, including a journey against the container
+**Rules:** none (tooling)
+**Status:** done
+**Acceptance criteria:**
+- `docker/compose.journey.yml` overrides only `app.environment` with `ANTHROPIC_API_KEY: ''` and
+  `OPENROUTER_API_KEY: ''`, so a stack started with `docker compose -f docker-compose.yml -f
+  docker/compose.journey.yml up …` has no AI provider whatever `.env.local` holds (`environment` wins over
+  `env_file`). `docker-compose.yml` is unchanged (REQ-112)
+- `playwright.container.config.ts`: `testDir: './e2e/container'`, one project `container` (Desktop Chrome, en-US,
+  America/New_York), `baseURL` `http://localhost:${APP_PORT ?? 3000}`, **no webServer**, `outputDir`
+  `test-results/container`. The `chromium` project of `playwright.config.ts` ignores `e2e/container/`; the `mobile`
+  project already matches only `mobile.spec.ts`
+- `e2e/container/journey.spec.ts`, one serial journey against the running container, with no database access (it
+  uses a fresh email per run): register → `/en/dashboard`; on the new-event page the AI panel reads "AI fill isn't
+  set up on this server — fill the form below." with no "Fill with AI" button; "Open calendar" / "Open time picker"
+  focus Date / Time; save → event page; a guest in a separate browser context RSVPs for 2 → "You're going · 2
+  people"; the organizer sees the guest's row "Going" and "1 going · 0 declined · 2 people"; `/e/<slug>/calendar.ics`
+  → 200, `text/calendar`, `SUMMARY:<event name>`; sign out; a wrong password → "Email or password is incorrect.";
+  the right password → `/en/dashboard` showing the event
+- CI `container-smoke`: starts the stack with the override, runs the existing smoke check, installs Chromium and
+  runs the journey; on failure uploads `test-results/container`; `docker compose down -v` always
+- `npm run test:container` runs the journey; `npm run test:all` starts `db`, then runs unit, integration, E2E (both
+  projects), the stack with the override, the smoke check and the journey, stopping at the first failure; it honours
+  `E2E_PORT` and `APP_PORT` from the shell and leaves the stack running. The README Tests section lists it in one line
+- `docs/design/2026-09-25-ux-audit.md` ends with a "Regression coverage" table: every UX-01…UX-27 → the test file(s)
+  and one test title that cover it
+**Test level:** e2e (container)
+
 ---
 
 ## Coverage — every business rule
@@ -2518,7 +2951,7 @@ These requirements are code in the repository and are TDD'd like product code. T
 | BR-23 | REQ-20, REQ-84 |
 | BR-24 | REQ-20 |
 | BR-25 | REQ-31, REQ-84 |
-| BR-26 | REQ-20 |
+| BR-26 | REQ-20, REQ-138 |
 | BR-27 | REQ-20, REQ-28 |
 | BR-28 | REQ-22, REQ-23 |
 | BR-29 | REQ-22, REQ-23 |
@@ -2527,8 +2960,8 @@ These requirements are code in the repository and are TDD'd like product code. T
 | BR-32 | REQ-29 |
 | BR-33 | REQ-29, REQ-31 |
 | BR-34 | REQ-23 |
-| BR-35 | REQ-31, REQ-84 |
-| BR-36 | REQ-28 |
+| BR-35 | REQ-31, REQ-84, REQ-141 |
+| BR-36 | REQ-28, REQ-141 |
 | BR-37 | REQ-21, REQ-25 |
 | BR-38 | REQ-21, REQ-26 |
 | BR-39 | REQ-27 |
@@ -2543,13 +2976,13 @@ These requirements are code in the repository and are TDD'd like product code. T
 | BR-48 | REQ-36, REQ-82 |
 | BR-49 | REQ-37, REQ-82 |
 | BR-50 | REQ-37 |
-| BR-51 | REQ-34, REQ-38, REQ-85 |
-| BR-52 | REQ-39, REQ-40, REQ-81 (amended by A6: the link leads to the sign-in page) |
+| BR-51 | REQ-34, REQ-38, REQ-85, REQ-150 |
+| BR-52 | REQ-39, REQ-40, REQ-81 (amended by A6: the link leads to the sign-in page), REQ-149 |
 | BR-53 | REQ-51 |
 | BR-54 | REQ-45 |
 | BR-55 | REQ-44, REQ-45 |
 | BR-56 | REQ-45 |
-| BR-57 | REQ-51, REQ-83 |
+| BR-57 | REQ-51, REQ-83, REQ-157 |
 | BR-58 | REQ-50 |
 | BR-59 | REQ-43, REQ-45 |
 | BR-60 | REQ-46 |
@@ -2565,17 +2998,17 @@ These requirements are code in the repository and are TDD'd like product code. T
 | BR-70 | REQ-43, REQ-89, REQ-94 |
 | BR-71 | REQ-42 |
 | BR-72 | REQ-41 |
-| BR-73 | REQ-52 |
+| BR-73 | REQ-52, REQ-153 |
 | BR-74 | REQ-53 |
-| BR-75 | REQ-54, REQ-80 |
-| BR-76 | REQ-12 |
+| BR-75 | REQ-54, REQ-80, REQ-144 |
+| BR-76 | REQ-12, REQ-151 |
 | BR-77 | REQ-31 |
-| BR-78 | REQ-52 |
+| BR-78 | REQ-52, REQ-153 |
 | BR-79 | REQ-55, REQ-56 |
 | BR-80 | REQ-56, REQ-119 (sign-in counters keep only hashes) |
 | BR-81 | REQ-58 |
 | BR-82 | REQ-61 |
-| BR-83 | REQ-15, REQ-58, REQ-59 |
+| BR-83 | REQ-15, REQ-58, REQ-59, REQ-142, REQ-148 |
 | BR-84 | REQ-59 |
 | BR-85 | REQ-14, REQ-15, REQ-23 |
 | BR-86 | REQ-03, REQ-16, REQ-18, REQ-30, REQ-33 |
@@ -2596,9 +3029,9 @@ These requirements are code in the repository and are TDD'd like product code. T
 | BR-101 | REQ-65 |
 | BR-102 | REQ-65 |
 | BR-103 | REQ-66, REQ-131 |
-| BR-104 | REQ-67, REQ-131 |
+| BR-104 | REQ-67, REQ-131, REQ-144 |
 | BR-105 | REQ-68 |
-| BR-106 | REQ-69 |
+| BR-106 | REQ-69, REQ-137 |
 | BR-107 | REQ-70 |
 | BR-108 | REQ-71, REQ-80 |
 | BR-109 | REQ-71 |
@@ -2608,7 +3041,7 @@ These requirements are code in the repository and are TDD'd like product code. T
 | BR-113 | REQ-74 |
 | BR-114 | REQ-75 |
 | BR-115 | REQ-76 |
-| BR-116 | REQ-77 |
+| BR-116 | REQ-77, REQ-150 |
 | BR-117 | REQ-78 |
 | BR-118 | REQ-79 |
 | BR-119 | REQ-86 |
@@ -2629,7 +3062,7 @@ These requirements are code in the repository and are TDD'd like product code. T
 | BR-134 | REQ-109 |
 | BR-135 | REQ-113 (event page and `.ics` in the stack without `.env.local`), REQ-109 (secret for Auth.js and the RSVP IP hash); RSVP submission: REQ-23 |
 | BR-136 | REQ-01, REQ-130 (email/password does not depend on it); non-functional: without `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` Google rejects the sign-in; stated in the README (TASK-246, TASK-269) |
-| BR-137 | REQ-87 (a provider without a key is skipped), REQ-132 (its own message) |
+| BR-137 | REQ-87 (a provider without a key is skipped), REQ-132 (its own message), REQ-156 |
 | BR-138 | REQ-109 (a supplied `AUTH_SECRET` is kept), REQ-112 (`env_file` `.env.local`) |
 | BR-139 | REQ-111 |
 | BR-140 | REQ-111 |
@@ -2646,7 +3079,7 @@ These requirements are code in the repository and are TDD'd like product code. T
 | BR-151 | REQ-114 |
 | BR-152 | REQ-114 |
 | BR-153 | REQ-125 |
-| BR-154 | REQ-126 |
+| BR-154 | REQ-126, REQ-146, REQ-148 |
 | BR-155 | REQ-118 |
 | BR-156 | REQ-119 |
 | BR-157 | REQ-117 |
@@ -2665,8 +3098,26 @@ These requirements are code in the repository and are TDD'd like product code. T
 | BR-170 | REQ-130; the container path itself is not re-tested (REQ-109 already proves the generated secret) |
 | BR-171 | REQ-131 |
 | BR-172 | REQ-132 |
+| BR-173 | REQ-138 |
+| BR-174 | REQ-134 |
+| BR-175 | REQ-144 |
+| BR-176 | REQ-136, REQ-137, REQ-140 |
+| BR-177 | REQ-137 |
+| BR-178 | REQ-139 |
+| BR-179 | REQ-155 |
+| BR-180 | REQ-145 |
+| BR-181 | REQ-135 |
+| BR-182 | REQ-147 |
+| BR-183 | REQ-156 |
+| BR-184 | REQ-151 |
+| BR-185 | REQ-152 |
+| BR-186 | REQ-154 |
+| BR-187 | REQ-157 |
+| BR-188 | REQ-143 |
+| BR-189 | REQ-158 |
+| BR-190 | REQ-142 |
 
-172 business rules, 172 covered (BR-12 additionally non-functional; BR-126 partly non-functional for the Anthropic
+190 business rules, 190 covered (BR-12 additionally non-functional; BR-126 partly non-functional for the Anthropic
 key; BR-136 and BR-143 partly non-functional). BR-145 … BR-170 added by amendment A6 (REQ-114 … REQ-130), which also
 amends BR-01, BR-52, BR-95 and BR-136 (REQ-01, REQ-02, REQ-39, REQ-80, REQ-81 amended).
 BR-97 … BR-118 added by amendment A2 (REQ-62 … REQ-85). BR-119 …
@@ -2674,4 +3125,7 @@ BR-126 added by amendment A3 (REQ-86 … REQ-89, REQ-94 … REQ-98). Amendment A
 and tooling REQ-100 … REQ-107. BR-127 … BR-144 added by amendment A5 (REQ-108 … REQ-113).
 BR-171 and BR-172 added in Phase 11 (REQ-131, REQ-132), which also amends BR-64, BR-65, BR-121 and BR-137 (REQ-132,
 REQ-133; REQ-47, REQ-51, REQ-87, REQ-88, REQ-95 and REQ-101 amended).
-Tooling: REQ-90, REQ-91, REQ-92, REQ-93, REQ-100 … REQ-107.
+BR-173 … BR-190 added in Phase 12 (REQ-134 … REQ-158), which also amends BR-35 and BR-36 (REQ-141; REQ-31 and REQ-84
+amended) and amends REQ-54, REQ-69, REQ-71, REQ-72, REQ-80 and REQ-85. Findings without a rule of their own (UX-16, UX-17,
+UX-23, UX-25, UX-26) are covered by REQ-138, REQ-153, REQ-149, REQ-148 and REQ-146, citing the closest existing rule.
+Tooling: REQ-90, REQ-91, REQ-92, REQ-93, REQ-100 … REQ-107, REQ-159, REQ-160.

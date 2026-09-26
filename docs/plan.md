@@ -22,8 +22,9 @@
 | 9 | `phase-9/containerize` | One-command local run (A5): `docker compose up --build` starts Postgres and the app, which migrates, seeds and serves on `APP_PORT` (default 3000). `.env.local` is optional (`AUTH_SECRET` is generated when it is absent). Node 22 image with the full build, and no secret in the image. `docker compose up -d db` for development and tests. A non-required CI smoke job. README | REQ-108–REQ-113 | 8 (TASK-239–TASK-246), no human task |
 | 10 | `phase-10/password-auth` | Email and password sign-in alongside Google (A6): register, sign in (one generic error, failed attempts limited per email and IP), set or change a password on a new Account page; Google links to an existing email only when verified, clears the unverified password and shows a notice; JWT sessions; scrypt from `node:crypto`; en/fr/pt-BR, WCAG 2.2 AA; README | REQ-114–REQ-130 (+ amended REQ-01, REQ-02, REQ-39, REQ-80, REQ-81) | 23 (TASK-247–TASK-269), no human task |
 | 11 | `phase-11/date-time-picker` | Fix incident 26: the date and time pickers open again (click on the field, or a labelled icon button) while REQ-66's hidden Chromium indicator stays hidden. AI budget 10 s → 20 s, and a failed AI fill says why: not set up, too slow, or unavailable | REQ-131–REQ-133 (+ amended REQ-47, REQ-51, REQ-87, REQ-88, REQ-95, REQ-101) | 3 (TASK-270–TASK-272), no human task |
+| 12 | `phase-12/ux-polish` | UX polish from the 2026-09-25 audit (27 findings, fixes only): localized page titles and a not-found page for unknown paths; busy buttons keep focus, a failed validation focuses the first invalid field, a success focuses its result, one alert per failed submit; RSVP Not going → Going, "Keep my answer", "I can't go"; failure messages for owner actions; language select and account menu keyboard fixes; invite link and time on phones, ended-event copy, back link from edit; AI panel hints; forgot-password hint and sign-in chrome; a mobile Playwright project, axe title/lang checks and a real picker test; a regression battery (container journey in CI, `npm run test:all`) | REQ-134–REQ-160 (+ amended REQ-31, REQ-54, REQ-69, REQ-71, REQ-72, REQ-80, REQ-84, REQ-85) | 13 (TASK-273–TASK-285), no human task |
 
-Totals: 133 requirements (121 product + 12 tooling), 239 agent tasks, 6 human tasks.
+Totals: 160 requirements (146 product + 14 tooling), 252 agent tasks, 6 human tasks.
 
 **Adjustments to the suggested phases (with reasons):**
 - *All Prisma repositories move to Phase 1* (including the RSVP repository and its unique-constraint test REQ-27):
@@ -13210,3 +13211,3075 @@ app; set the port in the shell only).
 **Done when:** every test above passes, including the three `e2e/ai.spec.ts` tests; lint, typecheck, format and
 trace pass.
 **TDD exception:** none
+
+## Phase 12 — UX polish (`phase-12/ux-polish`, UX audit 2026-09-25)
+
+Goal: fix the 27 findings of `docs/design/2026-09-25-ux-audit.md` (BR-173…BR-190, amended BR-35/BR-36; REQ-134…
+REQ-159) without adding a feature, and add the tests that would have caught them: focus is never left on `<body>`
+after a failed submit, axe `document-title` / `html-has-lang` on every page, the Not going → Going journey, a
+Playwright **mobile** project with the audit's screen-position checks, and a test that really opens the native date
+and time pickers.
+
+Order: TASK-273 → TASK-274 → … → TASK-284 → TASK-285 (the regression battery, REQ-160, added at the human's request
+after batches A and B). No human task, no migration, no new environment variable. One new dev
+dependency: `axe-core`, pinned to 4.13.0, the version already in `node_modules` through `eslint-config-next`
+(TASK-274).
+
+**Phase 12 notes:**
+1. **Local constraints.** Run E2E with `E2E_PORT=3100` set in the shell, never in a file: port 3000 belongs to an
+   unrelated app on this machine. Start the database with `docker compose up -d db` only; never stop, start or remove
+   any other container or process. Never link or junction `node_modules`. Never print or read secret values
+   (`.env.local`, `.env.test`).
+2. **Two Playwright projects (from TASK-273).** `e2e/mobile.spec.ts` runs only in `mobile` (375 × 812, Pixel 7,
+   touch); every other spec runs only in `chromium`. `npm run test:e2e -- e2e/<file>` picks the right project by
+   itself. Use `.tap()` in `mobile.spec.ts` and `.click()` elsewhere.
+3. **Known local failure, not caused by this phase.** On Windows with Node 24 the unit test "REQ-100: the runner
+   sends each case --runs times through the mock and writes the Phase 8 report" (`evals/event-parser/run.test.ts`)
+   fails with `Assertion failed: !(handle->flags & UV_HANDLE_CLOSING)` (child exit status 3221226505). It fails on
+   `main` too; CI (Linux, Node 22) is the reference. Do not edit it. If it is the only failing unit test, the
+   "`npm run test:unit` passes" condition of a task is met; say so in the task result.
+4. **Stale build types.** `npm run typecheck` includes `.next/types`. If it reports a missing module under
+   `.next/types/…` for a route that no longer exists, delete the `.next` folder (build output only) and run it again.
+5. **Focus by script only through the code given in the tasks** (`focusFirstInvalid`, the panel's `focusNext`,
+   `element.focus()`); never `autoFocus`. Headings and `<main>` that receive focus get `tabIndex={-1}` (REQ-140).
+6. **Messages.** Add each new key to all three catalogs in the same commit (the REQ-52 test compares key sets). Use
+   the texts exactly as written, straight apostrophes (`'`) and the em dash (`—`) as in the existing messages. In
+   ICU an apostrophe followed by a letter is literal (`Mario's`, `l'accueil`).
+7. **Existing tests.** Each task lists the existing tests it changes. Do not edit any other test. If an unlisted
+   test fails, return the failure instead of adapting it.
+8. **Pages and server components** (`page.tsx`, `layout.tsx`, `not-found.tsx`, `EventDetails`, `OwnerGuestList`,
+   `InvitePreview`) are proven by E2E, not unit tests (they call `getTranslations` and services).
+9. **Every task's verification** (in addition to what the task lists): `npm run test:unit`, `npm run lint`,
+   `npm run typecheck`, `npm run format:check`, `npm run trace`. Run `npx prettier --write` on the files you changed
+   before the green commit (the snippets are not at their final indentation).
+10. `page.getByRole('alert')` also matches Next.js' route announcer; scope alerts to `page.locator('main')`.
+
+### TASK-273 — Mobile Playwright project with the core journeys and real picker checks
+**Phase:** 12 · **Requirements:** REQ-159, REQ-131 · **Status:** done · **Revision:** 1
+**Files:** playwright.config.ts, e2e/mobile.spec.ts (new)
+**Interface:** no production code changes.
+
+**Test first** (characterization, see "TDD exception"):
+1. `playwright.config.ts`: replace the whole `projects: [ … ],` array with:
+   ```ts
+   projects: [
+     {
+       name: 'chromium',
+       testIgnore: /mobile\.spec\.ts$/,
+       use: { ...devices['Desktop Chrome'], locale: 'en-US', timezoneId: 'America/New_York' },
+     },
+     {
+       // Phone journeys at the audit's 375 px width, with touch (REQ-159). Pixel 7 runs on
+       // Chromium, so CI needs no other browser.
+       name: 'mobile',
+       testMatch: /mobile\.spec\.ts$/,
+       use: {
+         ...devices['Pixel 7'],
+         viewport: { width: 375, height: 812 },
+         locale: 'en-US',
+         timezoneId: 'America/New_York',
+       },
+     },
+   ],
+   ```
+   Nothing else in the file changes (the CI workflow already installs Chromium).
+2. Create `e2e/mobile.spec.ts`:
+   ```ts
+   import { test, expect, type Locator } from '@playwright/test';
+   import { db, resetDatabase } from './helpers/db';
+   import { signInAs } from './helpers/auth';
+   import { futureDate } from './helpers/dates';
+   import { createEvent, createOwner } from './helpers/factories';
+
+   test.beforeEach(async () => {
+     await resetDatabase();
+   });
+
+   /** True while the input's native picker is open (the `:open` pseudo-class, Chromium 133+). */
+   async function pickerIsOpen(input: Locator): Promise<boolean> {
+     return input.evaluate((el) => el.matches(':open'));
+   }
+
+   test.describe('REQ-159: core journeys on a 375 px phone', () => {
+     test('REQ-159: the phone project is 375 px wide', async ({ page }) => {
+       await page.goto('/en');
+       expect(page.viewportSize()).toEqual({ width: 375, height: 812 });
+     });
+
+     test('REQ-159: a guest RSVPs by tapping', async ({ page }) => {
+       const owner = await createOwner();
+       const event = await createEvent(owner.id);
+
+       await page.goto(`/en/e/${event.slug}`);
+       await page.getByLabel('Your name').fill('Maria');
+       await page.getByRole('button', { name: 'One more person' }).tap();
+       await page.getByRole('button', { name: 'Send RSVP' }).tap();
+
+       await expect(page.getByText("You're going · 2 people")).toBeVisible();
+       expect((await db.rsvp.findFirst())?.partySize).toBe(2);
+     });
+
+     test('REQ-159: an organizer creates an event by tapping', async ({ page, context }) => {
+       await signInAs(context, { email: 'phone@example.com', name: 'Phone' });
+
+       await page.goto('/en/events/new');
+       await page.getByLabel('Name').fill('Team dinner');
+       await page.getByLabel('Description').fill('Pasta night');
+       await page.getByLabel('Date').fill(futureDate(7));
+       await page.getByLabel('Time', { exact: true }).fill('19:00');
+       await page.getByRole('button', { name: 'Save event' }).tap();
+
+       await expect(page).toHaveURL(/\/en\/e\/[A-Za-z0-9_-]{10}$/);
+       await expect(page.getByRole('heading', { name: 'Team dinner' })).toBeVisible();
+       await expect(page.getByLabel('Invite link')).toBeVisible();
+     });
+   });
+
+   test.describe('REQ-131: the native date and time pickers really open', () => {
+     test('REQ-131: tapping the Date field opens its picker', async ({ page, context }) => {
+       await signInAs(context, { email: 'picker1@example.com', name: 'Picker' });
+       await page.goto('/en/events/new');
+       const date = page.locator('#date');
+       expect(await pickerIsOpen(date)).toBe(false);
+
+       await date.tap();
+
+       await expect.poll(() => pickerIsOpen(date)).toBe(true);
+       await page.keyboard.press('Escape');
+       await expect.poll(() => pickerIsOpen(date)).toBe(false);
+     });
+
+     test('REQ-131: tapping "Open time picker" focuses Time and opens its picker', async ({
+       page,
+       context,
+     }) => {
+       await signInAs(context, { email: 'picker2@example.com', name: 'Picker' });
+       await page.goto('/en/events/new');
+       const time = page.locator('#time');
+
+       await page.getByRole('button', { name: 'Open time picker' }).tap();
+
+       await expect(time).toBeFocused();
+       await expect.poll(() => pickerIsOpen(time)).toBe(true);
+     });
+   });
+   ```
+Run `docker compose up -d db`, then `E2E_PORT=3100 npm run test:e2e -- e2e/mobile.spec.ts`: the five tests run in
+the `mobile` project and pass (the behaviour already exists: the audit found the core journeys working at 375 px, and
+Phase 11 opens the pickers with `showPicker()`). Check the split with `npx playwright test --list` (no network, no
+build): every `mobile.spec.ts` line starts with `[mobile]`, no other file appears under `[mobile]`. Commit
+`test(e2e): mobile project with the core journeys and real picker checks`.
+
+**Implementation:** none.
+**Verification:** `E2E_PORT=3100 npm run test:e2e -- e2e/mobile.spec.ts e2e/home.spec.ts` (home runs in `chromium`
+only, unchanged) and the Phase 12 note 9 checks.
+**Done when:** the five `mobile.spec.ts` tests pass in the `mobile` project, `e2e/home.spec.ts` passes in
+`chromium`, and lint, typecheck, format and trace pass.
+**TDD exception:** characterization — the journeys and the pickers already work; this task adds the test project
+that later tasks extend with failing screen-position checks (TASK-276, TASK-281). Mention it in the PR notes.
+
+### TASK-274 — Localized page titles and a not-found page for every unknown path
+**Phase:** 12 · **Requirements:** REQ-134, REQ-135 · **Status:** done · **Revision:** 1
+**Files:** package.json, package-lock.json, e2e/helpers/axe.ts (new), e2e/pages.spec.ts (new),
+src/app/[locale]/layout.tsx, src/app/[locale]/not-found.tsx, src/app/[locale]/[...rest]/page.tsx (new),
+src/app/[locale]/sign-in/page.tsx, src/app/[locale]/register/page.tsx, src/app/[locale]/dashboard/page.tsx,
+src/app/[locale]/events/new/page.tsx, src/app/[locale]/e/[slug]/page.tsx, src/app/[locale]/e/[slug]/edit/page.tsx,
+src/app/[locale]/account/page.tsx, messages/en.json, messages/fr.json, messages/pt-BR.json
+**Interface:** each page gains `export async function generateMetadata({ params }): Promise<Metadata>` (type from
+`next`); the layout's returns the title template and the description. New route file
+`src/app/[locale]/[...rest]/page.tsx` with `export default function CatchAllPage(): never`.
+
+**Test first:**
+1. `npm install --save-dev --save-exact axe-core@4.13.0` (it is already installed through `eslint-config-next`; this
+   records it in `package.json`). If npm fails with a network error, stop and return `ENV_FAILURE`.
+2. Create `e2e/helpers/axe.ts`:
+   ```ts
+   import type { Page } from '@playwright/test';
+   import * as axe from 'axe-core';
+
+   /** Runs the given axe-core rules on the current page and returns the ids of the rules it violates. */
+   export async function axeViolations(page: Page, rules: string[]): Promise<string[]> {
+     await page.addScriptTag({ content: axe.source });
+     const result = await page.evaluate(
+       (runOnly) => (window as unknown as { axe: typeof axe }).axe.run(document, { runOnly }),
+       rules,
+     );
+     return result.violations.map((violation) => violation.id);
+   }
+   ```
+3. Create `e2e/pages.spec.ts`:
+   ```ts
+   import { test, expect } from '@playwright/test';
+   import { resetDatabase } from './helpers/db';
+   import { signInAs } from './helpers/auth';
+   import { createEvent, createOwner } from './helpers/factories';
+   import { axeViolations } from './helpers/axe';
+
+   test.beforeEach(async () => {
+     await resetDatabase();
+   });
+
+   test.describe('REQ-134: page titles', () => {
+     test('REQ-134: signed-out pages have their titles and the description', async ({ page }) => {
+       const owner = await createOwner();
+       const event = await createEvent(owner.id, { name: 'Team dinner' });
+
+       await page.goto('/en');
+       await expect(page).toHaveTitle('Event RSVP');
+       await expect(page.locator('meta[name="description"]')).toHaveAttribute(
+         'content',
+         "Create an event, share one link, see who's coming.",
+       );
+       await page.goto('/en/sign-in');
+       await expect(page).toHaveTitle('Sign in · Event RSVP');
+       await page.goto('/en/register');
+       await expect(page).toHaveTitle('Create an account · Event RSVP');
+       await page.goto(`/en/e/${event.slug}`);
+       await expect(page).toHaveTitle('Team dinner · Event RSVP');
+       await page.goto('/fr/sign-in');
+       await expect(page).toHaveTitle('Connexion · Event RSVP');
+     });
+
+     test('REQ-134: signed-in pages have their titles in each language', async ({ page, context }) => {
+       const { id } = await signInAs(context, { email: 'titles@example.com', name: 'Titles' });
+       const event = await createEvent(id, { name: 'Team dinner' });
+       const cases: [string, string][] = [
+         ['/en/dashboard', 'My events · Event RSVP'],
+         ['/en/events/new', 'New event · Event RSVP'],
+         [`/en/e/${event.slug}/edit`, 'Edit event · Event RSVP'],
+         ['/en/account', 'Account · Event RSVP'],
+         [`/en/e/${event.slug}`, 'Team dinner · Event RSVP'],
+         ['/fr/dashboard', 'Mes événements · Event RSVP'],
+         ['/fr/account', 'Compte · Event RSVP'],
+         ['/pt-BR/events/new', 'Novo evento · Event RSVP'],
+         [`/pt-BR/e/${event.slug}/edit`, 'Editar evento · Event RSVP'],
+       ];
+       for (const [path, title] of cases) {
+         await page.goto(path);
+         await expect(page, path).toHaveTitle(title);
+       }
+     });
+   });
+
+   test.describe('REQ-135: the localized not-found page', () => {
+     test('REQ-135: an unknown path renders the not-found page inside the layout', async ({ page }) => {
+       const response = await page.goto('/en/nope');
+
+       expect(response?.status()).toBe(404);
+       await expect(page.locator('html')).toHaveAttribute('lang', 'en');
+       await expect(page.locator('html')).toHaveAttribute('data-theme', /^(dark|light)$/);
+       await expect(page.getByRole('banner')).toBeVisible();
+       await expect(
+         page.getByRole('heading', { level: 1, name: 'This page does not exist.' }),
+       ).toBeVisible();
+       await expect(
+         page.getByText('The link may be mistyped, or the event was deleted.'),
+       ).toBeVisible();
+       await expect(
+         page.locator('main').getByRole('link', { name: 'Go to the home page' }),
+       ).toHaveAttribute('href', '/en');
+     });
+
+     test('REQ-135: a nested unknown path in French is in French', async ({ page }) => {
+       const response = await page.goto('/fr/nope/deeper');
+
+       expect(response?.status()).toBe(404);
+       await expect(page.locator('html')).toHaveAttribute('lang', 'fr');
+       await expect(
+         page.getByRole('heading', { level: 1, name: "Cette page n'existe pas." }),
+       ).toBeVisible();
+       await expect(
+         page.getByText("Le lien est peut-être mal saisi, ou l'événement a été supprimé."),
+       ).toBeVisible();
+       await expect(
+         page.locator('main').getByRole('link', { name: "Aller à l'accueil" }),
+       ).toHaveAttribute('href', '/fr');
+     });
+
+     test('REQ-135: an unknown event slug shows the hint and the way home', async ({ page }) => {
+       const response = await page.goto('/pt-BR/e/unknown0001');
+
+       expect(response?.status()).toBe(404);
+       await expect(
+         page.getByRole('heading', { level: 1, name: 'Esta página não existe.' }),
+       ).toBeVisible();
+       await expect(
+         page.getByText('O link pode estar digitado errado, ou o evento foi excluído.'),
+       ).toBeVisible();
+       await expect(
+         page.locator('main').getByRole('link', { name: 'Ir para a página inicial' }),
+       ).toHaveAttribute('href', '/pt-BR');
+     });
+   });
+
+   test.describe('REQ-134, REQ-135: axe page title and language checks', () => {
+     const rules = ['document-title', 'html-has-lang'];
+
+     test('REQ-134: every page passes axe document-title and html-has-lang', async ({
+       page,
+       context,
+     }) => {
+       const guestOwner = await createOwner();
+       const guestEvent = await createEvent(guestOwner.id);
+       for (const path of [
+         '/en',
+         '/en/sign-in',
+         '/en/register',
+         `/en/e/${guestEvent.slug}`,
+         '/en/nope',
+         '/en/e/unknown0001',
+       ]) {
+         await page.goto(path);
+         expect(await axeViolations(page, rules), path).toEqual([]);
+       }
+
+       const { id } = await signInAs(context, { email: 'axe@example.com', name: 'Axe' });
+       const ownEvent = await createEvent(id);
+       for (const path of [
+         '/en/dashboard',
+         '/en/events/new',
+         `/en/e/${ownEvent.slug}`,
+         `/en/e/${ownEvent.slug}/edit`,
+         '/en/account',
+       ]) {
+         await page.goto(path);
+         expect(await axeViolations(page, rules), path).toEqual([]);
+       }
+     });
+   });
+   ```
+Run `E2E_PORT=3100 npm run test:e2e -- e2e/pages.spec.ts`: all six tests fail (no page has a title; `/en/nope` is
+Next's built-in page without `lang`, header or hint). Commit `test(e2e): page titles, the localized not-found page
+and axe title and language checks` (with `package.json` and `package-lock.json`).
+
+**Implementation:**
+1. Messages: add a top-level `"notFound"` object right after the `"errors"` object (add a comma after the closing
+   brace of `"errors"`):
+   - en: `"notFound": { "hint": "The link may be mistyped, or the event was deleted.", "home": "Go to the home page" },`
+   - fr: `"notFound": { "hint": "Le lien est peut-être mal saisi, ou l'événement a été supprimé.", "home": "Aller à l'accueil" },`
+   - pt-BR: `"notFound": { "hint": "O link pode estar digitado errado, ou o evento foi excluído.", "home": "Ir para a página inicial" },`
+2. `src/app/[locale]/[...rest]/page.tsx`:
+   ```tsx
+   import { notFound } from 'next/navigation';
+
+   /** Sends every unmatched path under a locale to the localized not-found page (REQ-135). */
+   export default function CatchAllPage(): never {
+     notFound();
+   }
+   ```
+3. `src/app/[locale]/not-found.tsx` becomes:
+   ```tsx
+   import { useTranslations } from 'next-intl';
+   import { Link } from '@/i18n/navigation';
+
+   /** Localized not-found page, rendered inside the locale layout (REQ-135, BR-181). */
+   export default function NotFound() {
+     const t = useTranslations();
+     return (
+       <main className="page">
+         <div className="col-640">
+           <h1 className="h2">{t('errors.NOT_FOUND')}</h1>
+           <p className="muted mt-2">{t('notFound.hint')}</p>
+           <p className="mt-4">
+             <Link href="/">{t('notFound.home')}</Link>
+           </p>
+         </div>
+       </main>
+     );
+   }
+   ```
+4. `src/app/[locale]/layout.tsx`: change the import to
+   `import { getTranslations, setRequestLocale } from 'next-intl/server';`, add `import type { Metadata } from 'next';`
+   and, before `export default async function LocaleLayout`, add:
+   ```ts
+   /** Localized title template and description for every page (REQ-134, BR-174). */
+   export async function generateMetadata({
+     params,
+   }: {
+     params: Promise<{ locale: string }>;
+   }): Promise<Metadata> {
+     const { locale } = await params;
+     if (!hasLocale(routing.locales, locale)) return {};
+     const t = await getTranslations({ locale });
+     return {
+       title: { default: t('meta.title'), template: `%s · ${t('meta.title')}` },
+       description: t('meta.description'),
+     };
+   }
+   ```
+5. In each page below add `import type { Metadata } from 'next';` and, directly above the page's default export
+   (after the imports and any `maxDuration`), this function with the key from the table. Every one of these pages
+   already imports `getTranslations` from `next-intl/server`:
+   ```ts
+   /** Localized page title (REQ-134). */
+   export async function generateMetadata({
+     params,
+   }: {
+     params: Promise<{ locale: string }>;
+   }): Promise<Metadata> {
+     const { locale } = await params;
+     const t = await getTranslations({ locale });
+     return { title: t('<key>') };
+   }
+   ```
+   | File | `<key>` |
+   |---|---|
+   | `sign-in/page.tsx` | `auth.signInTitle` |
+   | `register/page.tsx` | `auth.registerTitle` |
+   | `dashboard/page.tsx` | `dashboard.title` |
+   | `events/new/page.tsx` | `eventForm.titleNew` |
+   | `e/[slug]/edit/page.tsx` (its `params` type is `Promise<{ locale: string; slug: string }>`) | `eventForm.titleEdit` |
+   | `account/page.tsx` | `account.title` |
+   If a page file does not import `getTranslations` yet, add it to its `next-intl/server` import.
+6. `src/app/[locale]/e/[slug]/page.tsx`: add `import type { Metadata } from 'next';` and, above
+   `export default async function EventPage`:
+   ```ts
+   /** The event's name as the page title (REQ-134); an unknown slug keeps the default title. */
+   export async function generateMetadata({
+     params,
+   }: {
+     params: Promise<{ locale: string; slug: string }>;
+   }): Promise<Metadata> {
+     const { slug } = await params;
+     try {
+       const view = await getServices().getEventPage.execute({ slug, userId: null, editToken: null });
+       return { title: view.event.name };
+     } catch (error) {
+       if (error instanceof NotFoundError) return {};
+       throw error;
+     }
+   }
+   ```
+7. `npx prettier --write` on the changed files; run `E2E_PORT=3100 npm run test:e2e -- e2e/pages.spec.ts`: all pass.
+   Commit `feat(i18n): localized page titles and a not-found page for every unknown path`.
+
+**Verification:** `E2E_PORT=3100 npm run test:e2e -- e2e/pages.spec.ts e2e/i18n.spec.ts e2e/events.spec.ts
+e2e/sign-in.spec.ts` and the Phase 12 note 9 checks.
+**Done when:** the six `pages.spec.ts` tests pass, the listed specs pass unchanged, and unit, lint, typecheck, format
+and trace pass.
+**TDD exception:** none
+
+### TASK-275 — A busy button keeps keyboard focus
+**Phase:** 12 · **Requirements:** REQ-136 · **Status:** done · **Revision:** 1
+**Files:** src/components/ui/button.tsx, src/components/ui/button.test.tsx, src/components/event-form.test.tsx,
+src/components/set-password-form.tsx, src/components/set-password-form.test.tsx, e2e/focus.spec.ts (new)
+**Interface:** `Button` props unchanged (`ButtonProps`); only its rendering while `loading` changes.
+
+**Test first:**
+1. `src/components/ui/button.test.tsx`: change the imports to
+   `import { describe, expect, it, vi } from 'vitest';` and add `import { fireEvent } from '@testing-library/react';`.
+   Replace the test `REQ-71: a loading button keeps its label, is disabled and busy` with:
+   ```tsx
+   it('REQ-71: a loading button keeps its label, is busy and shows a spinner', () => {
+     const { getByRole } = renderWithIntl(<Button loading>Save event</Button>);
+     const button = getByRole('button', { name: 'Save event' });
+     expect(button.getAttribute('aria-busy')).toBe('true');
+     expect(button.getAttribute('type')).toBe('button');
+     expect(button.querySelector('.spinner[aria-hidden="true"]')).not.toBeNull();
+   });
+   ```
+   and append at the end of the file:
+   ```tsx
+   describe('Button while loading (REQ-136)', () => {
+     it('REQ-136: a loading button stays focusable, is aria-disabled and ignores clicks', () => {
+       const onClick = vi.fn();
+       const { getByRole } = renderWithIntl(
+         <Button loading onClick={onClick}>
+           Save event
+         </Button>,
+       );
+       const button = getByRole('button', { name: 'Save event' }) as HTMLButtonElement;
+       button.focus();
+
+       fireEvent.click(button);
+
+       expect(button.disabled).toBe(false);
+       expect(button.getAttribute('aria-disabled')).toBe('true');
+       expect(onClick).not.toHaveBeenCalled();
+       expect(document.activeElement).toBe(button);
+     });
+
+     it('REQ-136: a loading submit button does not submit its form', () => {
+       const onSubmit = vi.fn((event: React.FormEvent) => event.preventDefault());
+       const { getByRole } = renderWithIntl(
+         <form onSubmit={onSubmit}>
+           <Button type="submit" loading>
+             Send RSVP
+           </Button>
+         </form>,
+       );
+
+       fireEvent.click(getByRole('button', { name: 'Send RSVP' }));
+
+       expect(onSubmit).not.toHaveBeenCalled();
+     });
+
+     it('REQ-136: an idle button passes clicks through; disabled still disables', () => {
+       const onClick = vi.fn();
+       const { getByRole } = renderWithIntl(
+         <>
+           <Button onClick={onClick}>Change</Button>
+           <Button disabled>Keep</Button>
+         </>,
+       );
+
+       fireEvent.click(getByRole('button', { name: 'Change' }));
+
+       expect(onClick).toHaveBeenCalledTimes(1);
+       expect(getByRole('button', { name: 'Change' }).getAttribute('aria-disabled')).toBeNull();
+       expect((getByRole('button', { name: 'Keep' }) as HTMLButtonElement).disabled).toBe(true);
+     });
+   });
+   ```
+2. `src/components/event-form.test.tsx`, test `REQ-83: while filling, Fill with AI keeps its label and is busy`:
+   replace `expect(button.disabled).toBe(true);` with `expect(button.getAttribute('aria-disabled')).toBe('true');`.
+3. `src/components/set-password-form.test.tsx`:
+   - in `REQ-120: saving shows "Password saved.", empties the fields and refreshes`, destructure `getByRole` instead
+     of `findByRole` and replace `expect((await findByRole('status')).textContent).toBe('Password saved.');` with
+     `await waitFor(() => expect(getByRole('status').textContent).toBe('Password saved.'));`
+   - append inside `describe('SetPasswordForm', …)`:
+     ```tsx
+     it('REQ-136: the status region exists before saving, so "Password saved." is announced', () => {
+       const { getByRole } = setup(true);
+       expect(getByRole('status').textContent).toBe('');
+     });
+     ```
+4. Create `e2e/focus.spec.ts`:
+   ```ts
+   import { test, expect, type Page } from '@playwright/test';
+   import { resetDatabase } from './helpers/db';
+   import { signInAs } from './helpers/auth';
+   import { createEvent, createOwner, createPasswordUser, createRsvp } from './helpers/factories';
+
+   test.beforeEach(async () => {
+     await resetDatabase();
+   });
+
+   /** Tag name of the focused element (`BODY` when focus was dropped). */
+   async function focusedTag(page: Page): Promise<string> {
+     return page.evaluate(() => document.activeElement?.tagName ?? 'NONE');
+   }
+
+   test.describe('REQ-136: a failed async action leaves focus on its button', () => {
+     test('REQ-136: a wrong password leaves focus on Sign in', async ({ page }) => {
+       await createPasswordUser('ana@example.com', 'Ana', 'correct horse');
+       await page.goto('/en/sign-in');
+       const main = page.locator('main');
+       await main.getByLabel('Email').fill('ana@example.com');
+       await main.getByLabel('Password', { exact: true }).fill('wrong horse');
+       await main.getByRole('button', { name: 'Sign in', exact: true }).click();
+
+       await expect(main.getByRole('alert')).toHaveText('Email or password is incorrect.');
+       await expect(main.getByRole('button', { name: 'Sign in', exact: true })).toBeFocused();
+       expect(await focusedTag(page)).not.toBe('BODY');
+     });
+
+     test('REQ-136: a duplicate RSVP name leaves focus on Send RSVP', async ({ page }) => {
+       const owner = await createOwner();
+       const event = await createEvent(owner.id);
+       await createRsvp(event.id, 'Maria');
+
+       await page.goto(`/en/e/${event.slug}`);
+       await page.getByLabel('Your name').fill('maria');
+       await page.getByRole('button', { name: 'Send RSVP' }).click();
+
+       await expect(page.locator('main').getByRole('alert')).toHaveText(
+         'This name is already on the list. Use a different name or ask the organizer.',
+       );
+       await expect(page.getByRole('button', { name: 'Send RSVP' })).toBeFocused();
+     });
+
+     test('REQ-136: a failed AI fill leaves focus on Fill with AI', async ({ page, context }) => {
+       await signInAs(context, { email: 'focus-ai@example.com', name: 'Focus' });
+       await page.goto('/en/events/new');
+       await page.getByLabel('Describe your event').fill('[[mock-error]] party');
+       await page.getByRole('button', { name: 'Fill with AI' }).click();
+
+       await expect(
+         page.getByText(
+           'The AI service is unavailable right now — try again later, or fill the form below.',
+         ),
+       ).toBeVisible();
+       await expect(page.getByRole('button', { name: 'Fill with AI' })).toBeFocused();
+     });
+   });
+   ```
+Run `npx vitest run --project unit src/components/ui/button.test.tsx src/components/event-form.test.tsx
+src/components/set-password-form.test.tsx`: these fail — "REQ-136: a loading button stays focusable…", the edited
+REQ-83 test, and "REQ-136: the status region exists before saving…". The other two new Button tests pass already
+(guards: `disabled` also blocks a submit today; idle clicks already work). Run `E2E_PORT=3100 npm run test:e2e --
+e2e/focus.spec.ts`: the three tests fail on `toBeFocused` (focus is on `<body>`). Commit
+`test(ui): a busy button keeps keyboard focus`.
+
+**Implementation:**
+1. `src/components/ui/button.tsx`: in `Button`, destructure `onClick` (after `children,`) and render:
+   ```tsx
+   <button
+     {...rest}
+     type={type}
+     className={buttonClass(variant, size, className)}
+     disabled={disabled}
+     aria-disabled={loading || undefined}
+     aria-busy={loading || undefined}
+     onClick={loading ? (event) => event.preventDefault() : onClick}
+   >
+   ```
+   (children unchanged). Replace its comment with:
+   ```ts
+   /**
+    * Button with variant/size styling and a busy spinner while loading (REQ-71). While loading it stays
+    * focusable: `aria-disabled` instead of `disabled`, and a click (or a form submission through it) is
+    * cancelled, so keyboard focus is never dropped to <body> (REQ-136).
+    */
+   ```
+   `globals.css` already styles `.btn[aria-disabled='true']` like `.btn:disabled`; do not change it.
+2. `src/components/set-password-form.tsx`: replace
+   ```tsx
+   {saved && (
+     <p className="small" role="status">
+       {t('account.passwordSaved')}
+     </p>
+   )}
+   ```
+   with
+   ```tsx
+   <p className="small" role="status">
+     {saved ? t('account.passwordSaved') : null}
+   </p>
+   ```
+3. Prettier, run the unit files and the E2E file again: all pass. Commit
+   `fix(ui): keep focus on a busy button and announce the saved password`.
+
+**Verification:** `E2E_PORT=3100 npm run test:e2e -- e2e/focus.spec.ts e2e/rsvp.spec.ts e2e/ai.spec.ts
+e2e/password-auth.spec.ts e2e/a11y.spec.ts` and the Phase 12 note 9 checks.
+**Done when:** the new and edited tests pass, the listed E2E specs pass, and unit, lint, typecheck, format and trace
+pass.
+**TDD exception:** none
+
+### TASK-276 — A failed validation focuses the first invalid field, with one alert at most
+**Phase:** 12 · **Requirements:** REQ-137 · **Status:** done · **Revision:** 1
+**Files:** src/lib/focus.ts (new), src/lib/focus.test.ts (new), src/components/ui/field.tsx,
+src/components/ui/field.test.tsx, src/components/rsvp-form.tsx, src/components/rsvp-form.test.tsx,
+src/components/event-form.tsx, src/components/event-form.test.tsx, src/components/password-sign-in-form.tsx,
+src/components/password-sign-in-form.test.tsx, src/components/register-form.tsx,
+src/components/register-form.test.tsx, src/components/set-password-form.tsx,
+src/components/set-password-form.test.tsx, e2e/focus.spec.ts, e2e/mobile.spec.ts
+**Interface** (`src/lib/focus.ts`):
+```ts
+export function focusFirstInvalid(
+  root: ParentNode | null,
+  fieldErrors: FieldErrors,
+  idByField: Readonly<Record<string, string>>,
+): boolean
+```
+(`FieldErrors` from `@/domain/errors`). No exported component API changes.
+
+**Test first** — stub `src/lib/focus.ts` in the test commit (plan rule 12):
+```ts
+import type { FieldErrors } from '@/domain/errors';
+
+/** Focuses the first control with a field error (REQ-137). */
+export function focusFirstInvalid(
+  _root: ParentNode | null,
+  _fieldErrors: FieldErrors,
+  _idByField: Readonly<Record<string, string>>,
+): boolean {
+  throw new Error('not implemented');
+}
+```
+1. Create `src/lib/focus.test.ts`:
+   ```ts
+   // @vitest-environment jsdom
+   import { afterEach, describe, expect, it } from 'vitest';
+   import { focusFirstInvalid } from './focus';
+
+   afterEach(() => {
+     document.body.innerHTML = '';
+   });
+
+   /** A form with a name input, a notes textarea, a date input and a zone select, in that order. */
+   function form(): HTMLFormElement {
+     const element = document.createElement('form');
+     element.innerHTML =
+       '<input id="f-name" /><textarea id="f-notes"></textarea><input id="f-date" /><select id="f-zone"></select>';
+     document.body.appendChild(element);
+     return element;
+   }
+
+   describe('focusFirstInvalid (REQ-137)', () => {
+     const ids = { name: 'f-name', notes: 'f-notes', date: 'f-date', timezone: 'f-zone' };
+
+     it('REQ-137: focuses the first control in document order, not in error-key order', () => {
+       const root = form();
+
+       const focused = focusFirstInvalid(root, { timezone: 'invalidTimezone', date: 'inPast' }, ids);
+
+       expect(focused).toBe(true);
+       expect(document.activeElement?.id).toBe('f-date');
+     });
+
+     it('REQ-137: ignores errors without a mapped control and returns false when nothing matches', () => {
+       const root = form();
+
+       expect(focusFirstInvalid(root, { form: 'invalidFormat' }, ids)).toBe(false);
+       expect(document.activeElement).toBe(document.body);
+       expect(focusFirstInvalid(null, { name: 'required' }, ids)).toBe(false);
+     });
+   });
+   ```
+2. `src/components/ui/field.test.tsx`: replace `REQ-69: FieldError is an alert with an icon and the message` with:
+   ```tsx
+   it('REQ-137: FieldError is described text with an icon, not an alert', () => {
+     const { container, queryByRole } = renderWithIntl(
+       <FieldError id="name-error">This field is required.</FieldError>,
+     );
+     const error = container.querySelector('#name-error')!;
+     expect(error.className).toBe('field-error');
+     expect(error.textContent).toBe('This field is required.');
+     expect(error.querySelectorAll('svg[aria-hidden="true"]')).toHaveLength(1);
+     expect(queryByRole('alert')).toBeNull();
+   });
+   ```
+3. `src/components/rsvp-form.test.tsx`: replace `REQ-69: an empty name is announced as an alert` with:
+   ```tsx
+   test('REQ-137: an empty name focuses the name field and is described, not an alert', () => {
+     renderWithIntl(<RsvpForm submit={vi.fn()} />);
+
+     fireEvent.click(screen.getByRole('button', { name: 'Send RSVP' }));
+
+     const input = screen.getByLabelText('Your name');
+     expect(document.activeElement).toBe(input);
+     expect(input.getAttribute('aria-describedby')).toBe('rsvp-name-hint rsvp-name-error');
+     expect(document.getElementById('rsvp-name-error')?.textContent).toBe(
+       'This field is required.',
+     );
+     expect(screen.queryByRole('alert')).toBeNull();
+   });
+
+   test('REQ-137: a party size refused by the server focuses the party size', async () => {
+     const submit = vi.fn().mockResolvedValue({
+       ok: false,
+       code: 'VALIDATION_ERROR',
+       fieldErrors: { partySize: 'partySizeRange' },
+     });
+     renderWithIntl(<RsvpForm submit={submit} />);
+     fireEvent.change(screen.getByLabelText('Your name'), { target: { value: 'Maria' } });
+
+     fireEvent.click(screen.getByRole('button', { name: 'Send RSVP' }));
+
+     await waitFor(() =>
+       expect(document.activeElement).toBe(
+         screen.getByLabelText('How many people, including you?'),
+       ),
+     );
+   });
+   ```
+4. `src/components/event-form.test.tsx`: replace `REQ-69: a required-field error is announced` with:
+   ```tsx
+   test('REQ-137: an empty name focuses Name, with the error described and no alert', () => {
+     renderWithIntl(<EventForm submit={vi.fn()} />);
+     fireEvent.change(screen.getByLabelText('Description'), { target: { value: 'Pasta night' } });
+     fireEvent.change(screen.getByLabelText('Date'), { target: { value: '2099-01-01' } });
+     fireEvent.change(screen.getByLabelText('Time'), { target: { value: '10:00' } });
+
+     fireEvent.click(screen.getByRole('button', { name: 'Save event' }));
+
+     const name = screen.getByLabelText('Name');
+     expect(document.activeElement).toBe(name);
+     expect(name.getAttribute('aria-describedby')).toBe('name-error');
+     expect(document.getElementById('name-error')?.textContent).toBe('This field is required.');
+     expect(screen.queryByRole('alert')).toBeNull();
+   });
+
+   test('REQ-137: a date refused by the server focuses Date', async () => {
+     const submit = vi.fn().mockResolvedValue({
+       ok: false,
+       code: 'VALIDATION_ERROR',
+       fieldErrors: { date: 'inPast' },
+     });
+     renderWithIntl(<EventForm submit={submit} />);
+     fillValidFields();
+
+     fireEvent.click(screen.getByRole('button', { name: 'Save event' }));
+
+     await waitFor(() => expect(document.activeElement).toBe(screen.getByLabelText('Date')));
+   });
+   ```
+5. `src/components/password-sign-in-form.test.tsx`, inside `describe('PasswordSignInForm', …)`:
+   ```tsx
+   it('REQ-137: empty fields focus Email first', () => {
+     const { fill, getByLabelText } = setup(ok);
+     fill('', '');
+     expect(document.activeElement).toBe(getByLabelText('Email'));
+   });
+   ```
+6. `src/components/register-form.test.tsx`, inside `describe('RegisterForm', …)`:
+   ```tsx
+   it('REQ-137: a different confirmation focuses Confirm password', () => {
+     const { fill, getByLabelText } = setup({ ok: true, data: { redirectTo: '/' } });
+     fill({ ...typed, confirmPassword: 'correct horsE' });
+     expect(document.activeElement).toBe(getByLabelText('Confirm password'));
+   });
+   ```
+7. `src/components/set-password-form.test.tsx`, inside `describe('SetPasswordForm', …)`:
+   ```tsx
+   it('REQ-137: a wrong current password refused by the server focuses Current password', async () => {
+     const { type, save, getByLabelText } = setup(true, {
+       ok: false,
+       code: 'VALIDATION_ERROR',
+       fieldErrors: { currentPassword: 'currentPasswordIncorrect' },
+     });
+     type('Current password', 'wrong');
+     type('New password', 'new horse 12');
+     type('Confirm new password', 'new horse 12');
+     save();
+     await waitFor(() => expect(document.activeElement).toBe(getByLabelText('Current password')));
+   });
+   ```
+8. `e2e/focus.spec.ts`, append:
+   ```ts
+   test.describe('REQ-137: a failed validation focuses the first invalid field', () => {
+     test('REQ-137: an empty RSVP name focuses Your name, with no alert', async ({ page }) => {
+       const owner = await createOwner();
+       const event = await createEvent(owner.id);
+
+       await page.goto(`/en/e/${event.slug}`);
+       await page.getByRole('button', { name: 'Send RSVP' }).click();
+
+       await expect(page.getByLabel('Your name')).toBeFocused();
+       await expect(page.getByText('This field is required.')).toBeVisible();
+       await expect(page.locator('main').getByRole('alert')).toHaveCount(0);
+     });
+
+     test('REQ-137: an empty event form focuses Name', async ({ page, context }) => {
+       await signInAs(context, { email: 'focus-form@example.com', name: 'Focus' });
+       await page.goto('/en/events/new');
+       await page.getByRole('button', { name: 'Save event' }).click();
+
+       await expect(page.getByLabel('Name', { exact: true })).toBeFocused();
+       expect(await focusedTag(page)).toBe('INPUT');
+     });
+   });
+   ```
+9. `e2e/mobile.spec.ts`, append:
+   ```ts
+   test.describe('REQ-137: errors on a phone are brought into view', () => {
+     test('REQ-137: an empty new-event form focuses Name inside the viewport', async ({
+       page,
+       context,
+     }) => {
+       await signInAs(context, { email: 'phone-form@example.com', name: 'Phone' });
+       await page.goto('/en/events/new');
+
+       await page.getByRole('button', { name: 'Save event' }).tap();
+
+       const name = page.getByLabel('Name', { exact: true });
+       await expect(name).toBeFocused();
+       await expect(name).toBeInViewport();
+     });
+   });
+   ```
+Run `npx vitest run --project unit src/lib/focus.test.ts src/components/ui/field.test.tsx
+src/components/rsvp-form.test.tsx src/components/event-form.test.tsx src/components/password-sign-in-form.test.tsx
+src/components/register-form.test.tsx src/components/set-password-form.test.tsx`: every new test fails (the helper
+throws; focus stays on the submit button; `FieldError` is still an alert). Run `E2E_PORT=3100 npm run test:e2e --
+e2e/focus.spec.ts e2e/mobile.spec.ts`: the two REQ-137 focus tests and the phone test fail (the audit measured
+Name at −65 px, above the viewport). Commit
+`test(forms): the first invalid field gets focus and field errors are not alerts`.
+
+**Implementation:**
+1. `src/lib/focus.ts`, the whole file:
+   ```ts
+   import type { FieldErrors } from '@/domain/errors';
+
+   /**
+    * Focuses the first `input`, `textarea` or `select` inside `root`, in document order, whose id
+    * belongs to a field with an error (`idByField` maps a field name to its control id). Returns
+    * whether a control was focused (REQ-137, BR-176).
+    */
+   export function focusFirstInvalid(
+     root: ParentNode | null,
+     fieldErrors: FieldErrors,
+     idByField: Readonly<Record<string, string>>,
+   ): boolean {
+     if (!root) return false;
+     const ids = new Set(
+       Object.keys(fieldErrors)
+         .map((field) => idByField[field])
+         .filter((id): id is string => Boolean(id)),
+     );
+     const controls = root.querySelectorAll<HTMLElement>('input, textarea, select');
+     for (const control of Array.from(controls)) {
+       if (ids.has(control.id)) {
+         control.focus();
+         return true;
+       }
+     }
+     return false;
+   }
+   ```
+2. `src/components/ui/field.tsx`, `FieldError`: remove `role="alert"` from the `<p>` and change its comment to
+   `/** Field-level error with an alert icon, read through its input's aria-describedby; not a live region, so one failed submit makes at most one alert (REQ-69, REQ-137). */`
+3. The same pattern in each form. Add `useRef` to the `react` import, `import { flushSync } from 'react-dom';`,
+   `import { focusFirstInvalid } from '@/lib/focus';`, a module-level id map, a `formRef` on the `<form>`
+   (`<form ref={formRef} …>`, keep every other attribute), and a helper inside the component that renders the errors
+   before moving focus:
+   ```ts
+   const formRef = useRef<HTMLFormElement>(null);
+
+   /** Shows field errors, then focuses the first invalid field (REQ-137). */
+   function showFieldErrors(errors: FieldErrors) {
+     flushSync(() => {
+       setFieldErrors(errors);
+       setFormError(null);
+     });
+     focusFirstInvalid(formRef.current, errors, FIELD_IDS);
+   }
+   ```
+   | File | Id map constant (above the props interface) | Replace |
+   |---|---|---|
+   | `rsvp-form.tsx` | `const RSVP_FIELD_IDS = { name: 'rsvp-name', partySize: 'rsvp-party-size' } as const;` | client path `setFieldErrors(ValidationError.fromZod(parsed.error).fieldErrors); setFormError(null); return;` → `showFieldErrors(ValidationError.fromZod(parsed.error).fieldErrors); return;`; server path `setFieldErrors(result.fieldErrors ?? {});` → `showFieldErrors(result.fieldErrors ?? {});` |
+   | `event-form.tsx` | `const EVENT_FIELD_IDS: Record<FieldName, string> = { name: 'name', description: 'description', date: 'date', time: 'time', timezone: 'timezone', location: 'location' };` (after the `FieldName` type) | the same two paths in `handleSubmit` |
+   | `password-sign-in-form.tsx` | `const SIGN_IN_FIELD_IDS = { email: 'signin-email', password: 'signin-password' } as const;` | client path (`setFieldErrors(…); setFormError(null); return;`) → `showFieldErrors(ValidationError.fromZod(parsed.error).fieldErrors); return;`; server path `setFieldErrors(result.fieldErrors ?? {}); return;` → `showFieldErrors(result.fieldErrors ?? {}); return;` |
+   | `register-form.tsx` | `const REGISTER_FIELD_IDS = { name: 'register-name', email: 'register-email', password: 'register-password', confirmPassword: 'register-confirm' } as const;` | the same two paths as sign-in |
+   In each file use that file's constant in place of `FIELD_IDS`. `FieldErrors` is already imported in these files.
+   `set-password-form.tsx` differs (it has `saved` and no `setFormError` in the client path). Add the imports, the
+   constant `const ACCOUNT_FIELD_IDS = { currentPassword: 'account-current', newPassword: 'account-new', confirmPassword: 'account-confirm' } as const;`
+   and the `formRef`, then:
+   - client path: replace `setFieldErrors(errors); setSaved(false); return;` with
+     ```ts
+     flushSync(() => {
+       setFieldErrors(errors);
+       setSaved(false);
+     });
+     focusFirstInvalid(formRef.current, errors, ACCOUNT_FIELD_IDS);
+     return;
+     ```
+   - server path: replace `if (result.code === 'VALIDATION_ERROR') setFieldErrors(result.fieldErrors ?? {});` with
+     ```ts
+     if (result.code === 'VALIDATION_ERROR') {
+       const errors = result.fieldErrors ?? {};
+       flushSync(() => setFieldErrors(errors));
+       focusFirstInvalid(formRef.current, errors, ACCOUNT_FIELD_IDS);
+     }
+     ```
+     and keep its `else setFormError(t(\`errors.${result.code}\`));` as the `else` branch of that block.
+4. Prettier, run the unit files and the two E2E files again: all pass. Commit
+   `fix(forms): focus the first invalid field; one alert per failed submit`.
+
+**Verification:** `E2E_PORT=3100 npm run test:e2e -- e2e/focus.spec.ts e2e/mobile.spec.ts e2e/events.spec.ts
+e2e/rsvp.spec.ts e2e/password-auth.spec.ts e2e/sign-in.spec.ts` and the Phase 12 note 9 checks.
+**Done when:** every new and replaced test passes, the listed E2E specs pass, and unit, lint, typecheck, format and
+trace pass.
+**TDD exception:** none
+
+### TASK-277 — RSVP form: Going after Not going, a clearable party size, "Keep my answer"
+**Phase:** 12 · **Requirements:** REQ-138, REQ-139 · **Status:** done · **Revision:** 1
+**Files:** src/components/rsvp-form.tsx, src/components/rsvp-form.test.tsx, src/components/ui/stepper.tsx,
+messages/en.json, messages/fr.json, messages/pt-BR.json, e2e/rsvp.spec.ts
+**Interface:** `RsvpFormProps` gains `onKeep?: () => void` (documented: "When given (editing an existing RSVP),
+shows "Keep my answer", which calls it (REQ-139)."). `StepperProps` unchanged.
+
+**Test first** — add `onKeep?: () => void;` to `RsvpFormProps` in the test commit (so the test compiles):
+1. `src/components/rsvp-form.test.tsx`, append at the end of the file:
+   ```tsx
+   describe('RsvpForm party size and Keep my answer (REQ-138, REQ-139)', () => {
+     test('REQ-138: switching a Not going answer to Going starts at one person', async () => {
+       const submit = vi.fn().mockResolvedValue({
+         ok: true,
+         data: { name: 'Maria', status: 'GOING', partySize: 1 },
+       });
+       renderWithIntl(
+         <RsvpForm submit={submit} initial={{ name: 'Maria', status: 'NOT_GOING', partySize: 0 }} />,
+       );
+
+       fireEvent.click(screen.getByLabelText('Going'));
+
+       const size = screen.getByLabelText('How many people, including you?') as HTMLInputElement;
+       expect(size.value).toBe('1');
+       expect(
+         (screen.getByRole('button', { name: 'One less person' }) as HTMLButtonElement).disabled,
+       ).toBe(true);
+       fireEvent.click(screen.getByRole('button', { name: 'Send RSVP' }));
+       await waitFor(() =>
+         expect(submit).toHaveBeenCalledWith({ name: 'Maria', status: 'GOING', partySize: 1 }, ''),
+       );
+     });
+
+     test('REQ-138: the party size can be cleared and retyped', () => {
+       renderWithIntl(<RsvpForm submit={vi.fn()} />);
+       const size = screen.getByLabelText('How many people, including you?') as HTMLInputElement;
+
+       fireEvent.change(size, { target: { value: '' } });
+       expect(size.value).toBe('');
+       fireEvent.change(size, { target: { value: '3' } });
+       expect(size.value).toBe('3');
+     });
+
+     test('REQ-138: an emptied party size is refused with the range message', async () => {
+       const submit = vi.fn();
+       renderWithIntl(<RsvpForm submit={submit} />);
+       fireEvent.change(screen.getByLabelText('Your name'), { target: { value: 'Maria' } });
+       fireEvent.change(screen.getByLabelText('How many people, including you?'), {
+         target: { value: '' },
+       });
+
+       fireEvent.click(screen.getByRole('button', { name: 'Send RSVP' }));
+
+       expect(await screen.findByText('Enter a number from 1 to 10.')).toBeTruthy();
+       expect(submit).not.toHaveBeenCalled();
+     });
+
+     test('REQ-139: with onKeep the form offers Keep my answer, which calls it', () => {
+       const onKeep = vi.fn();
+       const submit = vi.fn();
+       renderWithIntl(
+         <RsvpForm
+           submit={submit}
+           onKeep={onKeep}
+           initial={{ name: 'Maria', status: 'GOING', partySize: 3 }}
+         />,
+       );
+       const keep = screen.getByRole('button', { name: 'Keep my answer' });
+
+       fireEvent.click(keep);
+
+       expect(keep.getAttribute('type')).toBe('button');
+       expect(onKeep).toHaveBeenCalledTimes(1);
+       expect(submit).not.toHaveBeenCalled();
+     });
+
+     test('REQ-139: without onKeep there is no Keep my answer button', () => {
+       renderWithIntl(<RsvpForm submit={vi.fn()} />);
+
+       expect(screen.queryByRole('button', { name: 'Keep my answer' })).toBeNull();
+     });
+   });
+   ```
+2. `e2e/rsvp.spec.ts`, append:
+   ```ts
+   test.describe('REQ-138: from Not going to Going', () => {
+     test('REQ-138: a guest who said Not going can come after all', async ({ page }) => {
+       const owner = await createOwner();
+       const event = await createEvent(owner.id);
+
+       await page.goto(`/en/e/${event.slug}`);
+       await page.getByLabel('Your name').fill('Maria');
+       await page.getByLabel('Not going').check();
+       await page.getByRole('button', { name: 'Send RSVP' }).click();
+       await expect(page.getByRole('heading', { name: "You're not going" })).toBeVisible();
+
+       await page.getByRole('button', { name: 'Change' }).click();
+       await page.getByLabel('Going', { exact: true }).check();
+       await expect(page.getByLabel('How many people, including you?')).toHaveValue('1');
+       await page.getByRole('button', { name: 'Send RSVP' }).click();
+
+       await expect(page.getByRole('heading', { name: "You're going · 1 person" })).toBeVisible();
+       const rsvp = await db.rsvp.findFirst();
+       expect(rsvp?.status).toBe('GOING');
+       expect(rsvp?.partySize).toBe(1);
+     });
+   });
+   ```
+Run `npx vitest run --project unit src/components/rsvp-form.test.tsx`: "switching a Not going answer…" (the field
+shows `0`), "can be cleared and retyped" (shows `0`) and "offers Keep my answer" fail; "an emptied party size is
+refused…" and "without onKeep…" pass already (guards). `E2E_PORT=3100 npm run test:e2e -- e2e/rsvp.spec.ts`: the
+REQ-138 journey fails (the party size shows 0, not 1). Commit
+`test(rsvp): Going after Not going, a clearable party size, Keep my answer`.
+
+**Implementation:**
+1. Messages, section `"rsvp"`, after `"savedAs"` (add a comma to that line): en `"keep": "Keep my answer"`,
+   fr `"keep": "Garder ma réponse"`, pt-BR `"keep": "Manter minha resposta"`.
+2. `src/components/rsvp-form.tsx`:
+   - signature `export function RsvpForm({ initial, submit, onDone, onKeep }: RsvpFormProps)`
+   - `const [partySize, setPartySize] = useState(Math.max(1, initial?.partySize ?? 1));` with the comment
+     `// A stored Not going answer has 0; Going starts at one person (REQ-138, BR-173).`
+   - right after the "Send RSVP" `<Button …>…</Button>`, inside the form:
+     ```tsx
+     {onKeep && (
+       <Button variant="secondary" size="lg" onClick={onKeep}>
+         {t('rsvp.keep')}
+       </Button>
+     )}
+     ```
+3. `src/components/ui/stepper.tsx`, the number input: `value={value === 0 ? '' : value}` with the comment
+   `{/* 0 is an empty field: React would write "0" back into a cleared number input (REQ-138) */}` above the
+   `<input`. Leave `onChange={(e) => onChange(Number(e.target.value))}` as it is (`Number('')` is 0).
+4. Prettier, run the unit file and the E2E file again: all pass. Commit
+   `fix(rsvp): start Going at one person, let the party size be cleared, offer Keep my answer`.
+
+**Verification:** `E2E_PORT=3100 npm run test:e2e -- e2e/rsvp.spec.ts e2e/event-page.spec.ts e2e/a11y.spec.ts
+e2e/i18n-layout.spec.ts e2e/mobile.spec.ts` and the Phase 12 note 9 checks.
+**Done when:** the five new unit tests and the REQ-138 journey pass, the listed specs pass, and unit, lint,
+typecheck, format and trace pass.
+**TDD exception:** none
+
+### TASK-278 — Guest panel: focus follows the answer; the decline action reads "I can't go"
+**Phase:** 12 · **Requirements:** REQ-140, REQ-139, REQ-141 · **Status:** done · **Revision:** 1
+**Files:** src/components/guest-rsvp-panel.tsx, src/components/guest-rsvp-panel.test.tsx,
+src/components/rsvp-form.tsx, src/app/globals.css, messages/en.json, messages/fr.json, messages/pt-BR.json,
+e2e/rsvp.spec.ts
+**Interface:** `RsvpFormProps.onDone` becomes `onDone?: (rsvp: OwnRsvp) => void` and `RsvpForm` calls
+`onDone?.(result.data)` after a successful submit. `GuestRsvpPanelProps` unchanged.
+
+**Test first:**
+1. `src/components/guest-rsvp-panel.test.tsx` — rename the decline button in the existing tests (behaviour unchanged,
+   REQ-141):
+   - title `REQ-31: a returning guest who is going sees "You\'re going · 3 people" with Change and Cancel RSVP` →
+     `REQ-31: a returning guest who is going sees "You\'re going · 3 people" with Change and I can\'t go`
+   - title `REQ-31: Cancel calls the cancel action` → `REQ-141: I can\'t go calls the cancel action`
+   - in every test of the file, `{ name: 'Cancel RSVP' }` → `{ name: "I can't go" }` (five places)
+   Then append at the end of the file:
+   ```tsx
+   describe('GuestRsvpPanel focus and Keep my answer (REQ-140, REQ-139, REQ-138)', () => {
+     test('REQ-140: after a first RSVP the confirmation heading has focus', async () => {
+       const submit = vi.fn().mockResolvedValue({
+         ok: true,
+         data: { name: 'Maria', status: 'GOING', partySize: 3 },
+       });
+       renderWithIntl(
+         <GuestRsvpPanel ownRsvp={null} ended={false} submit={submit} cancel={vi.fn()} />,
+       );
+       fireEvent.change(screen.getByLabelText('Your name'), { target: { value: 'Maria' } });
+       fireEvent.change(screen.getByLabelText('How many people, including you?'), {
+         target: { value: '3' },
+       });
+
+       fireEvent.click(screen.getByRole('button', { name: 'Send RSVP' }));
+
+       const heading = await screen.findByRole('heading', { name: "You're going · 3 people" });
+       await waitFor(() => expect(document.activeElement).toBe(heading));
+       expect(heading.getAttribute('tabindex')).toBe('-1');
+     });
+
+     test('REQ-140: Change focuses the name field', async () => {
+       renderWithIntl(
+         <GuestRsvpPanel
+           ownRsvp={{ name: 'Maria', status: 'GOING', partySize: 3 }}
+           ended={false}
+           submit={vi.fn()}
+           cancel={vi.fn()}
+         />,
+       );
+
+       fireEvent.click(screen.getByRole('button', { name: 'Change' }));
+
+       await waitFor(() => expect(document.activeElement).toBe(screen.getByLabelText('Your name')));
+     });
+
+     test("REQ-140: I can't go shows You're not going at once and focuses it", async () => {
+       const cancel = vi.fn().mockResolvedValue({
+         ok: true,
+         data: { name: 'Maria', status: 'NOT_GOING', partySize: 0 },
+       });
+       renderWithIntl(
+         <GuestRsvpPanel
+           ownRsvp={{ name: 'Maria', status: 'GOING', partySize: 3 }}
+           ended={false}
+           submit={vi.fn()}
+           cancel={cancel}
+         />,
+       );
+
+       fireEvent.click(screen.getByRole('button', { name: "I can't go" }));
+
+       const heading = await screen.findByRole('heading', { name: "You're not going" });
+       await waitFor(() => expect(document.activeElement).toBe(heading));
+       expect(nav.refresh).toHaveBeenCalled();
+     });
+
+     test('REQ-139: Keep my answer leaves the answer unchanged and focuses Change', async () => {
+       const submit = vi.fn();
+       renderWithIntl(
+         <GuestRsvpPanel
+           ownRsvp={{ name: 'Maria', status: 'GOING', partySize: 3 }}
+           ended={false}
+           submit={submit}
+           cancel={vi.fn()}
+         />,
+       );
+       fireEvent.click(screen.getByRole('button', { name: 'Change' }));
+       fireEvent.change(screen.getByLabelText('Your name'), { target: { value: 'Mario' } });
+
+       fireEvent.click(screen.getByRole('button', { name: 'Keep my answer' }));
+
+       expect(screen.getByRole('heading', { name: "You're going · 3 people" })).toBeTruthy();
+       await waitFor(() =>
+         expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Change' })),
+       );
+       expect(submit).not.toHaveBeenCalled();
+     });
+
+     test('REQ-139: a first RSVP has no Keep my answer button', () => {
+       renderWithIntl(
+         <GuestRsvpPanel ownRsvp={null} ended={false} submit={vi.fn()} cancel={vi.fn()} />,
+       );
+
+       expect(screen.queryByRole('button', { name: 'Keep my answer' })).toBeNull();
+     });
+
+     test('REQ-138: Not going, then Change and Going, sends a party of one and shows it', async () => {
+       const submit = vi.fn().mockResolvedValue({
+         ok: true,
+         data: { name: 'Maria', status: 'GOING', partySize: 1 },
+       });
+       renderWithIntl(
+         <GuestRsvpPanel
+           ownRsvp={{ name: 'Maria', status: 'NOT_GOING', partySize: 0 }}
+           ended={false}
+           submit={submit}
+           cancel={vi.fn()}
+         />,
+       );
+       fireEvent.click(screen.getByRole('button', { name: 'Change' }));
+       fireEvent.click(screen.getByLabelText('Going'));
+
+       fireEvent.click(screen.getByRole('button', { name: 'Send RSVP' }));
+
+       await waitFor(() =>
+         expect(submit).toHaveBeenCalledWith({ name: 'Maria', status: 'GOING', partySize: 1 }, ''),
+       );
+       expect(await screen.findByRole('heading', { name: "You're going · 1 person" })).toBeTruthy();
+     });
+   });
+   ```
+2. `e2e/rsvp.spec.ts`: in `REQ-31: change and cancel` and in `REQ-29: the guest page of an ended event is
+   read-only`, `{ name: 'Cancel RSVP' }` → `{ name: "I can't go" }`. Append:
+   ```ts
+   test.describe('REQ-140: focus follows the answer', () => {
+     test("REQ-140: after Send, Change, Keep and I can't go, focus is on the result", async ({
+       page,
+     }) => {
+       const owner = await createOwner();
+       const event = await createEvent(owner.id);
+
+       await page.goto(`/en/e/${event.slug}`);
+       await page.getByLabel('Your name').fill('Maria');
+       await page.getByRole('button', { name: 'Send RSVP' }).click();
+       await expect(page.getByRole('heading', { name: "You're going · 1 person" })).toBeFocused();
+
+       await page.getByRole('button', { name: 'Change' }).click();
+       await expect(page.getByLabel('Your name')).toBeFocused();
+       await page.getByRole('button', { name: 'Keep my answer' }).click();
+       await expect(page.getByRole('button', { name: 'Change' })).toBeFocused();
+
+       await page.getByRole('button', { name: "I can't go" }).click();
+       await expect(page.getByRole('heading', { name: "You're not going" })).toBeFocused();
+     });
+   });
+   ```
+Run `npx vitest run --project unit src/components/guest-rsvp-panel.test.tsx`: the renamed tests fail (no button
+"I can't go"), and so do the REQ-140 tests, "Keep my answer leaves…" and the REQ-138 panel test (it still shows the
+stored answer until a refresh). "A first RSVP has no Keep my answer button" passes already (guard).
+`E2E_PORT=3100 npm run test:e2e -- e2e/rsvp.spec.ts`: the edited tests and the REQ-140 journey fail. Commit
+`test(rsvp): focus follows the guest's answer; the decline action reads I can't go`.
+
+**Implementation:**
+1. Messages, `rsvp.cancel`: en `"I can't go"`, fr `"Je ne viens plus"`, pt-BR `"Não vou mais"`.
+2. `src/components/rsvp-form.tsx`: `onDone?: (rsvp: OwnRsvp) => void;` in `RsvpFormProps`, and in `handleSubmit`
+   `onDone?.();` → `onDone?.(result.data);`. `OwnRsvp` is already imported.
+3. `src/components/guest-rsvp-panel.tsx`, the whole file:
+   ```tsx
+   'use client';
+
+   import { useEffect, useRef, useState } from 'react';
+   import { Check, Clock, Pencil, X } from 'lucide-react';
+   import { useTranslations } from 'next-intl';
+   import { useRouter } from '@/i18n/navigation';
+   import type { ErrorCode } from '@/domain/errors';
+   import type { OwnRsvp } from '@/domain/types';
+   import type { ActionResult } from '@/lib/action-result';
+   import { Alert } from '@/components/ui/field';
+   import { Button } from '@/components/ui/button';
+   import { Icon } from '@/components/ui/icon';
+   import { RsvpForm, type RsvpFormProps } from './rsvp-form';
+
+   /** Props of {@link GuestRsvpPanel}. */
+   export interface GuestRsvpPanelProps {
+     ownRsvp: OwnRsvp | null;
+     ended: boolean;
+     submit: RsvpFormProps['submit'];
+     cancel: () => Promise<ActionResult<OwnRsvp>>;
+   }
+
+   /** Where focus goes after the panel's content changes (REQ-140). */
+   type FocusTarget = 'status' | 'change' | 'name';
+
+   /**
+    * A guest's view of their own RSVP: status line with Change / "I can't go", the form when there
+    * is no RSVP yet or while editing, and a read-only notice once the event has ended (REQ-31,
+    * REQ-84). The answer just saved is shown at once from the action's result, and focus moves to
+    * the result: the status heading after Send or "I can't go", the name field after Change, the
+    * Change button after "Keep my answer" (REQ-140, REQ-139).
+    */
+   export function GuestRsvpPanel({ ownRsvp, ended, submit, cancel }: GuestRsvpPanelProps) {
+     const t = useTranslations();
+     const router = useRouter();
+     const [editing, setEditing] = useState(false);
+     const [saved, setSaved] = useState<OwnRsvp | null>(null);
+     const [cancelling, setCancelling] = useState(false);
+     const [cancelError, setCancelError] = useState<ErrorCode | null>(null);
+     const focusNext = useRef<FocusTarget | null>(null);
+     const statusRef = useRef<HTMLHeadingElement>(null);
+     const changeRef = useRef<HTMLButtonElement>(null);
+     const rsvp = saved ?? ownRsvp;
+
+     // Runs after every render: moves focus once the requested element exists (REQ-140).
+     useEffect(() => {
+       const target = focusNext.current;
+       if (!target) return;
+       const element =
+         target === 'status'
+           ? statusRef.current
+           : target === 'change'
+             ? changeRef.current
+             : document.getElementById('rsvp-name');
+       if (element) {
+         element.focus();
+         focusNext.current = null;
+       }
+     });
+
+     function statusLine(r: OwnRsvp) {
+       return r.status === 'GOING'
+         ? t('rsvp.youreGoing', { count: r.partySize })
+         : t('rsvp.youreNotGoing');
+     }
+
+     function startEditing() {
+       focusNext.current = 'name';
+       setEditing(true);
+     }
+
+     function keepAnswer() {
+       focusNext.current = 'change';
+       setEditing(false);
+     }
+
+     function handleSaved(result: OwnRsvp) {
+       setSaved(result);
+       setCancelError(null);
+       focusNext.current = 'status';
+       setEditing(false);
+     }
+
+     async function handleCancel() {
+       setCancelling(true);
+       const result = await cancel();
+       setCancelling(false);
+       if (result.ok) {
+         setCancelError(null);
+         setSaved(result.data);
+         focusNext.current = 'status';
+         router.refresh();
+       } else {
+         setCancelError(result.code);
+       }
+     }
+
+     if (ended) {
+       return (
+         <div className="notice">
+           <Icon icon={Clock} size={20} />
+           <div>
+             <h2 className="h3">{t('event.ended')}</h2>
+             <p className="small muted">{t('event.endedHint')}</p>
+             {rsvp && (
+               <p className="answer-line small">
+                 <Icon icon={rsvp.status === 'GOING' ? Check : X} />
+                 <span>{statusLine(rsvp)}</span>
+               </p>
+             )}
+           </div>
+         </div>
+       );
+     }
+
+     if (!rsvp || editing) {
+       return (
+         <RsvpForm
+           initial={rsvp ?? undefined}
+           submit={submit}
+           onDone={handleSaved}
+           onKeep={rsvp ? keepAnswer : undefined}
+         />
+       );
+     }
+
+     if (rsvp.status === 'GOING') {
+       return (
+         <div className="confirm">
+           <div className="confirm-top" role="status">
+             <span className="check-badge" aria-hidden="true">
+               <Icon icon={Check} />
+             </span>
+             <div>
+               <h2 className="h2" ref={statusRef} tabIndex={-1}>
+                 {statusLine(rsvp)}
+               </h2>
+               <p className="small">{t('rsvp.savedAs', { name: rsvp.name })}</p>
+             </div>
+           </div>
+           {cancelError && <Alert>{t(`errors.${cancelError}`)}</Alert>}
+           <div className="btn-row">
+             <Button ref={changeRef} onClick={startEditing}>
+               <Icon icon={Pencil} />
+               {t('rsvp.change')}
+             </Button>
+             <Button variant="ghost-danger" loading={cancelling} onClick={handleCancel}>
+               {t('rsvp.cancel')}
+             </Button>
+           </div>
+         </div>
+       );
+     }
+
+     return (
+       <div className="notice">
+         <Icon icon={X} size={20} />
+         <div>
+           <div role="status">
+             <h2 className="h3" ref={statusRef} tabIndex={-1}>
+               {statusLine(rsvp)}
+             </h2>
+             <p className="small muted">{t('rsvp.savedAs', { name: rsvp.name })}</p>
+           </div>
+           {cancelError && <Alert>{t(`errors.${cancelError}`)}</Alert>}
+           <div className="btn-row mt-3">
+             <Button ref={changeRef} onClick={startEditing}>
+               <Icon icon={Pencil} />
+               {t('rsvp.change')}
+             </Button>
+           </div>
+         </div>
+       </div>
+     );
+   }
+   ```
+   (The saved answer comes from the action's result, so it shows before `router.refresh()` returns; the next server
+   render passes the same answer in `ownRsvp`.)
+4. `src/app/globals.css`, directly after the `:focus-visible { … }` block:
+   ```css
+   /* Headings and <main> get focus only from script, to announce a result (REQ-140); they are
+      not controls, so they draw no ring. */
+   h1[tabindex='-1']:focus,
+   h2[tabindex='-1']:focus,
+   h3[tabindex='-1']:focus,
+   main[tabindex='-1']:focus {
+     outline: none;
+   }
+   ```
+5. Prettier, run the unit file and the E2E file again: all pass. Commit
+   `fix(rsvp): show the saved answer at once and move focus to it; the decline action reads I can't go`.
+
+**Verification:** `E2E_PORT=3100 npm run test:e2e -- e2e/rsvp.spec.ts e2e/a11y.spec.ts e2e/i18n-layout.spec.ts
+e2e/journeys.spec.ts e2e/mobile.spec.ts e2e/focus.spec.ts` and the Phase 12 note 9 checks.
+**Done when:** the renamed and new unit tests and the edited and new E2E tests pass, the listed specs pass, and unit,
+lint, typecheck, format and trace pass.
+**TDD exception:** none
+
+### TASK-279 — Owner and notice actions: failures say why, the Remove question shows on phones, focus after Remove and Dismiss
+**Phase:** 12 · **Requirements:** REQ-142, REQ-143, REQ-140 · **Status:** done · **Revision:** 1
+**Files:** src/components/ui/inline-confirm.tsx, src/components/ui/inline-confirm.test.tsx,
+src/components/delete-event-button.tsx, src/components/delete-event-button.test.tsx,
+src/components/remove-rsvp-button.tsx, src/components/remove-rsvp-button.test.tsx,
+src/components/create-sample-button.tsx, src/components/create-sample-button.test.tsx (new),
+src/components/owner-guest-list.tsx, src/components/password-notice.tsx, src/components/password-notice.test.tsx,
+src/app/globals.css, e2e/owner.spec.ts
+**Interface:** `InlineConfirmProps` gains `error?: string | null` ("Message shown as an alert inside the group, e.g.
+why the action failed (REQ-142)."). Other props unchanged.
+
+**Test first** — add `error?: string | null;` to `InlineConfirmProps` in the test commit:
+1. `src/components/ui/inline-confirm.test.tsx`: change the first import to
+   `import { fireEvent, within } from '@testing-library/react';`. Replace the test
+   `REQ-72: the row layout keeps the question as the group's name without showing it` with:
+   ```tsx
+   it('REQ-143: the row layout names the group with its question, shown as text on phones', () => {
+     const { getByRole, getByText } = renderWithIntl(
+       <InlineConfirm
+         layout="row"
+         triggerLabel="Remove"
+         triggerAriaLabel="Remove Maria"
+         question="Remove Maria from the guest list?"
+         confirmLabel="Remove"
+         cancelLabel="Keep"
+         onConfirm={vi.fn()}
+       />,
+     );
+     fireEvent.click(getByRole('button', { name: 'Remove Maria' }));
+     expect(getByRole('group', { name: 'Remove Maria from the guest list?' })).not.toBeNull();
+     expect(getByText('Remove Maria from the guest list?').className).toBe('inline-confirm-q small');
+   });
+
+   it('REQ-142: an error shows as an alert inside the group, in both layouts', () => {
+     for (const layout of ['block', 'row'] as const) {
+       const { getByRole, unmount } = renderWithIntl(
+         <InlineConfirm
+           layout={layout}
+           triggerLabel="Remove"
+           question="Remove Maria from the guest list?"
+           confirmLabel="Remove"
+           cancelLabel="Keep"
+           onConfirm={vi.fn()}
+           error="Something went wrong. Please try again."
+         />,
+       );
+       fireEvent.click(getByRole('button', { name: 'Remove' }));
+       expect(within(getByRole('group')).getByRole('alert').textContent, layout).toBe(
+         'Something went wrong. Please try again.',
+       );
+       unmount();
+     }
+   });
+   ```
+2. `src/components/delete-event-button.test.tsx`, inside `describe('DeleteEventButton', …)`:
+   ```tsx
+   test('REQ-142: a failed delete says why and stays on the page', async () => {
+     nav.push.mockClear();
+     const deleteAction = vi.fn().mockResolvedValue({ ok: false, code: 'NOT_OWNER' });
+     renderWithIntl(<DeleteEventButton deleteAction={deleteAction} />);
+
+     fireEvent.click(screen.getByRole('button', { name: 'Delete event' }));
+     fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
+
+     expect((await screen.findByRole('alert')).textContent).toBe('Only the organizer can do this.');
+     expect(nav.push).not.toHaveBeenCalled();
+     expect(screen.getByRole('group')).toBeTruthy();
+   });
+   ```
+3. `src/components/remove-rsvp-button.test.tsx`, inside `describe('RemoveRsvpButton', …)`:
+   ```tsx
+   test('REQ-142: a failed removal says why and does not refresh', async () => {
+     nav.refresh.mockClear();
+     const removeAction = vi.fn().mockResolvedValue({ ok: false, code: 'INTERNAL_ERROR' });
+     renderWithIntl(<RemoveRsvpButton name="Maria" removeAction={removeAction} />);
+
+     fireEvent.click(screen.getByRole('button', { name: 'Remove Maria' }));
+     fireEvent.click(screen.getByRole('button', { name: 'Remove' }));
+
+     expect((await screen.findByRole('alert')).textContent).toBe(
+       'Something went wrong. Please try again.',
+     );
+     expect(nav.refresh).not.toHaveBeenCalled();
+   });
+
+   test('REQ-140: a successful removal moves focus to the Guest list heading', async () => {
+     const removeAction = vi.fn().mockResolvedValue({ ok: true, data: null });
+     renderWithIntl(
+       <>
+         <h2 id="guest-list-heading" tabIndex={-1}>
+           Guest list
+         </h2>
+         <RemoveRsvpButton name="Maria" removeAction={removeAction} />
+       </>,
+     );
+
+     fireEvent.click(screen.getByRole('button', { name: 'Remove Maria' }));
+     fireEvent.click(screen.getByRole('button', { name: 'Remove' }));
+
+     await waitFor(() =>
+       expect(document.activeElement).toBe(screen.getByRole('heading', { name: 'Guest list' })),
+     );
+   });
+   ```
+4. Create `src/components/create-sample-button.test.tsx`:
+   ```tsx
+   // @vitest-environment jsdom
+   import { fireEvent, screen, waitFor } from '@testing-library/react';
+   import { describe, expect, test, vi } from 'vitest';
+   import { renderWithIntl } from '@/test/render';
+   import { CreateSampleButton } from './create-sample-button';
+
+   const nav = vi.hoisted(() => ({ push: vi.fn(), refresh: vi.fn(), replace: vi.fn() }));
+   vi.mock('@/i18n/navigation', () => ({ useRouter: () => nav, usePathname: () => '/' }));
+   vi.mock('@/lib/browser-timezone', () => ({ detectBrowserTimeZone: vi.fn(() => 'UTC') }));
+
+   describe('CreateSampleButton', () => {
+     test('REQ-142: a failed creation says why and the button works again', async () => {
+       const create = vi
+         .fn()
+         .mockResolvedValueOnce({ ok: false, code: 'INTERNAL_ERROR' })
+         .mockResolvedValueOnce({ ok: true, data: { slug: 'abc' } });
+       renderWithIntl(<CreateSampleButton create={create} />);
+
+       fireEvent.click(screen.getByRole('button', { name: 'Create sample event' }));
+
+       expect((await screen.findByRole('alert')).textContent).toBe(
+         'Something went wrong. Please try again.',
+       );
+       const button = screen.getByRole('button', { name: 'Create sample event' });
+       expect(button.getAttribute('aria-busy')).toBeNull();
+       fireEvent.click(button);
+       await waitFor(() => expect(nav.push).toHaveBeenCalledWith('/e/abc'));
+       expect(screen.queryByRole('alert')).toBeNull();
+       expect(create).toHaveBeenCalledWith('UTC');
+     });
+   });
+   ```
+5. `src/components/password-notice.test.tsx`, inside `describe('PasswordNotice', …)`:
+   ```tsx
+   it('REQ-140: a successful Dismiss moves focus to the main content', async () => {
+     const dismiss = vi.fn(async (): Promise<ActionResult<null>> => ({ ok: true, data: null }));
+     const { getByRole } = renderWithIntl(
+       <main>
+         <PasswordNotice dismiss={dismiss} />
+       </main>,
+     );
+     fireEvent.click(getByRole('button', { name: 'Dismiss' }));
+     await waitFor(() => expect(document.activeElement).toBe(getByRole('main')));
+   });
+   ```
+6. `e2e/owner.spec.ts`, append:
+   ```ts
+   test.describe('REQ-143, REQ-140: removing a guest', () => {
+     test('REQ-143: at 375 px the Remove question is visible; at 1280 px it is hidden', async ({
+       page,
+       context,
+     }) => {
+       const { id } = await signInAs(context, { email: 'owner-q@example.com', name: 'OwnerQ' });
+       const event = await createEvent(id);
+       await createRsvp(event.id, 'Maria', 'GOING', 3);
+
+       await page.setViewportSize({ width: 375, height: 800 });
+       await page.goto(`/en/e/${event.slug}`);
+       await page.getByRole('button', { name: 'Remove Maria' }).click();
+
+       const question = page.getByText('Remove Maria from the guest list?');
+       expect((await question.boundingBox())!.width).toBeGreaterThan(100);
+       await expect(question).toBeInViewport();
+       expect(
+         await page.evaluate(
+           () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,
+         ),
+       ).toBe(true);
+
+       await page.setViewportSize({ width: 1280, height: 800 });
+       expect((await question.boundingBox())!.width).toBeLessThanOrEqual(1);
+     });
+
+     test('REQ-140: after Remove, focus is on the Guest list heading', async ({ page, context }) => {
+       const { id } = await signInAs(context, { email: 'owner-f@example.com', name: 'OwnerF' });
+       const event = await createEvent(id);
+       await createRsvp(event.id, 'Maria', 'GOING', 3);
+       await createRsvp(event.id, 'João', 'NOT_GOING');
+
+       await page.goto(`/en/e/${event.slug}`);
+       await page.getByRole('button', { name: 'Remove Maria' }).click();
+       await page
+         .getByRole('row', { name: /Maria/ })
+         .getByRole('button', { name: 'Remove', exact: true })
+         .click();
+
+       await expect(page.getByText('Maria')).toHaveCount(0);
+       await expect(page.getByRole('heading', { name: 'Guest list' })).toBeFocused();
+     });
+   });
+   ```
+Run `npx vitest run --project unit src/components/ui/inline-confirm.test.tsx src/components/delete-event-button.test.tsx
+src/components/remove-rsvp-button.test.tsx src/components/create-sample-button.test.tsx
+src/components/password-notice.test.tsx`: all the new tests fail. `E2E_PORT=3100 npm run test:e2e --
+e2e/owner.spec.ts`: both new tests fail (the question is a 1 px `sr-only` box; focus is on `<body>`). Commit
+`test(owner): failures say why, the Remove question shows on phones, focus after Remove and Dismiss`.
+
+**Implementation:**
+1. `src/components/ui/inline-confirm.tsx`:
+   - `import { Alert } from './field';` and destructure `error` in the props
+   - row layout: the question becomes `<p id={questionId} className="inline-confirm-q small">{question}</p>`, and
+     after `{buttons}` add `{error && <Alert>{error}</Alert>}`
+   - block layout: after `<div className="btn-row">{buttons}</div>` add `{error && <Alert>{error}</Alert>}`
+   - add to the component comment: `A failure message passed in \`error\` shows inside the group (REQ-142).`
+2. `src/components/delete-event-button.tsx`: `import { useState } from 'react';`,
+   `import type { ErrorCode } from '@/domain/errors';`, `const [error, setError] = useState<ErrorCode | null>(null);`
+   ```ts
+   async function handleConfirm() {
+     setError(null);
+     const result = await deleteAction();
+     if (result.ok) router.push('/dashboard');
+     else setError(result.code); // REQ-142
+   }
+   ```
+   and pass `error={error ? t(\`errors.${error}\`) : null}` to `InlineConfirm`.
+3. `src/components/remove-rsvp-button.tsx`: the same state and imports, and
+   ```ts
+   async function handleConfirm() {
+     setError(null);
+     const result = await removeAction();
+     if (!result.ok) {
+       setError(result.code); // REQ-142
+       return;
+     }
+     document.getElementById('guest-list-heading')?.focus(); // REQ-140: the row is about to go
+     router.refresh();
+   }
+   ```
+   and pass `error={error ? t(\`errors.${error}\`) : null}`.
+4. `src/components/create-sample-button.tsx`: `import type { ErrorCode } from '@/domain/errors';`,
+   `import { Alert } from '@/components/ui/field';`, `const [error, setError] = useState<ErrorCode | null>(null);`
+   ```tsx
+   async function handleClick() {
+     setError(null);
+     setPending(true);
+     const result = await create(detectBrowserTimeZone());
+     if (result.ok) {
+       router.push(`/e/${result.data.slug}`);
+     } else {
+       setPending(false);
+       setError(result.code); // REQ-142
+     }
+   }
+
+   return (
+     <>
+       <Button loading={pending} onClick={handleClick}>
+         {t('dashboard.createSample')}
+       </Button>
+       {error && <Alert>{t(`errors.${error}`)}</Alert>}
+     </>
+   );
+   ```
+5. `src/components/owner-guest-list.tsx`: the heading becomes
+   `<h2 className="h2" id="guest-list-heading" tabIndex={-1}>` (REQ-140).
+6. `src/components/password-notice.tsx`, in `onDismiss`, the `if (result.ok)` branch becomes:
+   ```ts
+   if (result.ok) {
+     const main = document.querySelector('main');
+     if (main) {
+       main.tabIndex = -1;
+       main.focus(); // REQ-140: the notice and its button are about to go
+     }
+     setHidden(true);
+     router.refresh();
+   }
+   ```
+7. `src/app/globals.css`, directly after the `.inline-confirm-row { … }` block:
+   ```css
+   /* Remove confirmation in a guest row (REQ-143): on phones the open confirmation takes the whole
+      stacked row and shows its question; the table layout (>= 640 px) hides the question. */
+   .inline-confirm-row .inline-confirm-q,
+   .inline-confirm-row .alert,
+   .btn-row > .alert {
+     flex-basis: 100%;
+   }
+   @media (max-width: 639px) {
+     .guests tr:has(.inline-confirm-row) {
+       grid-template-areas: 'name name name' 'resp ppl ppl' 'upd upd upd' 'rm rm rm';
+     }
+     .guests tr:has(.inline-confirm-row) .inline-confirm-row {
+       display: flex;
+     }
+   }
+   @media (min-width: 640px) {
+     .inline-confirm-row .inline-confirm-q {
+       position: absolute;
+       width: 1px;
+       height: 1px;
+       padding: 0;
+       margin: -1px;
+       overflow: hidden;
+       clip: rect(0, 0, 0, 0);
+       white-space: nowrap;
+       border: 0;
+     }
+   }
+   ```
+8. Prettier, run the unit files and the E2E file again: all pass. Commit
+   `fix(owner): say why an action failed, show the Remove question on phones, move focus after Remove and Dismiss`.
+
+**Verification:** `E2E_PORT=3100 npm run test:e2e -- e2e/owner.spec.ts e2e/events.spec.ts e2e/dashboard.spec.ts
+e2e/a11y.spec.ts e2e/i18n-layout.spec.ts e2e/password-auth.spec.ts` and the Phase 12 note 9 checks.
+**Done when:** the new unit and E2E tests pass, the listed specs pass, and unit, lint, typecheck, format and trace
+pass.
+**TDD exception:** none
+
+### TASK-280 — Header: the language select commits on an explicit choice; the account menu closes predictably
+**Phase:** 12 · **Requirements:** REQ-144, REQ-145 · **Status:** done · **Revision:** 1
+**Files:** src/components/locale-switcher.tsx, src/components/locale-switcher.test.tsx,
+src/components/user-menu.tsx, src/components/user-menu.test.tsx, e2e/header.spec.ts
+**Interface:** `src/components/locale-switcher.tsx` exports `LOCALE_REFOCUS_KEY = 'locale-select-refocus'` (add it
+in the test commit as a stub). `LocaleSwitcher` and `UserMenu` props unchanged.
+
+**Test first:**
+1. `src/components/locale-switcher.test.tsx`: change the imports to
+   `import { beforeEach, describe, expect, it, vi } from 'vitest';` and
+   `import { LOCALE_REFOCUS_KEY, LocaleSwitcher } from './locale-switcher';`. Append:
+   ```tsx
+   describe('LocaleSwitcher keyboard (REQ-144)', () => {
+     beforeEach(() => {
+       nav.replace.mockClear();
+       sessionStorage.clear();
+     });
+
+     it('REQ-144: arrow keys move the selection without changing the page; Enter commits it', () => {
+       const { getByLabelText } = renderWithIntl(<LocaleSwitcher />);
+       const select = getByLabelText('Language') as HTMLSelectElement;
+
+       fireEvent.keyDown(select, { key: 'ArrowDown' });
+       fireEvent.change(select, { target: { value: 'fr' } });
+       fireEvent.keyUp(select, { key: 'ArrowDown' });
+       fireEvent.keyDown(select, { key: 'ArrowDown' });
+       fireEvent.change(select, { target: { value: 'pt-BR' } });
+       fireEvent.keyUp(select, { key: 'ArrowDown' });
+
+       expect(nav.replace).not.toHaveBeenCalled();
+       expect(select.value).toBe('pt-BR');
+
+       fireEvent.keyDown(select, { key: 'Enter' });
+
+       expect(nav.replace).toHaveBeenCalledTimes(1);
+       expect(nav.replace).toHaveBeenCalledWith('/e/abc', { locale: 'pt-BR' });
+       expect(sessionStorage.getItem(LOCALE_REFOCUS_KEY)).toBe('1');
+     });
+
+     it('REQ-144: leaving the select with a new value commits it once; the same value commits nothing', () => {
+       const { getByLabelText } = renderWithIntl(<LocaleSwitcher />);
+       const select = getByLabelText('Language') as HTMLSelectElement;
+
+       fireEvent.blur(select);
+       expect(nav.replace).not.toHaveBeenCalled();
+
+       fireEvent.keyDown(select, { key: 'ArrowDown' });
+       fireEvent.change(select, { target: { value: 'fr' } });
+       fireEvent.keyUp(select, { key: 'ArrowDown' });
+       expect(nav.replace).not.toHaveBeenCalled();
+       fireEvent.blur(select);
+       fireEvent.keyDown(select, { key: 'Enter' });
+
+       expect(nav.replace).toHaveBeenCalledTimes(1);
+       expect(nav.replace).toHaveBeenCalledWith('/e/abc', { locale: 'fr' });
+     });
+
+     it('REQ-144: after a locale change the select takes focus back', () => {
+       sessionStorage.setItem(LOCALE_REFOCUS_KEY, '1');
+
+       const { getByLabelText } = renderWithIntl(<LocaleSwitcher />);
+
+       expect(document.activeElement).toBe(getByLabelText('Language'));
+       expect(sessionStorage.getItem(LOCALE_REFOCUS_KEY)).toBeNull();
+     });
+   });
+   ```
+2. `src/components/user-menu.test.tsx`, append:
+   ```tsx
+   describe('UserMenu closing (REQ-145)', () => {
+     function openMenu() {
+       const view = renderWithIntl(<UserMenu name="Ana" initial="A" signOutAction={vi.fn()} />);
+       const details = view.container.querySelector('details')!;
+       details.open = true;
+       return { ...view, details };
+     }
+
+     it('REQ-145: Escape closes the menu and puts focus on its summary', () => {
+       const { details, getByText, getByLabelText } = openMenu();
+       getByText('My events').focus();
+
+       fireEvent.keyDown(getByText('My events'), { key: 'Escape' });
+
+       expect(details.open).toBe(false);
+       expect(document.activeElement).toBe(getByLabelText('Account menu'));
+     });
+
+     it('REQ-145: focus moving outside the menu closes it; moving inside keeps it open', () => {
+       const outside = document.createElement('button');
+       document.body.appendChild(outside);
+       const { details, getByText } = openMenu();
+
+       fireEvent.focusOut(getByText('My events'), { relatedTarget: getByText('Account') });
+       expect(details.open).toBe(true);
+
+       fireEvent.focusOut(getByText('Sign out'), { relatedTarget: outside });
+       expect(details.open).toBe(false);
+       outside.remove();
+     });
+
+     it('REQ-145: a pointer press outside closes the menu; one inside does not', () => {
+       const { details, getByText } = openMenu();
+
+       fireEvent.pointerDown(getByText('Signed in as Ana'));
+       expect(details.open).toBe(true);
+
+       fireEvent.pointerDown(document.body);
+       expect(details.open).toBe(false);
+     });
+   });
+   ```
+3. `e2e/header.spec.ts`, append:
+   ```ts
+   test.describe('REQ-144: the language select from the keyboard', () => {
+     test('REQ-144: arrow keys only move the choice; Enter switches and keeps focus', async ({
+       page,
+     }) => {
+       await page.goto('/en');
+       const select = page.locator('#locale-select');
+       await select.focus();
+
+       await page.keyboard.press('ArrowDown');
+       await page.keyboard.press('ArrowDown');
+
+       await expect(select).toHaveValue('pt-BR');
+       await expect(page).toHaveURL(/\/en$/);
+
+       await page.keyboard.press('Enter');
+
+       await expect(page).toHaveURL(/\/pt-BR$/);
+       await expect(page.locator('html')).toHaveAttribute('lang', 'pt-BR');
+       await expect(page.locator('#locale-select')).toBeFocused();
+       await expect(page.locator('#locale-select')).toHaveValue('pt-BR');
+     });
+   });
+
+   test.describe('REQ-145: the account menu closes predictably', () => {
+     test('REQ-145: Escape closes the menu and returns focus to it', async ({ page, context }) => {
+       await signInAs(context, { email: 'menu-esc@example.com', name: 'Menu' });
+       await page.goto('/en');
+       const banner = page.getByRole('banner');
+
+       await banner.getByLabel('Account menu').focus();
+       await page.keyboard.press('Enter');
+       await expect(banner.getByRole('link', { name: 'My events' })).toBeVisible();
+       await page.keyboard.press('Escape');
+
+       await expect(banner.getByRole('link', { name: 'My events' })).toBeHidden();
+       await expect(banner.getByLabel('Account menu')).toBeFocused();
+     });
+   });
+   ```
+Run `npx vitest run --project unit src/components/locale-switcher.test.tsx src/components/user-menu.test.tsx`: the six
+new tests fail. `E2E_PORT=3100 npm run test:e2e -- e2e/header.spec.ts`: both new tests fail (the first ArrowDown
+switches to `/fr` and focus drops to `<body>`; Escape leaves the menu open). Commit
+`test(header): the language select commits on an explicit choice; the account menu closes`.
+
+**Implementation:**
+1. `src/components/locale-switcher.tsx`, the whole file:
+   ```tsx
+   'use client';
+
+   import { useEffect, useRef, useState } from 'react';
+   import { ChevronDown, Globe } from 'lucide-react';
+   import { useLocale, useTranslations } from 'next-intl';
+   import { routing } from '@/i18n/routing';
+   import { usePathname, useRouter } from '@/i18n/navigation';
+   import { Icon } from '@/components/ui/icon';
+
+   /** sessionStorage flag: put focus back on the language select after a locale change (REQ-144). */
+   export const LOCALE_REFOCUS_KEY = 'locale-select-refocus';
+
+   /**
+    * Select control to switch the active locale while staying on the current page (REQ-54).
+    * Named by `aria-label` with no visible `<label>` (BR-105 exception, REQ-68, REQ-80); collapses
+    * to a 40 px globe-only target below 480 px (CSS from TASK-155).
+    * The locale changes only on an explicit choice: a pointer selection, Enter, or leaving the
+    * select with a new value; arrow keys only move the selection. After the change, focus returns
+    * to the select (REQ-144, BR-175).
+    */
+   export function LocaleSwitcher() {
+     const t = useTranslations();
+     const locale = useLocale();
+     const router = useRouter();
+     const pathname = usePathname();
+     const [value, setValue] = useState<string>(locale);
+     const keyDown = useRef(false);
+     const pending = useRef<string | null>(null);
+     const selectRef = useRef<HTMLSelectElement>(null);
+
+     useEffect(() => {
+       setValue(locale);
+       pending.current = null;
+       if (sessionStorage.getItem(LOCALE_REFOCUS_KEY) === '1') {
+         sessionStorage.removeItem(LOCALE_REFOCUS_KEY);
+         selectRef.current?.focus();
+       }
+     }, [locale]);
+
+     function commit(next: string) {
+       if (next === locale || next === pending.current) return;
+       pending.current = next;
+       sessionStorage.setItem(LOCALE_REFOCUS_KEY, '1');
+       router.replace(pathname, { locale: next });
+     }
+
+     return (
+       <div className="lang">
+         <Icon icon={Globe} className="i-globe" />
+         <select
+           ref={selectRef}
+           id="locale-select"
+           aria-label={t('nav.language')}
+           value={value}
+           onKeyDown={(event) => {
+             if (event.key === 'Enter') {
+               event.preventDefault();
+               commit(event.currentTarget.value);
+               return;
+             }
+             keyDown.current = true;
+           }}
+           onKeyUp={() => {
+             keyDown.current = false;
+           }}
+           onChange={(event) => {
+             setValue(event.target.value);
+             if (!keyDown.current) commit(event.target.value);
+           }}
+           onBlur={(event) => commit(event.currentTarget.value)}
+         >
+           {routing.locales.map((l) => (
+             <option key={l} value={l}>
+               {t(`languages.${l}`)}
+             </option>
+           ))}
+         </select>
+         <Icon icon={ChevronDown} className="i-chev" />
+       </div>
+     );
+   }
+   ```
+   Why it works: on a focused, closed select, Chromium (Windows and Linux) fires `keydown`, then `change`, then
+   `keyup` for an arrow key; a pointer or touch choice fires `change` with no key held. The locale layout re-renders
+   after `router.replace`, so the flag in `sessionStorage` is what brings focus back.
+2. `src/components/user-menu.tsx`: `import { useEffect, useRef } from 'react';`. Inside `UserMenu`, after `close`:
+   ```tsx
+   useEffect(() => {
+     function onPointerDown(event: Event) {
+       const menu = ref.current;
+       if (menu?.open && !menu.contains(event.target as Node)) menu.open = false;
+     }
+     document.addEventListener('pointerdown', onPointerDown);
+     return () => document.removeEventListener('pointerdown', onPointerDown);
+   }, []);
+
+   function onKeyDown(event: React.KeyboardEvent<HTMLDetailsElement>) {
+     const menu = ref.current;
+     if (event.key !== 'Escape' || !menu?.open) return;
+     menu.open = false;
+     menu.querySelector('summary')?.focus();
+   }
+
+   function onBlur(event: React.FocusEvent<HTMLDetailsElement>) {
+     const menu = ref.current;
+     const next = event.relatedTarget;
+     if (menu?.open && next instanceof Node && !menu.contains(next)) menu.open = false;
+   }
+   ```
+   and `<details className="menu" ref={ref} onKeyDown={onKeyDown} onBlur={onBlur}>`. A blur with no
+   `relatedTarget` (a click on a non-focusable spot) does not close it; the pointer handler does. Append to the
+   component comment: `It closes on Escape (focus back on its summary), when focus moves outside it, and on a pointer
+   press outside it (REQ-145).`
+3. Prettier, run the unit files and the E2E file again: all pass. Commit
+   `fix(header): switch language only on an explicit choice and refocus it; close the account menu predictably`.
+
+**Verification:** `E2E_PORT=3100 npm run test:e2e -- e2e/header.spec.ts e2e/i18n.spec.ts e2e/a11y.spec.ts
+e2e/password-auth.spec.ts e2e/sessions.spec.ts` and the Phase 12 note 9 checks.
+**Done when:** the new unit and E2E tests pass, the existing `REQ-80` and `REQ-54` tests pass unchanged, and unit,
+lint, typecheck, format and trace pass.
+**TDD exception:** none
+
+### TASK-281 — Event page on a phone: a readable invite link; time and zone on one line
+**Phase:** 12 · **Requirements:** REQ-150, REQ-151 · **Status:** done · **Revision:** 2
+**Files:** src/lib/format-date.ts, src/lib/format-date.test.ts, src/components/event-details.tsx,
+src/app/globals.css, e2e/mobile.spec.ts
+**Interface** (`src/lib/format-date.ts`):
+```ts
+export interface EventDateTimeParts {
+  date: string;
+  time: string;
+}
+export function formatEventDateTimeParts(
+  instant: Date,
+  timeZone: string,
+  locale: string,
+): EventDateTimeParts
+```
+`formatEventDateTime` keeps its signature and output.
+
+**Test first** — add the interface and a stub `formatEventDateTimeParts` that throws `new Error('not implemented')`:
+1. `src/lib/format-date.test.ts`: add `formatEventDateTimeParts` to the import from `./format-date` and append:
+   ```ts
+   describe('formatEventDateTimeParts (REQ-151)', () => {
+     const instant = new Date('2026-10-02T23:00:00.000Z');
+
+     it('REQ-151: splits before the hour and joins back to the full text in every locale', () => {
+       for (const locale of ['en', 'fr', 'pt-BR']) {
+         const { date, time } = formatEventDateTimeParts(instant, 'America/Sao_Paulo', locale);
+         expect(date + time, locale).toBe(
+           formatEventDateTime(instant, 'America/Sao_Paulo', locale),
+         );
+         expect(time, locale).toMatch(/^(8|20):00/);
+       }
+     });
+
+     it('REQ-151: in English the date ends with "at " and the time keeps its zone', () => {
+       const { date, time } = formatEventDateTimeParts(instant, 'America/Sao_Paulo', 'en');
+       expect(date).toBe('Friday, October 2, 2026 at ');
+       expect(time).toMatch(/^8:00\sPM\sGMT-3$/);
+     });
+   });
+   ```
+2. `e2e/mobile.spec.ts`, append:
+   ```ts
+   test.describe('REQ-150, REQ-151: the event page on a phone', () => {
+     test('REQ-150: the French invite link field is readable, with the button under it', async ({
+       page,
+       context,
+     }) => {
+       const { id } = await signInAs(context, { email: 'phone-owner@example.com', name: 'Owner' });
+       const event = await createEvent(id);
+
+       await page.goto(`/fr/e/${event.slug}`);
+
+       const field = page.getByLabel("Lien d'invitation");
+       await expect(field).toHaveValue(/\/e\//);
+       const fieldBox = (await field.boundingBox())!;
+       const buttonBox = (await page
+         .getByRole('button', { name: "Copier le lien d'invitation" })
+         .boundingBox())!;
+       expect(fieldBox.width).toBeGreaterThanOrEqual(250);
+       expect(buttonBox.y).toBeGreaterThanOrEqual(fieldBox.y + fieldBox.height);
+     });
+
+     test('REQ-151: the time and its zone stay on one line', async ({ page }) => {
+       const owner = await createOwner();
+       const event = await createEvent(owner.id, { timezone: 'America/Sao_Paulo' });
+
+       await page.goto(`/en/e/${event.slug}`);
+
+       const time = page.locator('.ev-time');
+       await expect(time).toHaveText(/GMT-3$/);
+       expect(await time.evaluate((el) => el.getClientRects().length)).toBe(1);
+     });
+   });
+   ```
+Run `npx vitest run --project unit src/lib/format-date.test.ts`: the two new tests fail (not implemented).
+`E2E_PORT=3100 npm run test:e2e -- e2e/mobile.spec.ts`: both new tests fail (the field is about 67 px wide; there is
+no `.ev-time`). Commit `test(event-page): invite link and time zone readable on a phone`.
+
+**Implementation:**
+1. `src/lib/format-date.ts`: share the options and add the split:
+   ```ts
+   /** Options of the event page's full date and time (BR-19, BR-76). */
+   const EVENT_DATE_TIME: Intl.DateTimeFormatOptions = {
+     weekday: 'long',
+     year: 'numeric',
+     month: 'long',
+     day: 'numeric',
+     hour: 'numeric',
+     minute: '2-digit',
+     timeZoneName: 'short',
+   };
+
+   /** Formats an instant in the event's timezone, for the given UI locale, with a timezone label (BR-19, BR-76). */
+   export function formatEventDateTime(instant: Date, timeZone: string, locale: string): string {
+     return new Intl.DateTimeFormat(locale, { ...EVENT_DATE_TIME, timeZone }).format(instant);
+   }
+
+   /** The event date and time split before the hour, so the time and zone can be kept on one line (REQ-151). */
+   export interface EventDateTimeParts {
+     date: string;
+     time: string;
+   }
+
+   /**
+    * Splits {@link formatEventDateTime}'s text into the date part and the time-of-day + zone part
+    * (REQ-151, BR-184). Both halves are cut from the one `format()` string, so `date + time` is
+    * exactly that text: `formatToParts()` only gives the cut position (the summed length of the parts
+    * before the first `hour` part). The two APIs may differ in the space before AM/PM (U+0020 vs
+    * U+202F), but each is one UTF-16 unit, so the position is the same.
+    */
+   export function formatEventDateTimeParts(
+     instant: Date,
+     timeZone: string,
+     locale: string,
+   ): EventDateTimeParts {
+     const formatter = new Intl.DateTimeFormat(locale, { ...EVENT_DATE_TIME, timeZone });
+     const full = formatter.format(instant);
+     const parts = formatter.formatToParts(instant);
+     const hour = parts.findIndex((part) => part.type === 'hour');
+     const partsLength = parts.reduce((sum, part) => sum + part.value.length, 0);
+     if (hour < 0 || partsLength !== full.length) return { date: full, time: '' };
+     const cut = parts.slice(0, hour).reduce((sum, part) => sum + part.value.length, 0);
+     return { date: full.slice(0, cut), time: full.slice(cut) };
+   }
+   ```
+   (Revision 1 joined the `formatToParts()` values instead; on Node 22 and 24 those carry U+202F before "PM" while
+   `format()` has a plain space, so `date + time` differed from `formatEventDateTime` in `en`. The length guard only
+   protects against a future ICU where the two strings differ in length: the whole text then stays in `date`.)
+2. `src/components/event-details.tsx`: import `formatEventDateTimeParts` instead of `formatEventDateTime`; inside
+   the component `const when = formatEventDateTimeParts(event.startsAt, event.timezone, locale);` and the date line
+   becomes
+   `<span className="num">{when.date}<span className="ev-time">{when.time}</span></span>`
+   (the date part already ends with its space, e.g. "at ").
+3. `src/app/globals.css`:
+   - after the `.meta-list .tz { … }` block:
+     ```css
+     /* The time of day and its zone never split across lines (REQ-151). */
+     .ev-time {
+       white-space: nowrap;
+     }
+     ```
+   - after the `.copy-row .btn { … }` block:
+     ```css
+     /* Phones: the invite link takes the full width and the copy button goes under it (REQ-150). */
+     @media (max-width: 479px) {
+       .copy-row {
+         flex-direction: column;
+       }
+       .copy-row .input {
+         flex: none;
+         width: 100%;
+       }
+       .copy-row .btn {
+         width: 100%;
+       }
+     }
+     ```
+4. Prettier, run the unit file and the E2E file again: all pass. Commit
+   `fix(event-page): stack the invite link on phones and keep the time and zone on one line`.
+
+**Revision 2 — follow-up on the branch** (commits `d73f4e8` test and `cf2ae15` fix already exist; do not rewrite
+them, and do not edit the tests: they are right):
+1. In `src/lib/format-date.ts` replace the body and comment of `formatEventDateTimeParts` with the Revision 2 code in
+   step 1 above. Nothing else changes (`EVENT_DATE_TIME`, `formatEventDateTime`, `EventDateTimeParts`,
+   `event-details.tsx` and the CSS stay as committed).
+2. `npx prettier --write src/lib/format-date.ts`, then verify on Node 22 (CI's version) and on the local Node:
+   `npx -y -p node@22 node node_modules/vitest/vitest.mjs run --project unit src/lib/format-date.test.ts` and
+   `npx vitest run --project unit src/lib/format-date.test.ts`: all 8 tests pass on both, including
+   "REQ-151: in English the date ends with "at " and the time keeps its zone" (`/^8:00\sPM\sGMT-3$/` still matches:
+   `\s` matches both U+0020 and U+202F). Before the change the first REQ-151 test fails on Node 22 with
+   `en: expected 'Friday, October 2, 2026 at 8:00 …' to be 'Friday, October 2, 2026 at 8:00 PM GM…'`.
+3. Commit `fix(event-page): cut the event date and time from the one formatted string` with body line
+   `Refs: TASK-281, REQ-151` (a fix commit after the existing ones; the red test already exists).
+
+**Verification:** `E2E_PORT=3100 npm run test:e2e -- e2e/mobile.spec.ts e2e/share.spec.ts e2e/event-page.spec.ts
+e2e/i18n-layout.spec.ts e2e/owner.spec.ts e2e/privacy.spec.ts`, the two Node commands of the Revision 2 step 2, and
+the Phase 12 note 9 checks.
+**Done when:** the new unit and E2E tests pass (the unit file on Node 22 and on the local Node), the existing
+`REQ-12` formatting tests and the listed specs pass unchanged, and unit, lint, typecheck, format and trace pass.
+**TDD exception:** none
+**Changelog:** Revision 2 (SPEC failure, incident 28): cut `date` and `time` from the `format()` string at the offset
+of the first `hour` part, instead of joining `formatToParts()` values, whose U+202F before AM/PM differs from
+`format()`.
+
+### TASK-282 — Event page copy: ended events read as ended, the owner's pill, a way back from edit
+**Phase:** 12 · **Requirements:** REQ-152, REQ-153, REQ-154 · **Status:** done · **Revision:** 1
+**Files:** src/components/copy-invite-link-button.tsx, src/components/copy-invite-link-button.test.tsx,
+src/components/event-details.tsx, src/components/owner-guest-list.tsx, src/app/[locale]/e/[slug]/page.tsx,
+src/app/[locale]/e/[slug]/edit/page.tsx, messages/en.json, messages/fr.json, messages/pt-BR.json,
+e2e/event-page.spec.ts, e2e/owner.spec.ts, e2e/events.spec.ts
+**Interface:** `CopyInviteLinkButtonProps` gains `ended?: boolean` ("When the event has ended, the hint says replies
+are closed (REQ-152)."). Add the prop to the interface in the test commit.
+
+**Test first:**
+1. `src/components/copy-invite-link-button.test.tsx`, inside `describe('CopyInviteLinkButton', …)`:
+   ```tsx
+   test('REQ-152: an ended event shows the closed-replies hint instead of the invite hint', () => {
+     renderWithIntl(<CopyInviteLinkButton slug="abc" ended />);
+
+     expect(document.getElementById('invite-link-hint')?.textContent).toBe(
+       'Replies are closed, so answers can no longer be sent or changed.',
+     );
+   });
+   ```
+2. `e2e/event-page.spec.ts`: add `createRsvp` to the import from `./helpers/factories` and
+   `import { signInAs } from './helpers/auth';` if missing, then append:
+   ```ts
+   test.describe('REQ-152: an ended event reads as ended', () => {
+     test('REQ-152: guest and owner see the past tense, no calendar link, and the closed hint', async ({
+       page,
+       context,
+     }) => {
+       const owner = await createOwner('ended-owner@example.com');
+       const event = await createEvent(owner.id, { startsAt: new Date('2020-01-01T19:00:00Z') });
+       await createRsvp(event.id, 'Maria', 'GOING', 2);
+
+       await page.goto(`/en/e/${event.slug}`);
+       await expect(page.getByText('2 people went')).toBeVisible();
+       await expect(page.getByRole('link', { name: 'Add to calendar' })).toHaveCount(0);
+
+       await signInAs(context, { email: 'ended-owner@example.com', name: 'Owner' });
+       await page.goto(`/en/e/${event.slug}`);
+       await expect(page.getByText('2 people went')).toBeVisible();
+       await expect(page.getByRole('link', { name: 'Add to calendar' })).toHaveCount(0);
+       await expect(page.locator('#invite-link-hint')).toHaveText(
+         'Replies are closed, so answers can no longer be sent or changed.',
+       );
+       await expect(page.getByText('Anyone with this link can reply')).toHaveCount(0);
+     });
+   });
+   ```
+3. `e2e/owner.spec.ts`, append:
+   ```ts
+   test.describe('REQ-153: the owner pill in French and Portuguese', () => {
+     test('REQ-153: a Going guest reads "Vient" in French and "Vai" in Portuguese', async ({
+       page,
+       context,
+     }) => {
+       const { id } = await signInAs(context, { email: 'pill@example.com', name: 'Pill' });
+       const event = await createEvent(id);
+       await createRsvp(event.id, 'Ana', 'GOING', 2);
+
+       await page.goto(`/fr/e/${event.slug}`);
+       await expect(page.getByRole('row', { name: /Ana/ }).locator('.pill')).toHaveText('Vient');
+       await expect(page.getByText('2 personnes viennent')).toBeVisible();
+
+       await page.goto(`/pt-BR/e/${event.slug}`);
+       await expect(page.getByRole('row', { name: /Ana/ }).locator('.pill')).toHaveText('Vai');
+     });
+   });
+   ```
+4. `e2e/events.spec.ts`: add `import { createEvent } from './helpers/factories';` and append:
+   ```ts
+   test.describe('REQ-154: a way back from the edit page', () => {
+     test('REQ-154: the edit page and its ended notice link back to the event', async ({
+       page,
+       context,
+     }) => {
+       const { id } = await signInAs(context, { email: 'back@example.com', name: 'Back' });
+       const upcoming = await createEvent(id);
+       const ended = await createEvent(id, { startsAt: new Date('2020-01-01T00:00:00.000Z') });
+
+       await page.goto(`/en/e/${upcoming.slug}/edit`);
+       await expect(page.getByRole('link', { name: 'Back to event' })).toHaveAttribute(
+         'href',
+         `/en/e/${upcoming.slug}`,
+       );
+
+       await page.goto(`/fr/e/${ended.slug}/edit`);
+       await expect(page.getByRole('link', { name: "Retour à l'événement" })).toHaveAttribute(
+         'href',
+         `/fr/e/${ended.slug}`,
+       );
+     });
+   });
+   ```
+Run `npx vitest run --project unit src/components/copy-invite-link-button.test.tsx`: the new test fails.
+`E2E_PORT=3100 npm run test:e2e -- e2e/event-page.spec.ts e2e/owner.spec.ts e2e/events.spec.ts`: the three new tests
+fail. Commit `test(event-page): ended copy, third-person pill, back link from edit`.
+
+**Implementation:**
+1. Messages:
+   - `"totals"`, after `"peopleGoing"` (add a comma): en `"peopleWent": "{count, plural, one {# person went} other {# people went}}"`,
+     fr `"peopleWent": "{count, plural, one {# personne est venue} other {# personnes sont venues}}"`,
+     pt-BR `"peopleWent": "{count, plural, one {# pessoa foi} other {# pessoas foram}}"`
+   - fr only, `totals.peopleGoing` becomes `"{count, plural, one {# personne vient} other {# personnes viennent}}"`
+   - `"event"`, after `"declined"`: en `"pillGoing": "Going"`, fr `"pillGoing": "Vient"`, pt-BR `"pillGoing": "Vai"`
+   - `"eventForm"`, after `"openTimePicker"`: en `"backToEvent": "Back to event"`, fr
+     `"backToEvent": "Retour à l'événement"`, pt-BR `"backToEvent": "Voltar ao evento"`
+2. `src/components/copy-invite-link-button.tsx`: destructure `ended = false`; the hint paragraph shows
+   `{ended ? t('event.endedHint') : t('event.inviteHint')}`.
+3. `src/app/[locale]/e/[slug]/page.tsx`: `<CopyInviteLinkButton slug={slug} ended={view.ended} />`.
+4. `src/components/event-details.tsx`: the count becomes
+   `{t(ended ? 'totals.peopleWent' : 'totals.peopleGoing', { count: totals.people })}`, and the "Add to calendar"
+   `<a …>…</a>` is wrapped in `{!ended && ( … )}` (REQ-152).
+5. `src/components/owner-guest-list.tsx`: the Going pill text `t('rsvp.going')` → `t('event.pillGoing')` (REQ-153).
+6. `src/app/[locale]/e/[slug]/edit/page.tsx`: `import { Link } from '@/i18n/navigation';`
+   - ended notice: after `<h1 className="h3">{t('event.ended')}</h1>` add
+     `<p className="mt-2"><Link href={\`/e/${slug}\`}>{t('eventForm.backToEvent')}</Link></p>`
+   - page head: after `<h1 className="h2">{t('eventForm.titleEdit')}</h1>` add
+     `<Link href={\`/e/${slug}\`}>{t('eventForm.backToEvent')}</Link>`
+7. Prettier, run the unit file and the E2E files again: all pass. Commit
+   `fix(event-page): ended events read as ended, third-person pill, back link from edit`.
+
+**Verification:** `E2E_PORT=3100 npm run test:e2e -- e2e/event-page.spec.ts e2e/owner.spec.ts e2e/events.spec.ts
+e2e/share.spec.ts e2e/privacy.spec.ts e2e/journeys.spec.ts e2e/rsvp.spec.ts e2e/i18n-layout.spec.ts` and the
+Phase 12 note 9 checks.
+**Done when:** the new unit and E2E tests pass, the listed specs pass unchanged, and unit, lint, typecheck, format
+and trace pass.
+**TDD exception:** none
+
+### TASK-283 — Event form: the AI panel says what to do and when it is off; "Needed" clears; readable timezones
+**Phase:** 12 · **Requirements:** REQ-155, REQ-156, REQ-157, REQ-158 · **Status:** done · **Revision:** 1
+**Files:** src/components/event-form.tsx, src/components/event-form.test.tsx, src/lib/ai/providers-config.ts,
+src/lib/ai/providers-config.test.ts, src/app/[locale]/events/new/page.tsx, src/app/globals.css, messages/en.json,
+messages/fr.json, messages/pt-BR.json
+**Interface:**
+- `src/lib/ai/providers-config.ts`: `export function isAiConfigured(env: ProviderEnv): boolean`
+- `EventFormProps` gains `aiNotConfigured?: boolean` ("When true and `aiFill` is absent, the AI panel's place says
+  AI fill is not set up on this server (REQ-156).")
+Add both (the function as a stub that throws `new Error('not implemented')`) in the test commit.
+
+**Test first:**
+1. `src/lib/ai/providers-config.test.ts`: add `isAiConfigured` to the import from `./providers-config` and append:
+   ```ts
+   describe('isAiConfigured (REQ-156)', () => {
+     it('REQ-156: true exactly when a listed provider has a non-blank key', () => {
+       expect(isAiConfigured({})).toBe(false);
+       expect(isAiConfigured({ OPENROUTER_API_KEY: 'k' })).toBe(true);
+       expect(isAiConfigured({ OPENROUTER_API_KEY: '   ' })).toBe(false);
+       expect(isAiConfigured({ AI_PROVIDERS: 'anthropic', OPENROUTER_API_KEY: 'k' })).toBe(false);
+       expect(isAiConfigured({ AI_PROVIDERS: 'anthropic,openrouter', ANTHROPIC_API_KEY: 'a' })).toBe(
+         true,
+       );
+     });
+   });
+   ```
+2. `src/components/event-form.test.tsx`, append at the end of the file:
+   ```tsx
+   describe('EventForm AI panel and timezone labels (REQ-155 to REQ-158)', () => {
+     test('REQ-155: Fill with AI with an empty description asks for one and calls nothing', () => {
+       const aiFill = vi.fn();
+       renderWithIntl(<EventForm submit={vi.fn()} aiFill={aiFill} />);
+       fireEvent.change(screen.getByLabelText('Describe your event'), { target: { value: '   ' } });
+
+       fireEvent.click(screen.getByRole('button', { name: 'Fill with AI' }));
+
+       expect(screen.getByRole('alert').textContent).toBe(
+         "Describe your event first — for example, “Team dinner next Friday 7pm at Mario's”.",
+       );
+       expect(aiFill).not.toHaveBeenCalled();
+       expect(document.activeElement).toBe(screen.getByLabelText('Describe your event'));
+     });
+
+     test('REQ-156: without an AI key the form says so and offers no AI fill', () => {
+       renderWithIntl(<EventForm submit={vi.fn()} aiNotConfigured />);
+
+       expect(
+         screen.getByText("AI fill isn't set up on this server — fill the form below."),
+       ).toBeTruthy();
+       expect(screen.queryByLabelText('Describe your event')).toBeNull();
+       expect(screen.queryByRole('button', { name: 'Fill with AI' })).toBeNull();
+       expect(screen.queryByRole('alert')).toBeNull();
+     });
+
+     test('REQ-157: editing a flagged field clears its Needed flag only', async () => {
+       const aiFill = vi.fn().mockResolvedValue({
+         ok: true,
+         data: {
+           fields: {
+             name: 'Team dinner',
+             description: null,
+             date: '2026-10-02',
+             time: '19:00',
+             timezone: 'America/New_York',
+             location: null,
+           },
+           missing: ['description', 'location'],
+           timezoneFromText: true,
+           notAnEvent: false,
+         },
+       });
+       const { container } = renderWithIntl(<EventForm submit={vi.fn()} aiFill={aiFill} />);
+       fireEvent.change(screen.getByLabelText('Describe your event'), {
+         target: { value: 'Team dinner next Friday 7pm' },
+       });
+       fireEvent.click(screen.getByRole('button', { name: 'Fill with AI' }));
+       await waitFor(() => expect(screen.getAllByText('Needed')).toHaveLength(2));
+
+       fireEvent.change(screen.getByLabelText('Location (optional)'), {
+         target: { value: "Mario's" },
+       });
+
+       expect(screen.getAllByText('Needed')).toHaveLength(1);
+       expect(screen.getByLabelText('Location (optional)').getAttribute('aria-invalid')).toBeNull();
+       expect(container.querySelector('#location-missing')).toBeNull();
+       expect(container.querySelector('.field.is-missing #location')).toBeNull();
+       expect(screen.getByLabelText('Description').getAttribute('aria-invalid')).toBe('true');
+     });
+
+     test('REQ-158: timezone options read with spaces and keep their ids', () => {
+       renderWithIntl(
+         <EventForm submit={vi.fn()} initialValues={{ timezone: 'America/New_York' }} />,
+       );
+       const select = screen.getByLabelText('Timezone') as HTMLSelectElement;
+       const option = Array.from(select.options).find((o) => o.value === 'America/New_York');
+
+       expect(option?.textContent).toBe('America/New York');
+       expect(select.value).toBe('America/New_York');
+     });
+   });
+   ```
+Run `npx vitest run --project unit src/lib/ai/providers-config.test.ts src/components/event-form.test.tsx`: the five
+new tests fail. Commit `test(event-form): empty AI text, AI not set up, Needed clears, readable timezones`.
+
+**Implementation:**
+1. Messages, `"ai"`, after `"needed"` (add a comma):
+   - en `"emptyText": "Describe your event first — for example, “Team dinner next Friday 7pm at Mario's”."`
+   - fr `"emptyText": "Décrivez d'abord votre événement — par exemple, « Dîner d'équipe vendredi prochain 19h chez Mario »."`
+   - pt-BR `"emptyText": "Descreva seu evento primeiro — por exemplo, “Jantar da equipe sexta-feira que vem às 19h no Mario's”."`
+   (the example is each catalog's `ai.placeholder`; the quotes are U+201C/U+201D in en and pt-BR, « » in fr)
+2. `src/lib/ai/providers-config.ts`:
+   ```ts
+   /** True when a provider listed in AI_PROVIDERS has a non-blank key, i.e. buildAiProviders would return one (REQ-156, BR-137). */
+   export function isAiConfigured(env: ProviderEnv): boolean {
+     return parseAiProviders(env.AI_PROVIDERS).some(
+       (name) => (env[PROVIDER_KEY_ENV[name]] ?? '').trim() !== '',
+     );
+   }
+   ```
+3. `src/app/[locale]/events/new/page.tsx`: `import { isAiConfigured } from '@/lib/ai/providers-config';` and
+   ```tsx
+   const aiConfigured = isAiConfigured(process.env); // REQ-156: known before the organizer types
+   …
+   <EventForm
+     submit={createEventAction}
+     aiFill={aiConfigured ? parseEventTextAction : undefined}
+     aiNotConfigured={!aiConfigured}
+   />
+   ```
+   Keep `export const maxDuration = 30;` and its comment exactly as they are (a unit test reads them).
+4. `src/components/event-form.tsx`:
+   - destructure `aiNotConfigured` in `EventForm`'s parameters
+   - `const aiTextRef = useRef<HTMLTextAreaElement>(null);` and `ref={aiTextRef}` on the `#ai-text` textarea
+   - the notice state type becomes `useState<ErrorCode | 'notAnEvent' | 'emptyText' | null>(null)`
+   - at the start of `handleAiFill`, after `if (!aiFill) return;`:
+     ```ts
+     if (aiText.trim() === '') {
+       setAiNotice('emptyText'); // REQ-155: nothing to send
+       setFilledCount(null);
+       aiTextRef.current?.focus();
+       return;
+     }
+     ```
+   - the panel alert text:
+     `aiNotice === 'notAnEvent' ? t('ai.notAnEvent') : aiNotice === 'emptyText' ? t('ai.emptyText') : t(\`errors.${aiNotice}\`)`
+   - a helper after `errorFor`:
+     ```ts
+     /** Clears a field's AI "missing" flag once the organizer edits it (REQ-157, BR-187). */
+     function clearMissing(field: AiField) {
+       setMissing((current) =>
+         current.includes(field) ? current.filter((f) => f !== field) : current,
+       );
+     }
+     ```
+     and every field's `onChange` also calls it, e.g. `onChange={(e) => { setName(e.target.value); clearMissing('name'); }}`
+     for `name`, `description`, `date`, `time`, `timezone` and `location` (the AI fill itself sets the values
+     directly and does not go through `onChange`)
+   - right after the `{aiFill && ( <div className="ai-panel"> … </div> )}` block:
+     ```tsx
+     {!aiFill && aiNotConfigured && (
+       <div className="ai-panel">
+         <p className="small muted ai-off">
+           <Icon icon={Sparkles} />
+           <span>{t('errors.AI_NOT_CONFIGURED')}</span>
+         </p>
+       </div>
+     )}
+     ```
+   - the timezone `<option>` text: `{zone.replace(/_/g, ' ')}` (the `key` and `value` stay `zone`) (REQ-158)
+5. `src/app/globals.css`, after the `.ai-panel .textarea { … }` block:
+   ```css
+   /* The AI panel's place when no provider is configured (REQ-156). */
+   .ai-off {
+     display: flex;
+     gap: 8px;
+     align-items: flex-start;
+   }
+   ```
+6. Prettier, run the unit files again: all pass. Commit
+   `fix(event-form): say what to do on empty AI text and when AI is off; clear Needed on edit; readable timezones`.
+
+**Verification:** `E2E_PORT=3100 npm run test:e2e -- e2e/ai.spec.ts e2e/events.spec.ts e2e/journeys.spec.ts
+e2e/a11y.spec.ts e2e/mobile.spec.ts` (the E2E app has AI keys, so the panel is shown) and the Phase 12 note 9 checks.
+**Done when:** the new unit tests pass, the existing `REQ-51`, `REQ-70`, `REQ-83`, `REQ-132` and `REQ-13` tests and
+the listed specs pass unchanged, and unit, lint, typecheck, format and trace pass.
+**TDD exception:** none
+
+### TASK-284 — Sign-in, register and home: forgot-password hint, email-taken link, sign-in chrome, preview card link
+**Phase:** 12 · **Requirements:** REQ-147, REQ-148, REQ-146, REQ-149 · **Status:** done · **Revision:** 1
+**Files:** src/components/password-sign-in-form.tsx, src/components/password-sign-in-form.test.tsx,
+src/components/register-form.tsx, src/components/register-form.test.tsx, src/components/header-sign-in-link.tsx
+(new), src/components/header-sign-in-link.test.tsx (new), src/components/site-header.tsx,
+src/app/[locale]/sign-in/page.tsx, src/components/invite-preview.tsx, src/app/globals.css, messages/en.json,
+messages/fr.json, messages/pt-BR.json, e2e/sign-in.spec.ts, e2e/home.spec.ts
+**Interface:** `src/components/header-sign-in-link.tsx` (client component):
+`export function HeaderSignInLink({ href, label }: { href: string; label: string }): React.JSX.Element | null`.
+Stub it in the test commit (`'use client';`, body `throw new Error('not implemented');`).
+
+**Test first:**
+1. `src/components/password-sign-in-form.test.tsx`, inside `describe('PasswordSignInForm', …)`:
+   ```tsx
+   it('REQ-147: the password field always carries the forgot-password hint', () => {
+     const { getByLabelText } = setup(ok);
+     expect(getByLabelText('Password').getAttribute('aria-describedby')).toBe('signin-password-hint');
+     expect(document.getElementById('signin-password-hint')?.textContent).toBe(
+       'Forgot your password? If your email is a Google account, use Continue with Google above, then set a new password in Account.',
+     );
+   });
+
+   it('REQ-147: with a password error the hint and the error both describe the field', async () => {
+     const { fill, getByLabelText, findByText } = setup(ok);
+     fill('ana@example.com', '');
+     await findByText('This field is required.');
+     expect(getByLabelText('Password').getAttribute('aria-describedby')).toBe(
+       'signin-password-hint signin-password-error',
+     );
+   });
+   ```
+2. `src/components/register-form.test.tsx`: add `within` to the `@testing-library/react` import, and inside
+   `describe('RegisterForm', …)`:
+   ```tsx
+   it('REQ-148: in the email-taken message, Sign in links to the sign-in page with the callback', async () => {
+     const view = setup({ ok: false, code: 'EMAIL_TAKEN' });
+     view.fill(typed);
+     const alert = await view.findByRole('alert');
+     expect(alert.textContent).toBe('An account with this email already exists. Sign in instead.');
+     expect(within(alert).getByRole('link', { name: 'Sign in' }).getAttribute('href')).toBe(
+       '/en/sign-in?callbackUrl=%2Fen%2Fdashboard',
+     );
+   });
+   ```
+3. Create `src/components/header-sign-in-link.test.tsx`:
+   ```tsx
+   // @vitest-environment jsdom
+   import { describe, expect, it, vi } from 'vitest';
+   import { renderWithIntl } from '@/test/render';
+   import { HeaderSignInLink } from './header-sign-in-link';
+
+   const path = vi.hoisted(() => ({ current: '/' }));
+   vi.mock('@/i18n/navigation', () => ({ usePathname: () => path.current }));
+
+   describe('HeaderSignInLink (REQ-146)', () => {
+     it('REQ-146: shown on other pages, hidden on the sign-in and register pages', () => {
+       const href = '/en/sign-in?callbackUrl=%2Fen%2Fdashboard';
+       for (const [pathname, shown] of [
+         ['/', true],
+         ['/e/abc', true],
+         ['/sign-in', false],
+         ['/register', false],
+       ] as const) {
+         path.current = pathname;
+         const { queryByRole, unmount } = renderWithIntl(
+           <HeaderSignInLink href={href} label="Sign in" />,
+         );
+         const link = queryByRole('link', { name: 'Sign in' });
+         expect(Boolean(link), pathname).toBe(shown);
+         if (link) {
+           expect(link.getAttribute('href')).toBe(href);
+           expect(link.className).toBe('btn btn-secondary btn-sm');
+         }
+         unmount();
+       }
+     });
+   });
+   ```
+4. `e2e/sign-in.spec.ts`, append:
+   ```ts
+   test.describe('REQ-146, REQ-147: the sign-in page', () => {
+     test('REQ-147: the forgot-password hint is under Password before any attempt', async ({ page }) => {
+       await page.goto('/en/sign-in');
+       await expect(page.locator('#signin-password-hint')).toHaveText(
+         'Forgot your password? If your email is a Google account, use Continue with Google above, then set a new password in Account.',
+       );
+       await page.goto('/fr/sign-in');
+       await expect(page.locator('#signin-password-hint')).toHaveText(
+         'Mot de passe oublié ? Si votre e-mail est un compte Google, utilisez « Continuer avec Google » ci-dessus, puis définissez un nouveau mot de passe dans Compte.',
+       );
+     });
+
+     test('REQ-146: no header Sign in link on the auth pages, a gap under the heading, an "or" divider', async ({
+       page,
+     }) => {
+       await page.goto('/en/sign-in');
+       await expect(page.getByRole('banner').getByRole('link', { name: 'Sign in' })).toHaveCount(0);
+       const heading = (await page
+         .getByRole('heading', { level: 1, name: 'Sign in' })
+         .boundingBox())!;
+       const google = (await page
+         .locator('main')
+         .getByRole('link', { name: 'Continue with Google' })
+         .boundingBox())!;
+       expect(google.y - (heading.y + heading.height)).toBeGreaterThanOrEqual(16);
+       await expect(page.locator('main .divider-or')).toHaveText('or');
+
+       await page.goto('/en/register');
+       await expect(page.getByRole('banner').getByRole('link', { name: 'Sign in' })).toHaveCount(0);
+
+       await page.goto('/en');
+       await expect(
+         page.getByRole('banner').getByRole('link', { name: 'Sign in', exact: true }),
+       ).toBeVisible();
+     });
+   });
+   ```
+5. `e2e/home.spec.ts`, inside `test.describe('REQ-39: the home page', …)`:
+   ```ts
+   test('REQ-149: the preview card is one link to the demo, named by its caption', async ({ page }) => {
+     await page.goto('/en');
+
+     const figure = page.getByRole('figure');
+     const link = figure.getByRole('link', {
+       name: 'What a guest sees after tapping your link. One page, one answer.',
+     });
+     await expect(link).toHaveAttribute('href', '/en/e/demoPicnic');
+     await expect(figure.getByRole('link')).toHaveCount(1);
+     await expect(link.locator('.ip-card')).toHaveAttribute('aria-hidden', 'true');
+   });
+   ```
+Run `npx vitest run --project unit src/components/password-sign-in-form.test.tsx src/components/register-form.test.tsx
+src/components/header-sign-in-link.test.tsx`: the four new tests fail. `E2E_PORT=3100 npm run test:e2e --
+e2e/sign-in.spec.ts e2e/home.spec.ts`: the three new tests fail. Commit
+`test(auth): forgot-password hint, email-taken link, sign-in chrome, preview card link`.
+
+**Implementation:**
+1. Messages, `"auth"`, after `"signInFailed"` (add a comma):
+   - en: `"forgotPasswordHint": "Forgot your password? If your email is a Google account, use Continue with Google above, then set a new password in Account."`,
+     `"or": "or"`, `"emailTakenRich": "An account with this email already exists. <link>Sign in</link> instead."`
+   - fr: `"forgotPasswordHint": "Mot de passe oublié ? Si votre e-mail est un compte Google, utilisez « Continuer avec Google » ci-dessus, puis définissez un nouveau mot de passe dans Compte."`,
+     `"or": "ou"`, `"emailTakenRich": "Un compte existe déjà avec cet e-mail. <link>Connectez-vous</link> plutôt."`
+   - pt-BR: `"forgotPasswordHint": "Esqueceu a senha? Se o seu e-mail é uma conta Google, use \"Continuar com o Google\" acima e depois defina uma nova senha em Conta."`,
+     `"or": "ou"`, `"emailTakenRich": "Já existe uma conta com este e-mail. <link>Entre com ela</link>."`
+   (the rich texts read exactly like `errors.EMAIL_TAKEN` once the tags are removed; the spaces around « » are
+   plain spaces, as in the audit)
+2. `src/components/password-sign-in-form.tsx`: import `FieldHint` from `@/components/ui/field`; the password input
+   gets `aria-describedby={describedBy('signin-password-hint', fieldErrors.password && 'signin-password-error')}`
+   and, right after the input (before its `FieldError`):
+   `<FieldHint id="signin-password-hint">{t('auth.forgotPasswordHint')}</FieldHint>` (REQ-147).
+3. `src/components/register-form.tsx`: `import { useLocale, useTranslations } from 'next-intl';`,
+   `const locale = useLocale();`, `formError` becomes `useState<React.ReactNode>(null)`, and before the final
+   `setFormError(…)`:
+   ```tsx
+   if (result.code === 'EMAIL_TAKEN') {
+     const signInHref = `/${locale}/sign-in?callbackUrl=${encodeURIComponent(callbackUrl)}`;
+     setFormError(
+       t.rich('auth.emailTakenRich', { link: (chunks) => <a href={signInHref}>{chunks}</a> }),
+     ); // REQ-148
+     return;
+   }
+   ```
+4. `src/components/header-sign-in-link.tsx`:
+   ```tsx
+   'use client';
+
+   import { usePathname } from '@/i18n/navigation';
+   import { buttonClass } from '@/components/ui/button';
+
+   /** Pages that are themselves the sign-in destination (REQ-146). */
+   const HIDDEN_ON = ['/sign-in', '/register'];
+
+   /** The header's "Sign in" link, left out on the sign-in and register pages (REQ-146). */
+   export function HeaderSignInLink({
+     href,
+     label,
+   }: {
+     href: string;
+     label: string;
+   }): React.JSX.Element | null {
+     const pathname = usePathname();
+     if (HIDDEN_ON.includes(pathname)) return null;
+     return (
+       <a className={buttonClass('secondary', 'sm')} href={href}>
+         {label}
+       </a>
+     );
+   }
+   ```
+5. `src/components/site-header.tsx`: replace the signed-out `<a className={buttonClass('secondary', 'sm')} …>…</a>`
+   with `<HeaderSignInLink href={signInRedirectPath(\`/${locale}/dashboard\`)} label={t('nav.signIn')} />`, import it
+   from `@/components/header-sign-in-link`, and remove the now unused `buttonClass` import.
+6. `src/app/[locale]/sign-in/page.tsx`: the heading becomes `<h1 className="h2 mb-4">`; the first
+   `<hr className="divider" />` (between the Google button and the form) becomes
+   `<p className="divider-or"><span>{t('auth.or')}</span></p>`; the second `<hr className="divider" />` stays.
+7. `src/components/invite-preview.tsx`: `import { Link } from '@/i18n/navigation';`; wrap the `.ip-card` div in
+   `<Link className="ip-link" href={\`/e/${DEMO_SLUG}\`} aria-labelledby="invite-preview-caption">…</Link>` (the
+   card keeps `aria-hidden="true"`), and give the caption `id="invite-preview-caption"`.
+8. `src/app/globals.css`:
+   - after the `.divider { … }` block:
+     ```css
+     /* Divider with a word between two lines, e.g. "or" on the sign-in page (REQ-146). */
+     .divider-or {
+       display: flex;
+       align-items: center;
+       gap: 12px;
+       margin: 24px 0;
+       color: var(--text-muted);
+       font-size: 0.875rem;
+     }
+     .divider-or::before,
+     .divider-or::after {
+       content: '';
+       flex: 1;
+       height: 1px;
+       background: var(--border);
+     }
+     ```
+   - after the `.invite-preview figcaption { … }` block:
+     ```css
+     /* The whole preview card is one link to the demo (REQ-149). */
+     .ip-link {
+       display: block;
+       color: inherit;
+       text-decoration: none;
+       border-radius: 16px;
+     }
+     ```
+9. Prettier, run the unit files and the E2E files again: all pass. Commit
+   `fix(auth): forgot-password hint, email-taken link, sign-in chrome; link the home preview card`.
+
+**Verification:** `E2E_PORT=3100 npm run test:e2e -- e2e/sign-in.spec.ts e2e/home.spec.ts e2e/password-auth.spec.ts
+e2e/header.spec.ts e2e/a11y.spec.ts e2e/brand.spec.ts e2e/pages.spec.ts`, then the full suite once
+(`E2E_PORT=3100 npm run test:e2e`, both projects) and the Phase 12 note 9 checks.
+**Done when:** the new unit and E2E tests pass, the full E2E suite passes in both projects, and unit, lint,
+typecheck, format and trace pass.
+**TDD exception:** none
+
+### TASK-285 — Regression battery: container journey in CI, `npm run test:all`, regression coverage table
+**Phase:** 12 · **Requirements:** REQ-160 · **Status:** done · **Revision:** 1
+**Files:** docker/compose.journey.yml (new), playwright.container.config.ts (new), e2e/container/journey.spec.ts
+(new), playwright.config.ts, package.json, scripts/docker/container-files.test.ts, .github/workflows/ci.yml,
+README.md, docs/design/2026-09-25-ux-audit.md
+**Interface:** no product code changes. New npm scripts:
+- `"docker:journey": "docker compose -f docker-compose.yml -f docker/compose.journey.yml up --build -d --wait --wait-timeout 300"`
+- `"test:container": "playwright test -c playwright.container.config.ts"`
+- `"test:all": "docker compose up -d --wait db && npm run test:unit && npm run test:int && npm run test:e2e && npm run docker:journey && tsx scripts/docker/smoke-cli.ts && npm run test:container"`
+
+Why these choices (all dry-run on this machine with `APP_PORT=3200`, then reverted): the override file keeps
+`docker-compose.yml` untouched (REQ-112) and blanks the AI keys even when `.env.local` has them (`environment` wins
+over `env_file`), so the journey always sees REQ-156's "not set up" state; the journey has its own config and folder,
+so the existing `chromium` / `mobile` projects never run it and it never starts a webServer; it needs no database
+access because it uses a fresh email per run.
+
+**Test first:**
+1. `scripts/docker/container-files.test.ts`, test `REQ-113: container-smoke builds the stack, runs the smoke check and
+   always tears it down`: the expected run lines become
+   ```ts
+   '- run: npm ci',
+   '- run: npm run docker:journey',
+   '- run: npx tsx scripts/docker/smoke-cli.ts',
+   '- run: npx playwright install --with-deps chromium',
+   '- run: npm run test:container',
+   'run: docker compose logs app',
+   'run: docker compose down -v',
+   ```
+   and add inside `describe('CI smoke job (REQ-113)', …)`:
+   ```ts
+   it('REQ-160: container-smoke runs the journey on a stack started without AI keys', () => {
+     const scripts = JSON.parse(read('package.json')).scripts as Record<string, string>;
+     expect(scripts['docker:journey']).toBe(
+       'docker compose -f docker-compose.yml -f docker/compose.journey.yml up --build -d --wait --wait-timeout 300',
+     );
+     expect(scripts['test:container']).toBe('playwright test -c playwright.container.config.ts');
+     expect(scripts['test:all']).toBe(
+       'docker compose up -d --wait db && npm run test:unit && npm run test:int && npm run test:e2e && npm run docker:journey && tsx scripts/docker/smoke-cli.ts && npm run test:container',
+     );
+     const override = read('docker/compose.journey.yml');
+     expect(override).toContain("ANTHROPIC_API_KEY: ''");
+     expect(override).toContain("OPENROUTER_API_KEY: ''");
+     expect(read('playwright.container.config.ts')).not.toContain('webServer');
+     expect(read('playwright.config.ts')).toContain('/[\\\\/]e2e[\\\\/]container[\\\\/]/');
+   });
+   ```
+   (the last line checks the source text `/[\\/]e2e[\\/]container[\\/]/` of the ignore pattern in step 3 below)
+2. Create `e2e/container/journey.spec.ts`:
+   ```ts
+   import { test, expect } from '@playwright/test';
+
+   const PASSWORD = 'journey horse 42';
+
+   /** A calendar date a week from now, `yyyy-MM-dd` (always in the future, whatever the time zone). */
+   function nextWeek(): string {
+     return new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+   }
+
+   test.describe('REQ-160: regression journey against the docker compose app', () => {
+     test('REQ-160: register, create an event, a guest replies, the organizer sees it, sign out, sign in', async ({
+       page,
+       browser,
+     }) => {
+       const email = `journey-${Date.now()}@example.com`;
+       const main = page.locator('main');
+       const banner = page.getByRole('banner');
+
+       // Register → dashboard
+       await page.goto('/en/register');
+       await main.getByLabel('Name').fill('Journey Organizer');
+       await main.getByLabel('Email').fill(email);
+       await main.getByLabel('Password', { exact: true }).fill(PASSWORD);
+       await main.getByLabel('Confirm password').fill(PASSWORD);
+       await main.getByRole('button', { name: 'Create account' }).click();
+       await expect(page).toHaveURL(/\/en\/dashboard$/);
+
+       // Create an event: no AI key in the container; the picker buttons focus their fields
+       await page.goto('/en/events/new');
+       await expect(
+         main.getByText("AI fill isn't set up on this server — fill the form below."),
+       ).toBeVisible();
+       await expect(main.getByRole('button', { name: 'Fill with AI' })).toHaveCount(0);
+       await main.getByLabel('Name', { exact: true }).fill('Journey dinner');
+       await main.getByLabel('Description', { exact: true }).fill('Regression journey');
+       await main.getByRole('button', { name: 'Open calendar' }).click();
+       await expect(main.locator('#date')).toBeFocused();
+       await page.keyboard.press('Escape');
+       await main.locator('#date').fill(nextWeek());
+       await main.getByRole('button', { name: 'Open time picker' }).click();
+       await expect(main.locator('#time')).toBeFocused();
+       await page.keyboard.press('Escape');
+       await main.locator('#time').fill('19:00');
+       await main.getByRole('button', { name: 'Save event' }).click();
+       await expect(page).toHaveURL(/\/en\/e\/[A-Za-z0-9_-]{10}$/);
+       const slug = new URL(page.url()).pathname.split('/').pop()!;
+
+       // A guest replies from a separate browser context
+       const guestContext = await browser.newContext();
+       const guest = await guestContext.newPage();
+       await guest.goto(`/en/e/${slug}`);
+       await guest.getByLabel('Your name').fill('Guest Journey');
+       await guest.getByRole('button', { name: 'One more person' }).click();
+       await guest.getByRole('button', { name: 'Send RSVP' }).click();
+       await expect(guest.getByRole('heading', { name: "You're going · 2 people" })).toBeVisible();
+       await guestContext.close();
+
+       // The organizer sees the guest
+       await page.reload();
+       await expect(page.getByRole('row', { name: /Guest Journey/ })).toContainText('Going');
+       await expect(page.getByText('1 going · 0 declined · 2 people')).toBeVisible();
+
+       // The calendar file
+       const ics = await page.request.get(`/e/${slug}/calendar.ics`);
+       expect(ics.status()).toBe(200);
+       expect(ics.headers()['content-type']).toContain('text/calendar');
+       expect(await ics.text()).toContain('SUMMARY:Journey dinner');
+
+       // Sign out
+       await banner.getByLabel('Account menu').click();
+       await banner.getByRole('button', { name: 'Sign out' }).click();
+       await expect(banner.getByLabel('Account menu')).toHaveCount(0);
+
+       // A wrong password shows the generic error, then the right one signs in
+       await page.goto('/en/sign-in');
+       await main.getByLabel('Email').fill(email);
+       await main.getByLabel('Password', { exact: true }).fill('wrong horse 42');
+       await main.getByRole('button', { name: 'Sign in', exact: true }).click();
+       await expect(main.getByRole('alert')).toHaveText('Email or password is incorrect.');
+       await main.getByLabel('Password', { exact: true }).fill(PASSWORD);
+       await main.getByRole('button', { name: 'Sign in', exact: true }).click();
+       await expect(page).toHaveURL(/\/en\/dashboard$/);
+       await expect(main.getByText('Journey dinner')).toBeVisible();
+     });
+   });
+   ```
+Run `npx vitest run --project unit scripts/docker/container-files.test.ts`: the edited REQ-113 test and the REQ-160
+test fail. The journey needs the next steps to run at all. Commit
+`test(ci): container regression journey and the scripts that run it`.
+
+**Implementation:**
+1. `docker/compose.journey.yml`:
+   ```yaml
+   # Container regression journey (REQ-160): the app runs with no AI key, whatever .env.local
+   # holds, so the journey sees the "AI fill isn't set up" state (REQ-156). Use it on top of the
+   # main file: docker compose -f docker-compose.yml -f docker/compose.journey.yml up …
+   services:
+     app:
+       environment:
+         ANTHROPIC_API_KEY: ''
+         OPENROUTER_API_KEY: ''
+   ```
+2. `playwright.container.config.ts`:
+   ```ts
+   import { defineConfig, devices } from '@playwright/test';
+
+   /** Port of the running docker compose app (env `APP_PORT`, default 3000), as in scripts/docker/smoke.ts. */
+   const port = Number(process.env.APP_PORT?.trim() || 3000);
+   if (!Number.isInteger(port) || port <= 0) {
+     throw new Error(`APP_PORT must be a positive integer, got "${process.env.APP_PORT}"`);
+   }
+
+   /**
+    * Regression journey against the app already running in docker compose (REQ-160). No webServer:
+    * start the stack first. Separate from playwright.config.ts, whose projects ignore e2e/container/.
+    */
+   export default defineConfig({
+     testDir: './e2e/container',
+     fullyParallel: false,
+     workers: 1,
+     retries: process.env.CI ? 1 : 0,
+     reporter: 'list',
+     outputDir: 'test-results/container',
+     use: { baseURL: `http://localhost:${port}`, trace: 'retain-on-failure' },
+     projects: [
+       {
+         name: 'container',
+         use: { ...devices['Desktop Chrome'], locale: 'en-US', timezoneId: 'America/New_York' },
+       },
+     ],
+   });
+   ```
+3. `playwright.config.ts`, the `chromium` project only:
+   `testIgnore: /mobile\.spec\.ts$/,` → `testIgnore: [/mobile\.spec\.ts$/, /[\\/]e2e[\\/]container[\\/]/],`
+   (Playwright matches `testIgnore` against the absolute path; `[\\/]` covers Windows and Linux). Nothing else in the
+   file changes. Check: `npx playwright test --list` shows no `journey.spec.ts` (114 tests in 26 files at the time of
+   writing), and `npx playwright test -c playwright.container.config.ts --list` shows exactly the one
+   `[container]` test.
+4. `package.json`, `"scripts"`: add the three scripts of the Interface right after `"test:e2e"`.
+5. `.github/workflows/ci.yml`, job `container-smoke`, the steps become:
+   ```yaml
+       steps:
+         - uses: actions/checkout@v7
+         - uses: actions/setup-node@v4
+           with: { node-version: 22, cache: npm }
+         - run: npm ci
+         - run: npm run docker:journey
+         - run: npx tsx scripts/docker/smoke-cli.ts
+         - run: npx playwright install --with-deps chromium
+         - run: npm run test:container
+         - uses: actions/upload-artifact@v4
+           if: failure()
+           with: { name: container-journey, path: test-results/container, retention-days: 7 }
+         - if: failure()
+           run: docker compose logs app
+         - if: always()
+           run: docker compose down -v
+   ```
+   (the job still needs no `APP_PORT`: 3000 is free on the runner; the other jobs do not change)
+6. `README.md`, section "Tests", inside the `bash` block, after the `npm run test:e2e` line, one line:
+   `npm run test:all      # db, unit, integration, E2E (both projects), then the docker compose journey; honours E2E_PORT and APP_PORT`
+7. `docs/design/2026-09-25-ux-audit.md`: append at the end of the file:
+   ```markdown
+
+   ## Regression coverage
+
+   Tests that fail if a finding comes back (Phase 12). The container journey (`e2e/container/journey.spec.ts`, run by
+   CI's `container-smoke` job and by `npm run test:all`) replays the main flows on the built image.
+
+   | UX ID | Requirement | Test file(s) | Test |
+   |---|---|---|---|
+   | UX-01 | REQ-138 | `e2e/rsvp.spec.ts`, `src/components/rsvp-form.test.tsx` | REQ-138: a guest who said Not going can come after all |
+   | UX-02 | REQ-134 | `e2e/pages.spec.ts` | REQ-134: every page passes axe document-title and html-has-lang |
+   | UX-03 | REQ-144 | `e2e/header.spec.ts`, `src/components/locale-switcher.test.tsx` | REQ-144: arrow keys only move the choice; Enter switches and keeps focus |
+   | UX-04 | REQ-136 | `e2e/focus.spec.ts`, `src/components/ui/button.test.tsx` | REQ-136: a wrong password leaves focus on Sign in |
+   | UX-05 | REQ-137 | `e2e/mobile.spec.ts`, `e2e/focus.spec.ts`, `src/components/ui/field.test.tsx` | REQ-137: an empty new-event form focuses Name inside the viewport |
+   | UX-06 | REQ-140 | `e2e/rsvp.spec.ts`, `e2e/owner.spec.ts`, `src/components/password-notice.test.tsx` | REQ-140: after Send, Change, Keep and I can't go, focus is on the result |
+   | UX-07 | REQ-139 | `src/components/guest-rsvp-panel.test.tsx`, `e2e/rsvp.spec.ts` | REQ-139: Keep my answer leaves the answer unchanged and focuses Change |
+   | UX-08 | REQ-155 | `src/components/event-form.test.tsx` | REQ-155: Fill with AI with an empty description asks for one and calls nothing |
+   | UX-09 | REQ-145 | `e2e/header.spec.ts`, `src/components/user-menu.test.tsx` | REQ-145: Escape closes the menu and returns focus to it |
+   | UX-10 | REQ-135 | `e2e/pages.spec.ts` | REQ-135: an unknown path renders the not-found page inside the layout |
+   | UX-11 | REQ-150 | `e2e/mobile.spec.ts` | REQ-150: the French invite link field is readable, with the button under it |
+   | UX-12 | REQ-142 | `src/components/delete-event-button.test.tsx`, `src/components/remove-rsvp-button.test.tsx`, `src/components/create-sample-button.test.tsx` | REQ-142: a failed delete says why and stays on the page |
+   | UX-13 | REQ-147 | `e2e/sign-in.spec.ts`, `src/components/password-sign-in-form.test.tsx` | REQ-147: the forgot-password hint is under Password before any attempt |
+   | UX-14 | REQ-156 | `src/components/event-form.test.tsx`, `e2e/container/journey.spec.ts` | REQ-156: without an AI key the form says so and offers no AI fill |
+   | UX-15 | REQ-151 | `e2e/mobile.spec.ts`, `src/lib/format-date.test.ts` | REQ-151: the time and its zone stay on one line |
+   | UX-16 | REQ-138 | `src/components/rsvp-form.test.tsx` | REQ-138: the party size can be cleared and retyped |
+   | UX-17 | REQ-153 | `e2e/owner.spec.ts` | REQ-153: a Going guest reads "Vient" in French and "Vai" in Portuguese |
+   | UX-18 | REQ-152 | `e2e/event-page.spec.ts`, `src/components/copy-invite-link-button.test.tsx` | REQ-152: guest and owner see the past tense, no calendar link, and the closed hint |
+   | UX-19 | REQ-154 | `e2e/events.spec.ts` | REQ-154: the edit page and its ended notice link back to the event |
+   | UX-20 | REQ-135 | `e2e/pages.spec.ts` | REQ-135: an unknown event slug shows the hint and the way home |
+   | UX-21 | REQ-157 | `src/components/event-form.test.tsx` | REQ-157: editing a flagged field clears its Needed flag only |
+   | UX-22 | REQ-143 | `e2e/owner.spec.ts`, `src/components/ui/inline-confirm.test.tsx` | REQ-143: at 375 px the Remove question is visible; at 1280 px it is hidden |
+   | UX-23 | REQ-149 | `e2e/home.spec.ts` | REQ-149: the preview card is one link to the demo, named by its caption |
+   | UX-24 | REQ-141 | `src/components/guest-rsvp-panel.test.tsx`, `e2e/rsvp.spec.ts` | REQ-141: I can't go calls the cancel action |
+   | UX-25 | REQ-148 | `src/components/register-form.test.tsx` | REQ-148: in the email-taken message, Sign in links to the sign-in page with the callback |
+   | UX-26 | REQ-146 | `e2e/sign-in.spec.ts`, `src/components/header-sign-in-link.test.tsx` | REQ-146: no header Sign in link on the auth pages, a gap under the heading, an "or" divider |
+   | UX-27 | REQ-158 | `src/components/event-form.test.tsx` | REQ-158: timezone options read with spaces and keep their ids |
+   | Pickers (incident 26) | REQ-131 | `e2e/mobile.spec.ts` | REQ-131: tapping the Date field opens its picker |
+   ```
+   Every title above was checked against the branch when this task was written. Check again: for each row,
+   `git grep -nF "<Test>" -- <first file>` prints exactly one line (for UX-14 check
+   `src/components/event-form.test.tsx`). If one does not, fix the row to the title that exists and say so in the
+   task result; do not edit the test.
+8. Prettier on the new `.ts` files, `package.json` and `ci.yml` (`npx prettier --write …`); run the unit file
+   again: all pass. Commit `ci: run the container regression journey; add npm run test:all` (steps 1–6) and
+   `docs(design): regression coverage of the UX audit findings` (step 7).
+
+**Verification** (local constraints of Phase 12 note 1; port 3000 is taken here, so always set `APP_PORT=3200` and
+`E2E_PORT=3100` in the shell):
+1. `npx vitest run --project unit scripts/docker/container-files.test.ts` and the Phase 12 note 9 checks.
+2. Record whether an `app` container exists before you start (`docker compose ps -a --format '{{.Service}} {{.State}}'`).
+3. `APP_PORT=3200 E2E_PORT=3100 npm run test:all`. On this machine (Windows, Node 24) it stops at the known REQ-100
+   unit failure of Phase 12 note 3; if that is the only failure, run the rest of the chain with the same variables:
+   `npm run test:int && npm run test:e2e && npm run docker:journey && npx tsx scripts/docker/smoke-cli.ts && npm run
+   test:container`. Report both results.
+4. Afterwards leave the containers as you found them: if there was no `app` container before, `docker compose rm -sf
+   app`; never `docker compose down -v` locally (it deletes the development database). The journey leaves one
+   `journey-<timestamp>@example.com` user and its event in the development database; that is expected.
+**Done when:** the REQ-113 and REQ-160 unit tests pass, the container journey passes against the stack started by
+`npm run docker:journey`, the E2E suite passes in `chromium` and `mobile` without running `e2e/container/`, the
+README line and the audit table are in, and unit, lint, typecheck, format and trace pass.
+**TDD exception:** characterization for `e2e/container/journey.spec.ts` (it replays behaviour that already works); the
+CI and script changes are test-first through the REQ-113 / REQ-160 unit tests.

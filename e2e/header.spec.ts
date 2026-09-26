@@ -45,3 +45,42 @@ test.describe('REQ-80: header language, theme and account', () => {
     await expect(banner.getByRole('button', { name: 'Sign out' })).toBeVisible();
   });
 });
+
+test.describe('REQ-144: the language select from the keyboard', () => {
+  test('REQ-144: arrow keys only move the choice; Enter switches and keeps focus', async ({
+    page,
+  }) => {
+    await page.goto('/en');
+    const select = page.locator('#locale-select');
+    await select.focus();
+
+    await page.keyboard.press('ArrowDown');
+    await page.keyboard.press('ArrowDown');
+
+    await expect(select).toHaveValue('pt-BR');
+    await expect(page).toHaveURL(/\/en$/);
+
+    await page.keyboard.press('Enter');
+
+    await expect(page).toHaveURL(/\/pt-BR$/);
+    await expect(page.locator('html')).toHaveAttribute('lang', 'pt-BR');
+    await expect(page.locator('#locale-select')).toBeFocused();
+    await expect(page.locator('#locale-select')).toHaveValue('pt-BR');
+  });
+});
+
+test.describe('REQ-145: the account menu closes predictably', () => {
+  test('REQ-145: Escape closes the menu and returns focus to it', async ({ page, context }) => {
+    await signInAs(context, { email: 'menu-esc@example.com', name: 'Menu' });
+    await page.goto('/en');
+    const banner = page.getByRole('banner');
+
+    await banner.getByLabel('Account menu').focus();
+    await page.keyboard.press('Enter');
+    await expect(banner.getByRole('link', { name: 'My events' })).toBeVisible();
+    await page.keyboard.press('Escape');
+
+    await expect(banner.getByRole('link', { name: 'My events' })).toBeHidden();
+    await expect(banner.getByLabel('Account menu')).toBeFocused();
+  });
+});

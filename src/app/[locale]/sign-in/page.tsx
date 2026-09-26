@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
+import type { Metadata } from 'next';
 import { Link } from '@/i18n/navigation';
 import { sanitizeCallbackUrl } from '@/lib/auth-redirect';
 import { getCurrentUserId } from '@/lib/session';
@@ -8,6 +9,17 @@ import { Alert } from '@/components/ui/field';
 import { GoogleMark } from '@/components/google-mark';
 import { PasswordSignInForm } from '@/components/password-sign-in-form';
 import { signInWithPasswordAction } from '../actions';
+
+/** Localized page title (REQ-134). */
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale });
+  return { title: t('auth.signInTitle') };
+}
 
 /** Sign-in page: Google or email and password, then back to the callback path (REQ-126, BR-154, BR-95). */
 export default async function SignInPage({
@@ -28,7 +40,7 @@ export default async function SignInPage({
     <main className="page">
       <div className="col-640">
         <div className="panel">
-          <h1 className="h2">{t('auth.signInTitle')}</h1>
+          <h1 className="h2 mb-4">{t('auth.signInTitle')}</h1>
           {typeof query.error === 'string' && <Alert>{t('auth.signInFailed')}</Alert>}
           <div className="btn-row">
             <a
@@ -39,7 +51,9 @@ export default async function SignInPage({
               {t('auth.continueWithGoogle')}
             </a>
           </div>
-          <hr className="divider" />
+          <p className="divider-or">
+            <span>{t('auth.or')}</span>
+          </p>
           <PasswordSignInForm callbackUrl={callbackUrl} submit={signInWithPasswordAction} />
           <hr className="divider" />
           <p className="small muted">{t('auth.noAccount')}</p>

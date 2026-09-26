@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Check, Clock, Pencil, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from '@/i18n/navigation';
@@ -20,22 +20,65 @@ export interface GuestRsvpPanelProps {
   cancel: () => Promise<ActionResult<OwnRsvp>>;
 }
 
+/** Where focus goes after the panel's content changes (REQ-140). */
+type FocusTarget = 'status' | 'change' | 'name';
+
 /**
- * A guest's view of their own RSVP: status line with Change/Cancel, the form when there is
- * no RSVP yet or while editing, and a read-only notice once the event has ended (REQ-31,
- * REQ-84).
+ * A guest's view of their own RSVP: status line with Change / "I can't go", the form when there
+ * is no RSVP yet or while editing, and a read-only notice once the event has ended (REQ-31,
+ * REQ-84). The answer just saved is shown at once from the action's result, and focus moves to
+ * the result: the status heading after Send or "I can't go", the name field after Change, the
+ * Change button after "Keep my answer" (REQ-140, REQ-139).
  */
 export function GuestRsvpPanel({ ownRsvp, ended, submit, cancel }: GuestRsvpPanelProps) {
   const t = useTranslations();
   const router = useRouter();
   const [editing, setEditing] = useState(false);
+  const [saved, setSaved] = useState<OwnRsvp | null>(null);
   const [cancelling, setCancelling] = useState(false);
   const [cancelError, setCancelError] = useState<ErrorCode | null>(null);
+  const focusNext = useRef<FocusTarget | null>(null);
+  const statusRef = useRef<HTMLHeadingElement>(null);
+  const changeRef = useRef<HTMLButtonElement>(null);
+  const rsvp = saved ?? ownRsvp;
 
-  function statusLine(rsvp: OwnRsvp) {
-    return rsvp.status === 'GOING'
-      ? t('rsvp.youreGoing', { count: rsvp.partySize })
+  // Runs after every render: moves focus once the requested element exists (REQ-140).
+  useEffect(() => {
+    const target = focusNext.current;
+    if (!target) return;
+    const element =
+      target === 'status'
+        ? statusRef.current
+        : target === 'change'
+          ? changeRef.current
+          : document.getElementById('rsvp-name');
+    if (element) {
+      element.focus();
+      focusNext.current = null;
+    }
+  });
+
+  function statusLine(r: OwnRsvp) {
+    return r.status === 'GOING'
+      ? t('rsvp.youreGoing', { count: r.partySize })
       : t('rsvp.youreNotGoing');
+  }
+
+  function startEditing() {
+    focusNext.current = 'name';
+    setEditing(true);
+  }
+
+  function keepAnswer() {
+    focusNext.current = 'change';
+    setEditing(false);
+  }
+
+  function handleSaved(result: OwnRsvp) {
+    setSaved(result);
+    setCancelError(null);
+    focusNext.current = 'status';
+    setEditing(false);
   }
 
   async function handleCancel() {
@@ -44,6 +87,8 @@ export function GuestRsvpPanel({ ownRsvp, ended, submit, cancel }: GuestRsvpPane
     setCancelling(false);
     if (result.ok) {
       setCancelError(null);
+      setSaved(result.data);
+      focusNext.current = 'status';
       router.refresh();
     } else {
       setCancelError(result.code);
@@ -57,10 +102,10 @@ export function GuestRsvpPanel({ ownRsvp, ended, submit, cancel }: GuestRsvpPane
         <div>
           <h2 className="h3">{t('event.ended')}</h2>
           <p className="small muted">{t('event.endedHint')}</p>
-          {ownRsvp && (
+          {rsvp && (
             <p className="answer-line small">
-              <Icon icon={ownRsvp.status === 'GOING' ? Check : X} />
-              <span>{statusLine(ownRsvp)}</span>
+              <Icon icon={rsvp.status === 'GOING' ? Check : X} />
+              <span>{statusLine(rsvp)}</span>
             </p>
           )}
         </div>
@@ -68,13 +113,18 @@ export function GuestRsvpPanel({ ownRsvp, ended, submit, cancel }: GuestRsvpPane
     );
   }
 
-  if (!ownRsvp || editing) {
+  if (!rsvp || editing) {
     return (
-      <RsvpForm initial={ownRsvp ?? undefined} submit={submit} onDone={() => setEditing(false)} />
+      <RsvpForm
+        initial={rsvp ?? undefined}
+        submit={submit}
+        onDone={handleSaved}
+        onKeep={rsvp ? keepAnswer : undefined}
+      />
     );
   }
 
-  if (ownRsvp.status === 'GOING') {
+  if (rsvp.status === 'GOING') {
     return (
       <div className="confirm">
         <div className="confirm-top" role="status">
@@ -82,13 +132,15 @@ export function GuestRsvpPanel({ ownRsvp, ended, submit, cancel }: GuestRsvpPane
             <Icon icon={Check} />
           </span>
           <div>
-            <h2 className="h2">{statusLine(ownRsvp)}</h2>
-            <p className="small">{t('rsvp.savedAs', { name: ownRsvp.name })}</p>
+            <h2 className="h2" ref={statusRef} tabIndex={-1}>
+              {statusLine(rsvp)}
+            </h2>
+            <p className="small">{t('rsvp.savedAs', { name: rsvp.name })}</p>
           </div>
         </div>
         {cancelError && <Alert>{t(`errors.${cancelError}`)}</Alert>}
         <div className="btn-row">
-          <Button onClick={() => setEditing(true)}>
+          <Button ref={changeRef} onClick={startEditing}>
             <Icon icon={Pencil} />
             {t('rsvp.change')}
           </Button>
@@ -105,12 +157,14 @@ export function GuestRsvpPanel({ ownRsvp, ended, submit, cancel }: GuestRsvpPane
       <Icon icon={X} size={20} />
       <div>
         <div role="status">
-          <h2 className="h3">{statusLine(ownRsvp)}</h2>
-          <p className="small muted">{t('rsvp.savedAs', { name: ownRsvp.name })}</p>
+          <h2 className="h3" ref={statusRef} tabIndex={-1}>
+            {statusLine(rsvp)}
+          </h2>
+          <p className="small muted">{t('rsvp.savedAs', { name: rsvp.name })}</p>
         </div>
         {cancelError && <Alert>{t(`errors.${cancelError}`)}</Alert>}
         <div className="btn-row mt-3">
-          <Button onClick={() => setEditing(true)}>
+          <Button ref={changeRef} onClick={startEditing}>
             <Icon icon={Pencil} />
             {t('rsvp.change')}
           </Button>

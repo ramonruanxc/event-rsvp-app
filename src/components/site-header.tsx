@@ -5,10 +5,10 @@ import { getCurrentUser } from '@/lib/session';
 import { userInitial } from '@/lib/user-initial';
 import { signOutAction } from '@/app/[locale]/actions';
 import type { Theme } from '@/lib/theme';
+import { HeaderSignInLink } from '@/components/header-sign-in-link';
 import { LogoMark } from '@/components/logo-mark';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { UserMenu } from '@/components/user-menu';
-import { buttonClass } from '@/components/ui/button';
 import { LocaleSwitcher } from './locale-switcher';
 
 /** Top-of-page navigation: brand, language switcher, theme toggle and account menu (REQ-64, REQ-75, REQ-80). */
@@ -33,12 +33,10 @@ export async function SiteHeader({ locale, theme }: { locale: string; theme: The
               signOutAction={signOutAction.bind(null, locale)}
             />
           ) : (
-            <a
-              className={buttonClass('secondary', 'sm')}
+            <HeaderSignInLink
               href={signInRedirectPath(`/${locale}/dashboard`)}
-            >
-              {t('nav.signIn')}
-            </a>
+              label={t('nav.signIn')}
+            />
           )}
         </div>
       </div>

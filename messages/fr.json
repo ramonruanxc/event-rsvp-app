@@ -42,7 +42,8 @@
   },
   "totals": {
     "summary": "{going, plural, one {# vient} other {# viennent}} · {declined, plural, one {# décliné} other {# déclinés}} · {people, plural, one {# personne} other {# personnes}}",
-    "peopleGoing": "{count, plural, one {# personne y va} other {# personnes y vont}}"
+    "peopleGoing": "{count, plural, one {# personne vient} other {# personnes viennent}}",
+    "peopleWent": "{count, plural, one {# personne est venue} other {# personnes sont venues}}"
   },
   "eventForm": {
     "titleNew": "Nouvel événement",
@@ -60,7 +61,8 @@
     "groupWhere": "Où",
     "timezoneHint": "Les invités voient la date et l'heure dans ce fuseau horaire.",
     "openDatePicker": "Ouvrir le calendrier",
-    "openTimePicker": "Ouvrir le sélecteur d'heure"
+    "openTimePicker": "Ouvrir le sélecteur d'heure",
+    "backToEvent": "Retour à l'événement"
   },
   "ai": {
     "label": "Décrivez votre événement",
@@ -70,7 +72,8 @@
     "missingHint": "Introuvable dans votre texte — veuillez le remplir.",
     "notAnEvent": "Impossible de trouver les détails d'un événement dans ce texte.",
     "filled": "{count, plural, one {# champ rempli} other {# champs remplis}} · vérifiez-les ci-dessous",
-    "needed": "Requis"
+    "needed": "Requis",
+    "emptyText": "Décrivez d'abord votre événement — par exemple, « Dîner d'équipe vendredi prochain 19h chez Mario »."
   },
   "event": {
     "edit": "Modifier",
@@ -97,6 +100,7 @@
     "removeNamed": "Retirer {name}",
     "removeConfirm": "Retirer {name} de la liste des invités ?",
     "declined": "Décliné",
+    "pillGoing": "Vient",
     "actions": "Actions",
     "updatedPrefix": "Mis à jour",
     "peopleSuffix": "{count, plural, one {personne} other {personnes}}"
@@ -111,14 +115,15 @@
     "youreGoing": "Vous venez · {count, plural, one {# personne} other {# personnes}}",
     "youreNotGoing": "Vous ne venez pas",
     "change": "Modifier",
-    "cancel": "Annuler ma réponse",
+    "cancel": "Je ne viens plus",
     "formRejected": "Nous n'avons pas pu envoyer votre réponse. Veuillez réessayer.",
     "nameHint": "L'organisateur voit ce nom sur la liste des invités.",
     "answer": "Votre réponse",
     "partySizeHint": "Jusqu'à 10.",
     "decrease": "Une personne de moins",
     "increase": "Une personne de plus",
-    "savedAs": "Enregistré au nom de {name}. Vous pouvez modifier votre réponse depuis ce navigateur jusqu'au début de l'événement."
+    "savedAs": "Enregistré au nom de {name}. Vous pouvez modifier votre réponse depuis ce navigateur jusqu'au début de l'événement.",
+    "keep": "Garder ma réponse"
   },
   "sample": {
     "name": "Exemple : Soirée du vendredi",
@@ -141,7 +146,10 @@
     "haveAccount": "Vous avez déjà un compte ?",
     "signInLink": "Se connecter",
     "tooManyAttempts": "Trop de tentatives — veuillez réessayer dans quelques minutes.",
-    "signInFailed": "La connexion n'a pas pu aboutir. Veuillez réessayer."
+    "signInFailed": "La connexion n'a pas pu aboutir. Veuillez réessayer.",
+    "forgotPasswordHint": "Mot de passe oublié ? Si votre e-mail est un compte Google, utilisez « Continuer avec Google » ci-dessus, puis définissez un nouveau mot de passe dans Compte.",
+    "or": "ou",
+    "emailTakenRich": "Un compte existe déjà avec cet e-mail. <link>Connectez-vous</link> plutôt."
   },
   "account": {
     "title": "Compte",
@@ -174,6 +182,10 @@
     "INVALID_CREDENTIALS": "E-mail ou mot de passe incorrect.",
     "EMAIL_TAKEN": "Un compte existe déjà avec cet e-mail. Connectez-vous plutôt.",
     "GOOGLE_ACCOUNT_EXISTS": "Cet e-mail a déjà un compte qui utilise Google. Connectez-vous avec Google, puis définissez un mot de passe dans Compte."
+  },
+  "notFound": {
+    "hint": "Le lien est peut-être mal saisi, ou l'événement a été supprimé.",
+    "home": "Aller à l'accueil"
   },
   "validation": {
     "required": "Ce champ est obligatoire.",

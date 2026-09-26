@@ -42,7 +42,8 @@
   },
   "totals": {
     "summary": "{going, plural, one {# confirmado} other {# confirmados}} · {declined, plural, one {# recusado} other {# recusados}} · {people, plural, one {# pessoa} other {# pessoas}}",
-    "peopleGoing": "{count, plural, one {# pessoa confirmada} other {# pessoas confirmadas}}"
+    "peopleGoing": "{count, plural, one {# pessoa confirmada} other {# pessoas confirmadas}}",
+    "peopleWent": "{count, plural, one {# pessoa foi} other {# pessoas foram}}"
   },
   "eventForm": {
     "titleNew": "Novo evento",
@@ -60,7 +61,8 @@
     "groupWhere": "Onde",
     "timezoneHint": "Os convidados veem a data e a hora neste fuso horário.",
     "openDatePicker": "Abrir calendário",
-    "openTimePicker": "Abrir seletor de horário"
+    "openTimePicker": "Abrir seletor de horário",
+    "backToEvent": "Voltar ao evento"
   },
   "ai": {
     "label": "Descreva seu evento",
@@ -70,7 +72,8 @@
     "missingHint": "Não encontrado no seu texto — por favor, preencha.",
     "notAnEvent": "Não foi possível encontrar detalhes de evento nesse texto.",
     "filled": "{count, plural, one {# campo preenchido} other {# campos preenchidos}} · confira abaixo",
-    "needed": "Necessário"
+    "needed": "Necessário",
+    "emptyText": "Descreva seu evento primeiro — por exemplo, “Jantar da equipe sexta-feira que vem às 19h no Mario's”."
   },
   "event": {
     "edit": "Editar",
@@ -97,6 +100,7 @@
     "removeNamed": "Remover {name}",
     "removeConfirm": "Remover {name} da lista de convidados?",
     "declined": "Recusou",
+    "pillGoing": "Vai",
     "actions": "Ações",
     "updatedPrefix": "Atualizado",
     "peopleSuffix": "{count, plural, one {pessoa} other {pessoas}}"
@@ -111,14 +115,15 @@
     "youreGoing": "Você vai · {count, plural, one {# pessoa} other {# pessoas}}",
     "youreNotGoing": "Você não vai",
     "change": "Alterar",
-    "cancel": "Cancelar confirmação",
+    "cancel": "Não vou mais",
     "formRejected": "Não foi possível enviar sua confirmação. Tente novamente.",
     "nameHint": "O organizador vê este nome na lista de convidados.",
     "answer": "Sua resposta",
     "partySizeHint": "Até 10.",
     "decrease": "Uma pessoa a menos",
     "increase": "Uma pessoa a mais",
-    "savedAs": "Salvo como {name}. Você pode alterar sua resposta neste navegador até o início do evento."
+    "savedAs": "Salvo como {name}. Você pode alterar sua resposta neste navegador até o início do evento.",
+    "keep": "Manter minha resposta"
   },
   "sample": {
     "name": "Exemplo: Encontro de sexta-feira",
@@ -141,7 +146,10 @@
     "haveAccount": "Já tem uma conta?",
     "signInLink": "Entrar",
     "tooManyAttempts": "Muitas tentativas — tente novamente em alguns minutos.",
-    "signInFailed": "Não foi possível concluir a entrada. Tente novamente."
+    "signInFailed": "Não foi possível concluir a entrada. Tente novamente.",
+    "forgotPasswordHint": "Esqueceu a senha? Se o seu e-mail é uma conta Google, use \"Continuar com o Google\" acima e depois defina uma nova senha em Conta.",
+    "or": "ou",
+    "emailTakenRich": "Já existe uma conta com este e-mail. <link>Entre com ela</link>."
   },
   "account": {
     "title": "Conta",
@@ -174,6 +182,10 @@
     "INVALID_CREDENTIALS": "E-mail ou senha incorretos.",
     "EMAIL_TAKEN": "Já existe uma conta com este e-mail. Entre com ela.",
     "GOOGLE_ACCOUNT_EXISTS": "Este e-mail já tem uma conta que usa o Google. Entre com o Google e depois defina uma senha em Conta."
+  },
+  "notFound": {
+    "hint": "O link pode estar digitado errado, ou o evento foi excluído.",
+    "home": "Ir para a página inicial"
   },
   "validation": {
     "required": "Este campo é obrigatório.",

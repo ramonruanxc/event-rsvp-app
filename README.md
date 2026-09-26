@@ -26,6 +26,23 @@ An organizer creates an event, shares one link, and sees who is coming; a guest 
 seconds, no account needed. Built end to end — code, tests, spec and docs — by a pipeline of Claude agents from a
 human-approved specification (see [How AI was used](#how-ai-was-used)).
 
+## Scope decisions
+
+- **Core (phases 0–5)** — the challenge's requirements plus its listed bonuses (deploy, SSO, AI): events, RSVP,
+  sharing/demo, and hardening are the requirements; a live deploy, Google sign-in, and AI fill (phase 4) are the
+  bonuses built alongside them. Delivered and usable.
+- **Deliberate bonuses (phases 6–7)** — added during execution, by human request: UI/UX redesign (amendment A2 —
+  usability and product quality are evaluation criteria) and a second AI provider for resilience (amendment A3 —
+  Anthropic credits were pending).
+- **After delivery (phases 8–12)** — each triggered by a concrete signal: a harder AI eval to pick a cheaper
+  model, a one-command container after a fresh-clone test, email/password sign-in so the evaluator needs no
+  Google test-user access, fixes from external feedback, and a UX audit against the delivery criteria that fixed
+  27 behavioural findings with no new feature.
+- **Stopped here** — capacity limits, password reset/email verification, and CSV export were deliberately left
+  out (reasons in ["What I left out"](#what-i-left-out) below).
+
+Cost per phase and full detail: [docs/scope-decisions.md](docs/scope-decisions.md).
+
 ## Features
 
 ### Core
@@ -47,6 +64,25 @@ human-approved specification (see [How AI was used](#how-ai-was-used)).
 - **Demo** — a public, seeded event lets evaluators RSVP without creating anything.
 - **Dark/light theme** — dark by default, switchable, both checked against WCAG 2.2 AA.
 - **One-command local run** — `docker compose up --build`; Node is not required.
+
+## Technical highlights
+
+- **AI fill resolves relative dates against the organizer's own timezone and reports missing fields instead of
+  guessing them** (zod-validated output, `null` for anything not stated). [src/lib/ai/prompt.ts](src/lib/ai/prompt.ts), [src/lib/ai/output.ts](src/lib/ai/output.ts).
+- **Prompt-injection defenses are checked by an eval harness**, not just by eye: each case runs ×3, a third of
+  cases is held out from tuning, and every category is gated separately. [evals/event-parser/score.ts](evals/event-parser/score.ts), [docs/evals/README.md](docs/evals/README.md).
+- **A provider-agnostic AI client fails over between providers inside one shared time budget**, with a distinct
+  error per cause (outage vs. bad output, never retried). [src/services/ai-event-parser.ts](src/services/ai-event-parser.ts), [src/lib/ai/providers-config.ts](src/lib/ai/providers-config.ts).
+- **Guests edit their own RSVP with no account, via a hashed edit token in a cookie** — only the hash is ever
+  stored server-side. [src/lib/edit-token-cookie.ts](src/lib/edit-token-cookie.ts), [src/services/submit-rsvp.ts](src/services/submit-rsvp.ts).
+- **Duplicate-guest detection and guest-name privacy share one normalized name key**, enforced by a database
+  unique constraint. [src/services/submit-rsvp.ts](src/services/submit-rsvp.ts), [src/repositories/prisma/prisma-rsvp-repository.ts](src/repositories/prisma/prisma-rsvp-repository.ts).
+- **Every rate limit (RSVP, sign-in) stores a salted hash of the IP or email**, never the raw value.
+  [src/lib/client-ip.ts](src/lib/client-ip.ts), [src/services/sign-in-with-password.ts](src/services/sign-in-with-password.ts).
+- **Password auth compares a fixed-cost dummy hash on every failed lookup and clears a password Google's
+  verification predates**, ending its sessions (closes a pre-hijacking path). [src/lib/password.ts](src/lib/password.ts), [src/services/link-google-account.ts](src/services/link-google-account.ts).
+- **The one-command container generates its own `AUTH_SECRET` and always migrates → seeds → serves on start**, so
+  a fresh clone with no `.env.local` works end to end. [scripts/docker/start.ts](scripts/docker/start.ts), [scripts/docker/start-plan.ts](scripts/docker/start-plan.ts).
 
 ## Run locally
 
@@ -84,14 +120,16 @@ works with just the steps above except "Continue with Google" and "Fill with AI"
 ## Tests
 
 Unit tests need no database; integration and E2E need only the database container (`docker compose up -d db`).
-Current counts: 484 unit tests, 27 integration tests, and 83 end-to-end journeys across a11y and all three
-locales — all passing in CI (Node 22). `npm run trace` checks that every requirement marked "done" in
-[docs/spec.md](docs/spec.md) is cited by at least one passing test.
+Current counts: 531 unit tests, 27 integration tests, and 114 end-to-end journeys (106 desktop/chromium + 8 mobile,
+375 px) across a11y and all three locales, plus 1 container regression journey — all passing in CI (Node 22).
+`npm run trace` checks that every requirement marked "done" in [docs/spec.md](docs/spec.md) is cited by at least
+one passing test.
 
 ```bash
 npm run test:unit     # Vitest, no database
 npm run test:int      # Vitest, Docker Postgres (rsvp_test)
 npm run test:e2e      # Playwright, Docker Postgres (rsvp_test); uses E2E_PORT (default 3000)
+npm run test:all      # db, unit, integration, E2E (both projects), then the docker compose journey; honours E2E_PORT and APP_PORT
 npm run trace         # traceability check
 npx tsx scripts/docker/smoke-cli.ts   # smoke check of a running docker compose stack
 ```
@@ -181,6 +219,7 @@ run: [docs/timelog.md](docs/timelog.md).
 | Topic | File |
 |---|---|
 | Business rules and glossary | [docs/business-rules.md](docs/business-rules.md) |
+| Scope decisions (cost per phase, what was stopped) | [docs/scope-decisions.md](docs/scope-decisions.md) |
 | Specification (requirements) | [docs/spec.md](docs/spec.md) |
 | Implementation plan (tasks) | [docs/plan.md](docs/plan.md) |
 | Product brief | [docs/PRODUCT.md](docs/PRODUCT.md) |

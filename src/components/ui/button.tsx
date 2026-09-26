@@ -23,7 +23,11 @@ export function buttonClass(
   return cx('btn', `btn-${variant}`, size === 'sm' && 'btn-sm', size === 'lg' && 'btn-lg', extra);
 }
 
-/** Button with variant/size styling and a busy spinner while loading (REQ-71). */
+/**
+ * Button with variant/size styling and a busy spinner while loading (REQ-71). While loading it stays
+ * focusable: `aria-disabled` instead of `disabled`, and a click (or a form submission through it) is
+ * cancelled, so keyboard focus is never dropped to <body> (REQ-136).
+ */
 export function Button({
   variant = 'secondary',
   size = 'md',
@@ -32,6 +36,7 @@ export function Button({
   className,
   type = 'button',
   children,
+  onClick,
   ...rest
 }: ButtonProps): React.JSX.Element {
   return (
@@ -39,8 +44,10 @@ export function Button({
       {...rest}
       type={type}
       className={buttonClass(variant, size, className)}
-      disabled={disabled || loading}
+      disabled={disabled}
+      aria-disabled={loading || undefined}
       aria-busy={loading || undefined}
+      onClick={loading ? (event) => event.preventDefault() : onClick}
     >
       {loading && <span className="spinner" aria-hidden="true" />}
       {children}

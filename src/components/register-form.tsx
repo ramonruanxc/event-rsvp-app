@@ -1,10 +1,12 @@
 'use client';
 
-import { useState, type FormEvent } from 'react';
-import { useTranslations } from 'next-intl';
+import { useRef, useState, type FormEvent } from 'react';
+import { flushSync } from 'react-dom';
+import { useLocale, useTranslations } from 'next-intl';
 import { ValidationError, type FieldErrors } from '@/domain/errors';
 import { registerInputSchema, type RegisterFormValues } from '@/domain/schemas';
 import type { ActionResult } from '@/lib/action-result';
+import { focusFirstInvalid } from '@/lib/focus';
 import {
   Alert,
   describedBy,
@@ -14,6 +16,14 @@ import {
   FieldLabel,
 } from '@/components/ui/field';
 import { Button } from '@/components/ui/button';
+
+/** Maps RegisterForm field names to their control ids (REQ-137). */
+const REGISTER_FIELD_IDS = {
+  name: 'register-name',
+  email: 'register-email',
+  password: 'register-password',
+  confirmPassword: 'register-confirm',
+} as const;
 
 /** Props of {@link RegisterForm}. */
 export interface RegisterFormProps {
@@ -32,17 +42,28 @@ export function RegisterForm({
   navigate = (url) => window.location.assign(url),
 }: RegisterFormProps): React.JSX.Element {
   const t = useTranslations();
+  const locale = useLocale();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
-  const [formError, setFormError] = useState<string | null>(null);
+  const [formError, setFormError] = useState<React.ReactNode>(null);
   const [submitting, setSubmitting] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
 
   function errorFor(field: 'name' | 'email' | 'password' | 'confirmPassword'): string | null {
     const key = fieldErrors[field];
     return key ? t(`validation.${key}`) : null;
+  }
+
+  /** Shows field errors, then focuses the first invalid field (REQ-137). */
+  function showFieldErrors(errors: FieldErrors) {
+    flushSync(() => {
+      setFieldErrors(errors);
+      setFormError(null);
+    });
+    focusFirstInvalid(formRef.current, errors, REGISTER_FIELD_IDS);
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -50,8 +71,7 @@ export function RegisterForm({
     const values: RegisterFormValues = { name, email, password, confirmPassword };
     const parsed = registerInputSchema.safeParse(values);
     if (!parsed.success) {
-      setFieldErrors(ValidationError.fromZod(parsed.error).fieldErrors);
-      setFormError(null);
+      showFieldErrors(ValidationError.fromZod(parsed.error).fieldErrors);
       return;
     }
     setFieldErrors({});
@@ -64,7 +84,14 @@ export function RegisterForm({
       return;
     }
     if (result.code === 'VALIDATION_ERROR') {
-      setFieldErrors(result.fieldErrors ?? {});
+      showFieldErrors(result.fieldErrors ?? {});
+      return;
+    }
+    if (result.code === 'EMAIL_TAKEN') {
+      const signInHref = `/${locale}/sign-in?callbackUrl=${encodeURIComponent(callbackUrl)}`;
+      setFormError(
+        t.rich('auth.emailTakenRich', { link: (chunks) => <a href={signInHref}>{chunks}</a> }),
+      ); // REQ-148
       return;
     }
     setFormError(
@@ -73,7 +100,7 @@ export function RegisterForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} noValidate>
+    <form ref={formRef} onSubmit={handleSubmit} noValidate>
       {formError && <Alert>{formError}</Alert>}
       <Field>
         <FieldLabel htmlFor="register-name">{t('auth.name')}</FieldLabel>

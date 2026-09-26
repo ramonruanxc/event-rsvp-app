@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
+import { flushSync } from 'react-dom';
 import { CalendarDays, Check, ChevronDown, Clock, Sparkles } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from '@/i18n/navigation';
@@ -8,6 +9,7 @@ import { ValidationError, type ErrorCode, type FieldErrors } from '@/domain/erro
 import { eventInputSchema, type EventFormValues } from '@/domain/schemas';
 import type { ActionResult } from '@/lib/action-result';
 import { detectBrowserTimeZone } from '@/lib/browser-timezone';
+import { focusFirstInvalid } from '@/lib/focus';
 import type { AiField, ParseEventResult } from '@/lib/ai/types';
 import {
   Alert,
@@ -23,12 +25,24 @@ import { Button } from '@/components/ui/button';
 
 type FieldName = 'name' | 'description' | 'date' | 'time' | 'timezone' | 'location';
 
+/** Maps EventForm field names to their control ids (REQ-137). */
+const EVENT_FIELD_IDS: Record<FieldName, string> = {
+  name: 'name',
+  description: 'description',
+  date: 'date',
+  time: 'time',
+  timezone: 'timezone',
+  location: 'location',
+};
+
 /** Props of {@link EventForm}: optional prefilled values, the submit handler and the AI fill action. */
 export interface EventFormProps {
   initialValues?: Partial<Record<FieldName, string>>;
   submit: (values: EventFormValues) => Promise<ActionResult<{ slug: string }>>;
   /** When present, renders the "Fill with AI" panel (REQ-51). */
   aiFill?: (text: string, timezone: string | null) => Promise<ActionResult<ParseEventResult>>;
+  /** When true and `aiFill` is absent, the AI panel's place says AI fill is not set up on this server (REQ-156). */
+  aiNotConfigured?: boolean;
 }
 
 /**
@@ -57,7 +71,7 @@ function focusAndOpenPicker(input: HTMLInputElement | null): void {
  * delegating persistence to `submit`, and renders any error the server returns. When `aiFill`
  * is given, also renders the "Fill with AI" panel (REQ-51).
  */
-export function EventForm({ initialValues, submit, aiFill }: EventFormProps) {
+export function EventForm({ initialValues, submit, aiFill, aiNotConfigured }: EventFormProps) {
   const t = useTranslations();
   const router = useRouter();
   const [name, setName] = useState(initialValues?.name ?? '');
@@ -72,10 +86,12 @@ export function EventForm({ initialValues, submit, aiFill }: EventFormProps) {
   const [aiText, setAiText] = useState('');
   const [filling, setFilling] = useState(false);
   const [missing, setMissing] = useState<AiField[]>([]);
-  const [aiNotice, setAiNotice] = useState<ErrorCode | 'notAnEvent' | null>(null);
+  const [aiNotice, setAiNotice] = useState<ErrorCode | 'notAnEvent' | 'emptyText' | null>(null);
   const [filledCount, setFilledCount] = useState<number | null>(null);
   const dateRef = useRef<HTMLInputElement>(null);
   const timeRef = useRef<HTMLInputElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+  const aiTextRef = useRef<HTMLTextAreaElement>(null);
 
   // Only the browser knows its own timezone; deferred to an effect so the server-rendered
   // markup (which cannot know it) matches the first client render (REQ-13).
@@ -94,8 +110,30 @@ export function EventForm({ initialValues, submit, aiFill }: EventFormProps) {
     return key ? t(`validation.${key}`) : null;
   }
 
+  /** Clears a field's AI "missing" flag once the organizer edits it (REQ-157, BR-187). */
+  function clearMissing(field: AiField) {
+    setMissing((current) =>
+      current.includes(field) ? current.filter((f) => f !== field) : current,
+    );
+  }
+
+  /** Shows field errors, then focuses the first invalid field (REQ-137). */
+  function showFieldErrors(errors: FieldErrors) {
+    flushSync(() => {
+      setFieldErrors(errors);
+      setFormError(null);
+    });
+    focusFirstInvalid(formRef.current, errors, EVENT_FIELD_IDS);
+  }
+
   async function handleAiFill() {
     if (!aiFill) return;
+    if (aiText.trim() === '') {
+      setAiNotice('emptyText'); // REQ-155: nothing to send
+      setFilledCount(null);
+      aiTextRef.current?.focus();
+      return;
+    }
     setFilling(true);
     setAiNotice(null);
     setFilledCount(null);
@@ -129,8 +167,7 @@ export function EventForm({ initialValues, submit, aiFill }: EventFormProps) {
     const values: EventFormValues = { name, description, date, time, timezone, location };
     const parsed = eventInputSchema.safeParse(values);
     if (!parsed.success) {
-      setFieldErrors(ValidationError.fromZod(parsed.error).fieldErrors);
-      setFormError(null);
+      showFieldErrors(ValidationError.fromZod(parsed.error).fieldErrors);
       return;
     }
 
@@ -145,7 +182,7 @@ export function EventForm({ initialValues, submit, aiFill }: EventFormProps) {
       return;
     }
     if (result.code === 'VALIDATION_ERROR') {
-      setFieldErrors(result.fieldErrors ?? {});
+      showFieldErrors(result.fieldErrors ?? {});
     } else {
       setFormError(result.code);
     }
@@ -166,7 +203,7 @@ export function EventForm({ initialValues, submit, aiFill }: EventFormProps) {
     missing.includes(field) ? <NeededBadge>{t('ai.needed')}</NeededBadge> : undefined;
 
   return (
-    <form onSubmit={handleSubmit} noValidate>
+    <form ref={formRef} onSubmit={handleSubmit} noValidate>
       {aiFill && (
         <div className="ai-panel">
           <label className="label" htmlFor="ai-text">
@@ -174,6 +211,7 @@ export function EventForm({ initialValues, submit, aiFill }: EventFormProps) {
             {t('ai.label')}
           </label>
           <textarea
+            ref={aiTextRef}
             className="textarea"
             id="ai-text"
             rows={3}
@@ -199,9 +237,22 @@ export function EventForm({ initialValues, submit, aiFill }: EventFormProps) {
           </div>
           {aiNotice && (
             <Alert>
-              {aiNotice === 'notAnEvent' ? t('ai.notAnEvent') : t(`errors.${aiNotice}`)}
+              {aiNotice === 'notAnEvent'
+                ? t('ai.notAnEvent')
+                : aiNotice === 'emptyText'
+                  ? t('ai.emptyText')
+                  : t(`errors.${aiNotice}`)}
             </Alert>
           )}
+        </div>
+      )}
+
+      {!aiFill && aiNotConfigured && (
+        <div className="ai-panel">
+          <p className="small muted ai-off">
+            <Icon icon={Sparkles} />
+            <span>{t('errors.AI_NOT_CONFIGURED')}</span>
+          </p>
         </div>
       )}
 
@@ -217,7 +268,10 @@ export function EventForm({ initialValues, submit, aiFill }: EventFormProps) {
             className="input"
             id="name"
             value={name}
-            onChange={(e) => setName(e.target.value)}
+            onChange={(e) => {
+              setName(e.target.value);
+              clearMissing('name');
+            }}
             aria-invalid={ariaInvalid('name')}
             aria-describedby={ariaDescribedBy('name')}
           />
@@ -235,7 +289,10 @@ export function EventForm({ initialValues, submit, aiFill }: EventFormProps) {
             id="description"
             rows={4}
             value={description}
-            onChange={(e) => setDescription(e.target.value)}
+            onChange={(e) => {
+              setDescription(e.target.value);
+              clearMissing('description');
+            }}
             aria-invalid={ariaInvalid('description')}
             aria-describedby={ariaDescribedBy('description')}
           />
@@ -262,7 +319,10 @@ export function EventForm({ initialValues, submit, aiFill }: EventFormProps) {
                 id="date"
                 type="date"
                 value={date}
-                onChange={(e) => setDate(e.target.value)}
+                onChange={(e) => {
+                  setDate(e.target.value);
+                  clearMissing('date');
+                }}
                 onClick={(e) => openPicker(e.currentTarget)}
                 aria-invalid={ariaInvalid('date')}
                 aria-describedby={ariaDescribedBy('date')}
@@ -292,7 +352,10 @@ export function EventForm({ initialValues, submit, aiFill }: EventFormProps) {
                 id="time"
                 type="time"
                 value={time}
-                onChange={(e) => setTime(e.target.value)}
+                onChange={(e) => {
+                  setTime(e.target.value);
+                  clearMissing('time');
+                }}
                 onClick={(e) => openPicker(e.currentTarget)}
                 aria-invalid={ariaInvalid('time')}
                 aria-describedby={ariaDescribedBy('time')}
@@ -321,13 +384,16 @@ export function EventForm({ initialValues, submit, aiFill }: EventFormProps) {
               className="select"
               id="timezone"
               value={timezone}
-              onChange={(e) => setTimezone(e.target.value)}
+              onChange={(e) => {
+                setTimezone(e.target.value);
+                clearMissing('timezone');
+              }}
               aria-invalid={ariaInvalid('timezone')}
               aria-describedby={describedBy(ariaDescribedBy('timezone'), 'timezone-hint')}
             >
               {timeZoneOptions.map((zone) => (
                 <option key={zone} value={zone}>
-                  {zone}
+                  {zone.replace(/_/g, ' ')}
                 </option>
               ))}
             </select>
@@ -353,7 +419,10 @@ export function EventForm({ initialValues, submit, aiFill }: EventFormProps) {
             className="input"
             id="location"
             value={location}
-            onChange={(e) => setLocation(e.target.value)}
+            onChange={(e) => {
+              setLocation(e.target.value);
+              clearMissing('location');
+            }}
             aria-invalid={ariaInvalid('location')}
             aria-describedby={ariaDescribedBy('location')}
           />

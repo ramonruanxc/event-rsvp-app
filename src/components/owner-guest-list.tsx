@@ -19,7 +19,7 @@ export async function OwnerGuestList({ view, locale }: OwnerGuestListProps) {
   return (
     <section aria-labelledby="guest-list-heading">
       <div className="guest-head">
-        <h2 className="h2" id="guest-list-heading">
+        <h2 className="h2" id="guest-list-heading" tabIndex={-1}>
           {t('event.guestList')}
         </h2>
         <p className="small totals">
@@ -53,7 +53,7 @@ export async function OwnerGuestList({ view, locale }: OwnerGuestListProps) {
                 <td className="c-name">{row.name}</td>
                 <td className="c-resp">
                   {row.status === 'GOING' ? (
-                    <StatusPill status="going">{t('rsvp.going')}</StatusPill>
+                    <StatusPill status="going">{t('event.pillGoing')}</StatusPill>
                   ) : (
                     <StatusPill status="declined">{t('event.declined')}</StatusPill>
                   )}

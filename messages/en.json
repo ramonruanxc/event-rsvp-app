@@ -42,7 +42,8 @@
   },
   "totals": {
     "summary": "{going} going · {declined} declined · {people, plural, one {# person} other {# people}}",
-    "peopleGoing": "{count, plural, one {# person going} other {# people going}}"
+    "peopleGoing": "{count, plural, one {# person going} other {# people going}}",
+    "peopleWent": "{count, plural, one {# person went} other {# people went}}"
   },
   "eventForm": {
     "titleNew": "New event",
@@ -60,7 +61,8 @@
     "groupWhere": "Where",
     "timezoneHint": "Guests see the date and time in this timezone.",
     "openDatePicker": "Open calendar",
-    "openTimePicker": "Open time picker"
+    "openTimePicker": "Open time picker",
+    "backToEvent": "Back to event"
   },
   "ai": {
     "label": "Describe your event",
@@ -70,7 +72,8 @@
     "missingHint": "Not found in your text — please fill it.",
     "notAnEvent": "Couldn't find event details in that text.",
     "filled": "{count, plural, one {Filled # field} other {Filled # fields}} · check them below",
-    "needed": "Needed"
+    "needed": "Needed",
+    "emptyText": "Describe your event first — for example, “Team dinner next Friday 7pm at Mario's”."
   },
   "event": {
     "edit": "Edit",
@@ -97,6 +100,7 @@
     "removeNamed": "Remove {name}",
     "removeConfirm": "Remove {name} from the guest list?",
     "declined": "Declined",
+    "pillGoing": "Going",
     "actions": "Actions",
     "updatedPrefix": "Updated",
     "peopleSuffix": "{count, plural, one {person} other {people}}"
@@ -111,14 +115,15 @@
     "youreGoing": "You're going · {count, plural, one {# person} other {# people}}",
     "youreNotGoing": "You're not going",
     "change": "Change",
-    "cancel": "Cancel RSVP",
+    "cancel": "I can't go",
     "formRejected": "We couldn't send your RSVP. Please try again.",
     "nameHint": "The organizer sees this name on the guest list.",
     "answer": "Your answer",
     "partySizeHint": "Up to 10.",
     "decrease": "One less person",
     "increase": "One more person",
-    "savedAs": "Saved as {name}. You can change your answer from this browser until the event starts."
+    "savedAs": "Saved as {name}. You can change your answer from this browser until the event starts.",
+    "keep": "Keep my answer"
   },
   "sample": {
     "name": "Sample: Friday get-together",
@@ -141,7 +146,10 @@
     "haveAccount": "Already have an account?",
     "signInLink": "Sign in",
     "tooManyAttempts": "Too many attempts — please try again in a few minutes.",
-    "signInFailed": "Sign-in couldn't be completed. Please try again."
+    "signInFailed": "Sign-in couldn't be completed. Please try again.",
+    "forgotPasswordHint": "Forgot your password? If your email is a Google account, use Continue with Google above, then set a new password in Account.",
+    "or": "or",
+    "emailTakenRich": "An account with this email already exists. <link>Sign in</link> instead."
   },
   "account": {
     "title": "Account",
@@ -174,6 +182,10 @@
     "INVALID_CREDENTIALS": "Email or password is incorrect.",
     "EMAIL_TAKEN": "An account with this email already exists. Sign in instead.",
     "GOOGLE_ACCOUNT_EXISTS": "This email already has an account that uses Google. Sign in with Google, then set a password in Account."
+  },
+  "notFound": {
+    "hint": "The link may be mistyped, or the event was deleted.",
+    "home": "Go to the home page"
   },
   "validation": {
     "required": "This field is required.",

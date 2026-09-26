@@ -27,6 +27,11 @@ export function PasswordNotice({ dismiss }: PasswordNoticeProps): React.JSX.Elem
     const result = await dismiss();
     setBusy(false);
     if (result.ok) {
+      const main = document.querySelector('main');
+      if (main) {
+        main.tabIndex = -1;
+        main.focus(); // REQ-140: the notice and its button are about to go
+      }
       setHidden(true);
       router.refresh();
     }

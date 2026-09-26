@@ -103,8 +103,13 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: npm }
       - run: npm ci
-      - run: docker compose up --build -d --wait --wait-timeout 300
+      - run: npm run docker:journey
       - run: npx tsx scripts/docker/smoke-cli.ts
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:container
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with: { name: container-journey, path: test-results/container, retention-days: 7 }
       - if: failure()
         run: docker compose logs app
       - if: always()
