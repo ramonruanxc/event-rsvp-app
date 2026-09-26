@@ -184,6 +184,7 @@
     "GOOGLE_ACCOUNT_EXISTS": "This email already has an account that uses Google. Sign in with Google, then set a password in Account."
   },
   "notFound": {
+    "title": "This page does not exist.",
     "hint": "The link may be mistyped, or the event was deleted.",
     "home": "Go to the home page"
   },

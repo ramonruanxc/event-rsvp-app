@@ -27,6 +27,12 @@ test.describe('REQ-134: page titles', () => {
     await expect(page).toHaveTitle('Team dinner · Event RSVP');
     await page.goto('/fr/sign-in');
     await expect(page).toHaveTitle('Connexion · Event RSVP');
+    await page.goto('/en/nope-page');
+    await expect(page).toHaveTitle('This page does not exist. · Event RSVP');
+    await page.goto('/fr/nope-page');
+    await expect(page).toHaveTitle("Cette page n'existe pas. · Event RSVP");
+    await page.goto('/en/e/unknown0001');
+    await expect(page).toHaveTitle('This page does not exist. · Event RSVP');
   });
 
   test('REQ-134: signed-in pages have their titles in each language', async ({ page, context }) => {
