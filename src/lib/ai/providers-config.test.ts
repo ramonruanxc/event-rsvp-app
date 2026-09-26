@@ -6,6 +6,7 @@ import {
   buildAiProviders,
   DEFAULT_AI_PROVIDERS,
   DEFAULT_MODELS,
+  isAiConfigured,
   parseAiProviders,
 } from './providers-config';
 import type { AiModelClient } from './types';
@@ -149,5 +150,17 @@ describe('buildAiProviders', () => {
     ).rejects.toBeInstanceOf(AiUnavailableError);
     expect(openrouterComplete).toHaveBeenCalledTimes(1);
     expect(anthropicComplete).not.toHaveBeenCalled();
+  });
+});
+
+describe('isAiConfigured (REQ-156)', () => {
+  it('REQ-156: true exactly when a listed provider has a non-blank key', () => {
+    expect(isAiConfigured({})).toBe(false);
+    expect(isAiConfigured({ OPENROUTER_API_KEY: 'k' })).toBe(true);
+    expect(isAiConfigured({ OPENROUTER_API_KEY: '   ' })).toBe(false);
+    expect(isAiConfigured({ AI_PROVIDERS: 'anthropic', OPENROUTER_API_KEY: 'k' })).toBe(false);
+    expect(isAiConfigured({ AI_PROVIDERS: 'anthropic,openrouter', ANTHROPIC_API_KEY: 'a' })).toBe(
+      true,
+    );
   });
 });

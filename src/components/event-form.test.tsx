@@ -412,3 +412,74 @@ describe('EventForm date and time pickers (REQ-131)', () => {
     expect(when.getAllByRole('button')).toHaveLength(2);
   });
 });
+
+describe('EventForm AI panel and timezone labels (REQ-155 to REQ-158)', () => {
+  test('REQ-155: Fill with AI with an empty description asks for one and calls nothing', () => {
+    const aiFill = vi.fn();
+    renderWithIntl(<EventForm submit={vi.fn()} aiFill={aiFill} />);
+    fireEvent.change(screen.getByLabelText('Describe your event'), { target: { value: '   ' } });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Fill with AI' }));
+
+    expect(screen.getByRole('alert').textContent).toBe(
+      "Describe your event first — for example, “Team dinner next Friday 7pm at Mario's”.",
+    );
+    expect(aiFill).not.toHaveBeenCalled();
+    expect(document.activeElement).toBe(screen.getByLabelText('Describe your event'));
+  });
+
+  test('REQ-156: without an AI key the form says so and offers no AI fill', () => {
+    renderWithIntl(<EventForm submit={vi.fn()} aiNotConfigured />);
+
+    expect(
+      screen.getByText("AI fill isn't set up on this server — fill the form below."),
+    ).toBeTruthy();
+    expect(screen.queryByLabelText('Describe your event')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Fill with AI' })).toBeNull();
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+
+  test('REQ-157: editing a flagged field clears its Needed flag only', async () => {
+    const aiFill = vi.fn().mockResolvedValue({
+      ok: true,
+      data: {
+        fields: {
+          name: 'Team dinner',
+          description: null,
+          date: '2026-10-02',
+          time: '19:00',
+          timezone: 'America/New_York',
+          location: null,
+        },
+        missing: ['description', 'location'],
+        timezoneFromText: true,
+        notAnEvent: false,
+      },
+    });
+    const { container } = renderWithIntl(<EventForm submit={vi.fn()} aiFill={aiFill} />);
+    fireEvent.change(screen.getByLabelText('Describe your event'), {
+      target: { value: 'Team dinner next Friday 7pm' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Fill with AI' }));
+    await waitFor(() => expect(screen.getAllByText('Needed')).toHaveLength(2));
+
+    fireEvent.change(screen.getByLabelText('Location (optional)'), {
+      target: { value: "Mario's" },
+    });
+
+    expect(screen.getAllByText('Needed')).toHaveLength(1);
+    expect(screen.getByLabelText('Location (optional)').getAttribute('aria-invalid')).toBeNull();
+    expect(container.querySelector('#location-missing')).toBeNull();
+    expect(container.querySelector('.field.is-missing #location')).toBeNull();
+    expect(screen.getByLabelText('Description').getAttribute('aria-invalid')).toBe('true');
+  });
+
+  test('REQ-158: timezone options read with spaces and keep their ids', () => {
+    renderWithIntl(<EventForm submit={vi.fn()} initialValues={{ timezone: 'America/New_York' }} />);
+    const select = screen.getByLabelText('Timezone') as HTMLSelectElement;
+    const option = Array.from(select.options).find((o) => o.value === 'America/New_York');
+
+    expect(option?.textContent).toBe('America/New York');
+    expect(select.value).toBe('America/New_York');
+  });
+});

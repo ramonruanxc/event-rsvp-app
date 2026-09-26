@@ -41,6 +41,8 @@ export interface EventFormProps {
   submit: (values: EventFormValues) => Promise<ActionResult<{ slug: string }>>;
   /** When present, renders the "Fill with AI" panel (REQ-51). */
   aiFill?: (text: string, timezone: string | null) => Promise<ActionResult<ParseEventResult>>;
+  /** When true and `aiFill` is absent, the AI panel's place says AI fill is not set up on this server (REQ-156). */
+  aiNotConfigured?: boolean;
 }
 
 /**
