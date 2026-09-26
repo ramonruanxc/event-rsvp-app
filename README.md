@@ -182,6 +182,9 @@ npx tsx scripts/docker/smoke-cli.ts   # smoke check of a running docker compose 
   email and password, signed out and signed in again (2026-09-25).
 - Fluid Compute is enabled on the Vercel project, so the new-event page's `maxDuration = 30` applies and the 20 s AI
   budget is not cut short by the platform (2026-09-26).
+- "Fill with AI" on a phone in production with three cases: a complete English event; Portuguese text with no time
+  (time left empty and flagged, not invented); a prompt-injection text (no fields filled). All as expected
+  (2026-09-26).
 
 Agent-run smoke tests and fresh-clone verifications are recorded separately, with their actor, in the
 [timelog Events table](docs/timelog.md).
