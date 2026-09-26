@@ -13255,7 +13255,7 @@ dependency: `axe-core`, pinned to 4.13.0, the version already in `node_modules` 
 10. `page.getByRole('alert')` also matches Next.js' route announcer; scope alerts to `page.locator('main')`.
 
 ### TASK-273 — Mobile Playwright project with the core journeys and real picker checks
-**Phase:** 12 · **Requirements:** REQ-159, REQ-131 · **Status:** todo · **Revision:** 1
+**Phase:** 12 · **Requirements:** REQ-159, REQ-131 · **Status:** done · **Revision:** 1
 **Files:** playwright.config.ts, e2e/mobile.spec.ts (new)
 **Interface:** no production code changes.
 
@@ -13379,7 +13379,7 @@ only, unchanged) and the Phase 12 note 9 checks.
 that later tasks extend with failing screen-position checks (TASK-276, TASK-281). Mention it in the PR notes.
 
 ### TASK-274 — Localized page titles and a not-found page for every unknown path
-**Phase:** 12 · **Requirements:** REQ-134, REQ-135 · **Status:** todo · **Revision:** 1
+**Phase:** 12 · **Requirements:** REQ-134, REQ-135 · **Status:** done · **Revision:** 1
 **Files:** package.json, package-lock.json, e2e/helpers/axe.ts (new), e2e/pages.spec.ts (new),
 src/app/[locale]/layout.tsx, src/app/[locale]/not-found.tsx, src/app/[locale]/[...rest]/page.tsx (new),
 src/app/[locale]/sign-in/page.tsx, src/app/[locale]/register/page.tsx, src/app/[locale]/dashboard/page.tsx,
@@ -13660,7 +13660,7 @@ and trace pass.
 **TDD exception:** none
 
 ### TASK-275 — A busy button keeps keyboard focus
-**Phase:** 12 · **Requirements:** REQ-136 · **Status:** todo · **Revision:** 1
+**Phase:** 12 · **Requirements:** REQ-136 · **Status:** done · **Revision:** 1
 **Files:** src/components/ui/button.tsx, src/components/ui/button.test.tsx, src/components/event-form.test.tsx,
 src/components/set-password-form.tsx, src/components/set-password-form.test.tsx, e2e/focus.spec.ts (new)
 **Interface:** `Button` props unchanged (`ButtonProps`); only its rendering while `loading` changes.
@@ -13857,7 +13857,7 @@ pass.
 **TDD exception:** none
 
 ### TASK-276 — A failed validation focuses the first invalid field, with one alert at most
-**Phase:** 12 · **Requirements:** REQ-137 · **Status:** todo · **Revision:** 1
+**Phase:** 12 · **Requirements:** REQ-137 · **Status:** done · **Revision:** 1
 **Files:** src/lib/focus.ts (new), src/lib/focus.test.ts (new), src/components/ui/field.tsx,
 src/components/ui/field.test.tsx, src/components/rsvp-form.tsx, src/components/rsvp-form.test.tsx,
 src/components/event-form.tsx, src/components/event-form.test.tsx, src/components/password-sign-in-form.tsx,
@@ -14174,7 +14174,7 @@ trace pass.
 **TDD exception:** none
 
 ### TASK-277 — RSVP form: Going after Not going, a clearable party size, "Keep my answer"
-**Phase:** 12 · **Requirements:** REQ-138, REQ-139 · **Status:** todo · **Revision:** 1
+**Phase:** 12 · **Requirements:** REQ-138, REQ-139 · **Status:** done · **Revision:** 1
 **Files:** src/components/rsvp-form.tsx, src/components/rsvp-form.test.tsx, src/components/ui/stepper.tsx,
 messages/en.json, messages/fr.json, messages/pt-BR.json, e2e/rsvp.spec.ts
 **Interface:** `RsvpFormProps` gains `onKeep?: () => void` (documented: "When given (editing an existing RSVP),
@@ -14315,7 +14315,7 @@ typecheck, format and trace pass.
 **TDD exception:** none
 
 ### TASK-278 — Guest panel: focus follows the answer; the decline action reads "I can't go"
-**Phase:** 12 · **Requirements:** REQ-140, REQ-139, REQ-141 · **Status:** todo · **Revision:** 1
+**Phase:** 12 · **Requirements:** REQ-140, REQ-139, REQ-141 · **Status:** done · **Revision:** 1
 **Files:** src/components/guest-rsvp-panel.tsx, src/components/guest-rsvp-panel.test.tsx,
 src/components/rsvp-form.tsx, src/app/globals.css, messages/en.json, messages/fr.json, messages/pt-BR.json,
 e2e/rsvp.spec.ts
@@ -14679,7 +14679,7 @@ lint, typecheck, format and trace pass.
 **TDD exception:** none
 
 ### TASK-279 — Owner and notice actions: failures say why, the Remove question shows on phones, focus after Remove and Dismiss
-**Phase:** 12 · **Requirements:** REQ-142, REQ-143, REQ-140 · **Status:** todo · **Revision:** 1
+**Phase:** 12 · **Requirements:** REQ-142, REQ-143, REQ-140 · **Status:** done · **Revision:** 1
 **Files:** src/components/ui/inline-confirm.tsx, src/components/ui/inline-confirm.test.tsx,
 src/components/delete-event-button.tsx, src/components/delete-event-button.test.tsx,
 src/components/remove-rsvp-button.tsx, src/components/remove-rsvp-button.test.tsx,
@@ -14992,7 +14992,7 @@ pass.
 **TDD exception:** none
 
 ### TASK-280 — Header: the language select commits on an explicit choice; the account menu closes predictably
-**Phase:** 12 · **Requirements:** REQ-144, REQ-145 · **Status:** todo · **Revision:** 1
+**Phase:** 12 · **Requirements:** REQ-144, REQ-145 · **Status:** done · **Revision:** 1
 **Files:** src/components/locale-switcher.tsx, src/components/locale-switcher.test.tsx,
 src/components/user-menu.tsx, src/components/user-menu.test.tsx, e2e/header.spec.ts
 **Interface:** `src/components/locale-switcher.tsx` exports `LOCALE_REFOCUS_KEY = 'locale-select-refocus'` (add it
@@ -15274,7 +15274,7 @@ lint, typecheck, format and trace pass.
 **TDD exception:** none
 
 ### TASK-281 — Event page on a phone: a readable invite link; time and zone on one line
-**Phase:** 12 · **Requirements:** REQ-150, REQ-151 · **Status:** todo · **Revision:** 2
+**Phase:** 12 · **Requirements:** REQ-150, REQ-151 · **Status:** done · **Revision:** 2
 **Files:** src/lib/format-date.ts, src/lib/format-date.test.ts, src/components/event-details.tsx,
 src/app/globals.css, e2e/mobile.spec.ts
 **Interface** (`src/lib/format-date.ts`):
@@ -15459,7 +15459,7 @@ of the first `hour` part, instead of joining `formatToParts()` values, whose U+2
 `format()`.
 
 ### TASK-282 — Event page copy: ended events read as ended, the owner's pill, a way back from edit
-**Phase:** 12 · **Requirements:** REQ-152, REQ-153, REQ-154 · **Status:** todo · **Revision:** 1
+**Phase:** 12 · **Requirements:** REQ-152, REQ-153, REQ-154 · **Status:** done · **Revision:** 1
 **Files:** src/components/copy-invite-link-button.tsx, src/components/copy-invite-link-button.test.tsx,
 src/components/event-details.tsx, src/components/owner-guest-list.tsx, src/app/[locale]/e/[slug]/page.tsx,
 src/app/[locale]/e/[slug]/edit/page.tsx, messages/en.json, messages/fr.json, messages/pt-BR.json,
@@ -15586,7 +15586,7 @@ and trace pass.
 **TDD exception:** none
 
 ### TASK-283 — Event form: the AI panel says what to do and when it is off; "Needed" clears; readable timezones
-**Phase:** 12 · **Requirements:** REQ-155, REQ-156, REQ-157, REQ-158 · **Status:** todo · **Revision:** 1
+**Phase:** 12 · **Requirements:** REQ-155, REQ-156, REQ-157, REQ-158 · **Status:** done · **Revision:** 1
 **Files:** src/components/event-form.tsx, src/components/event-form.test.tsx, src/lib/ai/providers-config.ts,
 src/lib/ai/providers-config.test.ts, src/app/[locale]/events/new/page.tsx, src/app/globals.css, messages/en.json,
 messages/fr.json, messages/pt-BR.json
@@ -15773,7 +15773,7 @@ the listed specs pass unchanged, and unit, lint, typecheck, format and trace pas
 **TDD exception:** none
 
 ### TASK-284 — Sign-in, register and home: forgot-password hint, email-taken link, sign-in chrome, preview card link
-**Phase:** 12 · **Requirements:** REQ-147, REQ-148, REQ-146, REQ-149 · **Status:** todo · **Revision:** 1
+**Phase:** 12 · **Requirements:** REQ-147, REQ-148, REQ-146, REQ-149 · **Status:** done · **Revision:** 1
 **Files:** src/components/password-sign-in-form.tsx, src/components/password-sign-in-form.test.tsx,
 src/components/register-form.tsx, src/components/register-form.test.tsx, src/components/header-sign-in-link.tsx
 (new), src/components/header-sign-in-link.test.tsx (new), src/components/site-header.tsx,
@@ -16011,7 +16011,7 @@ typecheck, format and trace pass.
 **TDD exception:** none
 
 ### TASK-285 — Regression battery: container journey in CI, `npm run test:all`, regression coverage table
-**Phase:** 12 · **Requirements:** REQ-160 · **Status:** todo · **Revision:** 1
+**Phase:** 12 · **Requirements:** REQ-160 · **Status:** done · **Revision:** 1
 **Files:** docker/compose.journey.yml (new), playwright.container.config.ts (new), e2e/container/journey.spec.ts
 (new), playwright.config.ts, package.json, scripts/docker/container-files.test.ts, .github/workflows/ci.yml,
 README.md, docs/design/2026-09-25-ux-audit.md

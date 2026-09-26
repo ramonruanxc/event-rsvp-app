@@ -34,9 +34,10 @@ human-approved specification (see [How AI was used](#how-ai-was-used)).
 - **Deliberate bonuses (phases 6–7)** — added during execution, by human request: UI/UX redesign (amendment A2 —
   usability and product quality are evaluation criteria) and a second AI provider for resilience (amendment A3 —
   Anthropic credits were pending).
-- **After delivery (phases 8–11)** — each triggered by a concrete signal: a harder AI eval to pick a cheaper
+- **After delivery (phases 8–12)** — each triggered by a concrete signal: a harder AI eval to pick a cheaper
   model, a one-command container after a fresh-clone test, email/password sign-in so the evaluator needs no
-  Google test-user access, and fixes from external feedback.
+  Google test-user access, fixes from external feedback, and a UX audit against the delivery criteria that fixed
+  27 behavioural findings with no new feature.
 - **Stopped here** — capacity limits, password reset/email verification, and CSV export were deliberately left
   out (reasons in ["What I left out"](#what-i-left-out) below).
 
@@ -119,9 +120,10 @@ works with just the steps above except "Continue with Google" and "Fill with AI"
 ## Tests
 
 Unit tests need no database; integration and E2E need only the database container (`docker compose up -d db`).
-Current counts: 484 unit tests, 27 integration tests, and 83 end-to-end journeys across a11y and all three
-locales — all passing in CI (Node 22). `npm run trace` checks that every requirement marked "done" in
-[docs/spec.md](docs/spec.md) is cited by at least one passing test.
+Current counts: 531 unit tests, 27 integration tests, and 114 end-to-end journeys (106 desktop/chromium + 8 mobile,
+375 px) across a11y and all three locales, plus 1 container regression journey — all passing in CI (Node 22).
+`npm run trace` checks that every requirement marked "done" in [docs/spec.md](docs/spec.md) is cited by at least
+one passing test.
 
 ```bash
 npm run test:unit     # Vitest, no database

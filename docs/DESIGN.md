@@ -79,7 +79,9 @@ loading and error states.
 
 - **Button**: primary (filled `--primary`), secondary (surface + border), ghost (text only), danger (text `--danger`,
   filled only inside the delete confirmation). Height 40 px (44 px on the guest RSVP submit). Loading: label kept,
-  inline spinner, `aria-busy`.
+  inline spinner, `aria-busy="true"` and `aria-disabled="true"` — **not** the `disabled` attribute, so a busy button
+  keeps keyboard focus while its action runs; a click on it is cancelled instead of submitting again (the `disabled`
+  prop keeps its own, separate meaning).
 - **Input / textarea / select**: `--surface`, 1 px `--border-input`, 8 px radius, 40 px height; label above (never
   placeholder-only); helper/error text below; error = `--danger` border + message with icon; AI-missing =
   `--warning-bg` tint + "Needed" hint.
@@ -89,14 +91,16 @@ loading and error states.
 - **Status pill**: Going (`--success` text on `--success-bg`, check icon), Declined (muted text, x icon), Ended
   (muted, clock icon). Never color alone: icon + word.
 - **Confirmation panel** (after RSVP): `--success-bg` tint, turquoise check badge (the brand moment), "You're going ·
-  3 people" in h2, "Change" (secondary) and "Cancel RSVP" (ghost danger). For Not going: neutral panel, "You're not
-  going", "Change".
+  3 people" in h2, "Change" (secondary) and "I can't go" (ghost danger, Phase 12: was "Cancel RSVP" — same action,
+  friendlier wording). For Not going: neutral panel, "You're not going", "Change". A successful Send RSVP, Change,
+  "I can't go" or "Keep my answer" moves focus to the panel's heading (`tabIndex={-1}`, no visible outline on it).
 - **Guest list**: semantic `<table>` on ≥ 640 px (Name, Response pill, People, Last updated, Remove), stacked rows on
   phones. Totals line above: "7 going · 2 declined · 11 people" (tabular numbers, no metric tiles).
 - **Inline confirm** (delete event, remove RSVP): the action expands in place into "Delete this event? · Delete ·
   Keep" instead of a modal.
 - **Copy invite link**: read-only mono field with the URL + "Copy link" button; on success the button becomes
-  "Copied" with a check in `--success` for 2 s and an `aria-live` announcement.
+  "Copied" with a check in `--success` for 2 s and an `aria-live` announcement. Below 480 px the field and button
+  stack (field full width, button full width beneath it) instead of sitting side by side (Phase 12).
 - **Empty state** (dashboard): short explanation of the three steps (create, share, watch replies), primary "Create
   event", secondary "Create sample event".
 - **AI panel** (new event): top of the form, `--surface-2` block: label "Describe your event", textarea (3 rows),
@@ -107,6 +111,12 @@ loading and error states.
   (`calendar-days` for Date, `clock` for Time), `type="button"`, own focus-visible ring, labelled "Open calendar" /
   "Open time picker" (never the word "date" in the English name). Clicking the field itself or the button opens the
   browser's native picker; typing still works when the picker is unavailable.
+- **Not-found page** (unknown path or unknown event slug, Phase 12): same top bar and content column as every other
+  page, `<html lang>` set to the locale; heading "This page does not exist.", a hint that the link may be mistyped
+  or the event deleted, and a link back to the home page.
+- **Forgot-password hint** (sign-in page, Phase 12): a `FieldHint` always shown under the Password field pointing a
+  forgetful user to "Continue with Google" (if their email is a Google account) and then to setting a new password
+  in Account — no password-reset flow is offered or implied.
 
 ## Motion
 
@@ -146,3 +156,7 @@ Where the mockup and this file disagree, this file wins.
   that opens the browser's native picker, restoring pointer/keyboard access removed by the earlier
   `::-webkit-calendar-picker-indicator` fix (incident 26); the AI panel's failure alert now has one wording per
   cause instead of a single generic message (see `docs/plan.md`, Phase 11).
+- 2026-09-26 (Phase 12, UX audit, doc-sync): the decline action reads "I can't go" (was "Cancel RSVP"); busy buttons
+  are `aria-disabled`/`aria-busy` instead of `disabled`, so they keep keyboard focus; a new not-found page and a
+  forgot-password hint on sign-in; "Copy invite link" stacks below 480 px; a successful RSVP action moves focus to
+  the panel's result (see `docs/plan.md`, Phase 12, and `docs/design/2026-09-25-ux-audit.md`).

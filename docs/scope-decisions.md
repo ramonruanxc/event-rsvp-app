@@ -40,7 +40,7 @@ original plan.
 Full wording and every other amendment: the
 [design brief's amendments table](design/2026-09-24-design-brief.md#amendments).
 
-## After delivery — each triggered by a concrete, later signal (phases 8–11)
+## After delivery — each triggered by a concrete, later signal (phases 8–12)
 
 | Phase | What shipped | Trigger | Wall clock | Agent run time |
 |---|---|---|---|---|
@@ -48,9 +48,14 @@ Full wording and every other amendment: the
 | 9 — Containerize | `docker compose up --build`: one command, no Node install | A fresh-clone test surfaced friction (missing step, obsolete command, undocumented requirement) | 54m | 50m |
 | 10 — Email/password sign-in | Register, sign in, Account page, Google-account linking rules | The evaluator needs no Google test-user access to sign in | 2h 43m | 2h 12m |
 | 11 — Feedback fixes | Date/time pickers reachable again, one clear reason per AI-fill failure | Fixes from external reviewer feedback | 1h 09m | 1h 02m |
+| 12 — UX polish | 27 findings fixed (no new feature): focus management, page titles, a not-found page, RSVP wording and edge cases, owner-action failure messages, header keyboard fixes, phone-width readability, AI-panel hints, sign-in hints; a Playwright `mobile` project and a permanent regression battery (container journey in CI, `npm run test:all`) | The orchestrator's evaluation of the delivery criteria against a UX audit of every screen | ~3h 01m* | 3h 15m* |
+
+\* Phase 12's wall clock is measured from its start to its last logged agent run (the phase was not yet closed in
+`docs/timelog.md` when this was written); agent run time exceeds it because the UX audit and the README/scope-decision
+write-up ran in parallel.
 
 Human active time was self-reported only for phases 1–6 (3h 30m total) and was not tracked after delivery — but the
-human kept approving amendments, making decisions and hand-verifying results through phases 8–11 (registering with
+human kept approving amendments, making decisions and hand-verifying results through phases 8–12 (registering with
 a password on a fresh local container, confirming merges, relaying reviewer feedback); see the actor "Human" in the
 [timelog's Events table](timelog.md#events).
 

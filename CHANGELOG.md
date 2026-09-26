@@ -6,6 +6,51 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- Localized page titles (`<title>`) and description on every page, and a localized, themed not-found page for any
+  unknown path or unknown event (REQ-134, REQ-135).
+- A Playwright `mobile` project (375 px, Pixel 7, touch) covering the core guest and organizer journeys and a real
+  native date/time picker check, alongside the existing `chromium` project (REQ-159).
+- A permanent regression battery: a container journey (register, create an event, guest RSVP, `.ics` download,
+  sign-out/sign-in, AI "not set up") runs against the `docker compose` stack in CI; `npm run test:all` runs the full
+  suite plus that journey in one command (REQ-160).
+- axe-core `document-title` and `html-has-lang` checks on every page (REQ-134).
+
+### Changed
+
+- The decline action reads "I can't go" (was "Cancel RSVP"); the underlying behavior is unchanged — the RSVP
+  becomes "Not going" and is kept, not deleted (REQ-141; BR-35, BR-36 amended).
+- A busy button is `aria-disabled`/`aria-busy` instead of `disabled`, so it keeps keyboard focus while its action
+  runs instead of losing focus to `<body>` (REQ-136).
+- A failed form validation moves focus to the first invalid field instead of leaving it on the submit button; field
+  errors are described text, no longer repeated `role="alert"`s (REQ-137).
+- Answering Going after Not going starts the party-size stepper at 1 instead of the stored 0, so the RSVP can be
+  sent; the party-size field can be cleared and retyped without a leading zero (REQ-138).
+- Editing an RSVP offers "Keep my answer" to leave Change without sending (REQ-139).
+- A successful RSVP action, Remove, or password-notice dismissal moves focus to its result instead of leaving it
+  behind (REQ-140).
+- Failed Delete event, Remove RSVP and Create sample event now say why, instead of failing silently (REQ-142).
+- The Remove confirmation question is visible text on phones, not only for assistive technology (REQ-143).
+- The header language select changes the page only on an explicit choice (Enter, a pointer/touch selection, or
+  leaving the select with a new value) instead of on every arrow key; the account menu now closes predictably on
+  Escape, on losing focus, and on an outside click (REQ-144, REQ-145).
+- Sign-in and register pages hide the header's self-referential "Sign in" link, add spacing under the heading, and
+  label the Google/password divider "or" (REQ-146).
+- The sign-in page shows a forgot-password hint pointing to the existing Google-then-Account-password recovery path
+  (REQ-147); the "Sign in" mentioned in the email-taken message is now a link (REQ-148).
+- The home page's decorative invite-preview card is one link to the demo event (REQ-149).
+- The invite link and its "Copy invite link" button stack below 480 px instead of being squeezed side by side
+  (REQ-150); an event's time and zone stay on one line instead of breaking mid-token (REQ-151).
+- An ended event reads as ended: the owner's invite hint and the guest/owner counts use past-tense copy, and
+  "Add to calendar" is hidden (REQ-152). The owner's guest-list pill now speaks in the third person ("Going"/"Vient"
+  /"Vai") instead of reusing the guest's first-person label (REQ-153). The edit page links back to its event
+  (REQ-154).
+- "Fill with AI" on an empty description says what to do instead of a generic validation message (REQ-155); the
+  panel says the server has no AI key before any typing, instead of after a wasted description (REQ-156); a
+  "Needed" flag clears as soon as the organizer edits that field (REQ-157); timezone options show spaces instead of
+  underscores (REQ-158).
+
 ### Fixed
 
 - The event date and time fields can be picked again from the browser's native picker, not only typed: clicking the

@@ -25,7 +25,7 @@ flowchart TB
     OPEN --> ICS["Add to calendar (.ics)"]
     ENDED -->|"yes"| RO["Read-only<br/><small>This event has ended</small>"]
     ENDED -->|"no"| COOKIE{"Edit cookie<br/>for this event?"}
-    COOKIE -->|"yes"| MINE["Your RSVP<br/><small>You're going (3) · Change · Cancel → Not going</small>"]
+    COOKIE -->|"yes"| MINE["Your RSVP<br/><small>You're going · 3 people · Change · I can't go → Not going</small>"]
     COOKIE -->|"no"| FORM["RSVP form<br/><small>name · Going / Not going · people incl. you (1–10)</small>"]
     FORM --> DUP{"Name already<br/>on list?"}
     DUP -->|"no"| OK["Saved<br/><small>httpOnly edit cookie set</small>"]

@@ -2241,7 +2241,7 @@ UX-26) cite the closest existing rule.
 
 ### REQ-134 — Every page has a localized title
 **Rules:** BR-174
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - `src/app/[locale]/layout.tsx` exports `generateMetadata`: `title: { default: meta.title, template: "%s · " +
   meta.title }` and `description: meta.description`, read with `getTranslations({ locale })`. An unsupported locale
@@ -2271,7 +2271,7 @@ UX-26) cite the closest existing rule.
 
 ### REQ-135 — Unknown paths and unknown events show the localized not-found page
 **Rules:** BR-181
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - `src/app/[locale]/[...rest]/page.tsx` calls `notFound()`, so an unmatched path under a locale (`/en/nope`,
   `/fr/nope/deeper`) renders `src/app/[locale]/not-found.tsx` inside the locale layout: HTTP 404, `<html lang>` equal
@@ -2290,7 +2290,7 @@ UX-26) cite the closest existing rule.
 
 ### REQ-136 — A busy button keeps keyboard focus
 **Rules:** BR-176
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - `Button` with `loading`: no `disabled` attribute; `aria-disabled="true"` and `aria-busy="true"`, spinner as
   before; a click is cancelled (`event.preventDefault()`) and `onClick` is not called, so a loading submit button
@@ -2306,7 +2306,7 @@ UX-26) cite the closest existing rule.
 
 ### REQ-137 — A failed validation moves focus to the first invalid field, with one alert at most
 **Rules:** BR-176, BR-177, BR-106
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - `focusFirstInvalid(root, fieldErrors, idByField): boolean` (`src/lib/focus.ts`) focuses the first `input`,
   `textarea` or `select` inside `root`, in document order, whose id is `idByField[field]` for a field with an error;
@@ -2330,7 +2330,7 @@ UX-26) cite the closest existing rule.
 
 ### REQ-138 — Going after Not going starts at one person; the party size can be cleared and retyped
 **Rules:** BR-173, BR-26
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - `RsvpForm` starts the party size at `Math.max(1, initial?.partySize ?? 1)`. Given the stored RSVP `Maria`,
   Not going, 0: Change → Going → the stepper shows 1 ("One less person" disabled) → Send RSVP sends
@@ -2343,7 +2343,7 @@ UX-26) cite the closest existing rule.
 
 ### REQ-139 — "Keep my answer" leaves Change without sending
 **Rules:** BR-178
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - `RsvpForm` prop `onKeep?: () => void`: when given, a secondary large button `rsvp.keep` follows "Send RSVP"
   (en "Keep my answer", fr "Garder ma réponse", pt-BR "Manter minha resposta")
@@ -2353,7 +2353,7 @@ UX-26) cite the closest existing rule.
 
 ### REQ-140 — Focus moves to the result after a successful async action
 **Rules:** BR-176
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - `GuestRsvpPanel` shows the answer returned by the action at once (it keeps it in state, so it does not wait for
   the page refresh) and moves focus: after Send RSVP (first RSVP or edit) to the status heading ("You're going · 3
@@ -2368,7 +2368,7 @@ UX-26) cite the closest existing rule.
 
 ### REQ-141 — The decline action reads "I can't go"
 **Rules:** BR-35, BR-36
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - `rsvp.cancel`: en "I can't go", fr "Je ne viens plus", pt-BR "Não vou mais"
 - Behavior unchanged: the RSVP becomes Not going with party size 0 and is not deleted (REQ-28); the button is still
@@ -2378,7 +2378,7 @@ UX-26) cite the closest existing rule.
 
 ### REQ-142 — Failed Delete event, Remove RSVP and Create sample event say why
 **Rules:** BR-190, BR-83
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - `InlineConfirm` prop `error?: string | null`: when set, an `Alert` with that text is rendered inside the group,
   after the buttons (both layouts)
@@ -2392,7 +2392,7 @@ UX-26) cite the closest existing rule.
 
 ### REQ-143 — The Remove question is visible on phones
 **Rules:** BR-188
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - Row layout of `InlineConfirm`: the question is `<p id class="inline-confirm-q small">`, still the group's name.
   Below 640 px it is visible text above "Remove" / "Keep", and the open confirmation takes the full width of the
@@ -2404,7 +2404,7 @@ UX-26) cite the closest existing rule.
 
 ### REQ-144 — The language select changes the page only on an explicit choice
 **Rules:** BR-175, BR-75, BR-104
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - On the focused, closed select, arrow keys only move the selection (a `change` that happens while a key is held
   down does not navigate)
@@ -2419,7 +2419,7 @@ UX-26) cite the closest existing rule.
 
 ### REQ-145 — The account menu closes predictably
 **Rules:** BR-180
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - Open menu + Escape (from anywhere inside it) → closed, focus on its summary ("Account menu")
 - Open menu + focus moving to an element outside it → closed; moving between its items keeps it open
@@ -2429,7 +2429,7 @@ UX-26) cite the closest existing rule.
 
 ### REQ-146 — Sign-in and register pages: no self-link, spacing, and an "or" divider
 **Rules:** BR-154
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - The header's "Sign in" link is not rendered on `/<locale>/sign-in` and `/<locale>/register` (client component
   `HeaderSignInLink`, reading `usePathname()` from `@/i18n/navigation`: `'/sign-in'` or `'/register'`); it is
@@ -2443,7 +2443,7 @@ UX-26) cite the closest existing rule.
 
 ### REQ-147 — The sign-in page tells a forgetful user what to do
 **Rules:** BR-182
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - Under the Password field, always visible: `FieldHint` `id="signin-password-hint"` with `auth.forgotPasswordHint`;
   the password input's `aria-describedby` is `signin-password-hint` (plus ` signin-password-error` when there is an
@@ -2458,7 +2458,7 @@ UX-26) cite the closest existing rule.
 
 ### REQ-148 — "Sign in" in the email-taken message is a link
 **Rules:** BR-83, BR-154
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - On `EMAIL_TAKEN` the register form's alert shows `auth.emailTakenRich`, whose text equals `errors.EMAIL_TAKEN`
   ("An account with this email already exists. Sign in instead."), with the `<link>` part as an `<a>` to
@@ -2469,7 +2469,7 @@ UX-26) cite the closest existing rule.
 
 ### REQ-149 — The home preview card is one link to the demo
 **Rules:** BR-52
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - The decorative card is wrapped in one link to `/<locale>/e/demoPicnic`, named by the caption
   (`aria-labelledby="invite-preview-caption"` on the link, `id="invite-preview-caption"` on the `figcaption`); the
@@ -2479,7 +2479,7 @@ UX-26) cite the closest existing rule.
 
 ### REQ-150 — The invite link is readable on phones
 **Rules:** BR-116, BR-51
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - Below 480 px the invite field and the "Copy invite link" button stack: the field takes the full width, the button
   is full width under it. The label stays "Copy invite link" (BR-51, DOC-Q3)
@@ -2489,7 +2489,7 @@ UX-26) cite the closest existing rule.
 
 ### REQ-151 — The time and zone of an event stay on one line
 **Rules:** BR-184, BR-76
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - `formatEventDateTimeParts(instant, timeZone, locale): { date: string; time: string }` (`src/lib/format-date.ts`)
   splits `formatEventDateTime`'s text before its `hour` part; `date + time` equals `formatEventDateTime(...)`
@@ -2506,7 +2506,7 @@ UX-26) cite the closest existing rule.
 
 ### REQ-152 — An ended event reads as ended
 **Rules:** BR-185
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - Ended event, owner: the invite hint is `event.endedHint` ("Replies are closed, so answers can no longer be sent or
   changed.") instead of "Anyone with this link can reply…"
@@ -2518,7 +2518,7 @@ UX-26) cite the closest existing rule.
 
 ### REQ-153 — The owner's response pill speaks in the third person
 **Rules:** BR-73, BR-78
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - The owner's guest list pill for Going uses `event.pillGoing`: en "Going", fr "Vient", pt-BR "Vai" (the guest's
   radio keeps `rsvp.going`: "Je viens", "Vou")
@@ -2530,7 +2530,7 @@ UX-26) cite the closest existing rule.
 
 ### REQ-154 — The edit page links back to the event
 **Rules:** BR-186
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - `/e/<slug>/edit` shows a text link `eventForm.backToEvent` (en "Back to event", fr "Retour à l'événement", pt-BR
   "Voltar ao evento") to `/<locale>/e/<slug>` in the page head, and the same link in the ended-event notice
@@ -2538,7 +2538,7 @@ UX-26) cite the closest existing rule.
 
 ### REQ-155 — Fill with AI on an empty description says what to do
 **Rules:** BR-179
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - "Fill with AI" with an empty or blank description calls no action, shows `ai.emptyText` in the panel's `Alert`
   and focuses the description box
@@ -2549,7 +2549,7 @@ UX-26) cite the closest existing rule.
 
 ### REQ-156 — Without an AI key the panel says so before any typing
 **Rules:** BR-183, BR-137
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - `isAiConfigured(env): boolean` (`src/lib/ai/providers-config.ts`) is true exactly when `parseAiProviders(
   env.AI_PROVIDERS)` has a provider whose key variable is non-blank (the rule `buildAiProviders` applies)
@@ -2561,7 +2561,7 @@ UX-26) cite the closest existing rule.
 
 ### REQ-157 — A "Needed" flag clears when the organizer edits that field
 **Rules:** BR-187, BR-57
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - After a fill that flagged `location`, typing in "Location (optional)" removes its "Needed" badge, its
   `is-missing` tint, `aria-invalid` and the `#location-missing` hint; other flagged fields stay flagged
@@ -2569,7 +2569,7 @@ UX-26) cite the closest existing rule.
 
 ### REQ-158 — Timezone options are readable
 **Rules:** BR-189
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - Each timezone option shows its id with every `_` replaced by a space ("America/New York"); its `value` stays the
   IANA id ("America/New_York"); the detected zone is still selected
@@ -2879,7 +2879,7 @@ These requirements are code in the repository and are TDD'd like product code. T
 
 ### REQ-159 — A mobile Playwright project runs the core journeys at 375 px
 **Rules:** none (tooling)
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - `playwright.config.ts` has a second project `mobile`: `devices['Pixel 7']` (Chromium, touch, `isMobile`) with the
   viewport overridden to 375 × 812, `locale: 'en-US'`, `timezoneId: 'America/New_York'`, and
@@ -2894,7 +2894,7 @@ These requirements are code in the repository and are TDD'd like product code. T
 
 ### REQ-160 — A permanent regression battery, including a journey against the container
 **Rules:** none (tooling)
-**Status:** todo
+**Status:** done
 **Acceptance criteria:**
 - `docker/compose.journey.yml` overrides only `app.environment` with `ANTHROPIC_API_KEY: ''` and
   `OPENROUTER_API_KEY: ''`, so a stack started with `docker compose -f docker-compose.yml -f
