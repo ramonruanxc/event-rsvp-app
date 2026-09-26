@@ -142,6 +142,9 @@ Pipeline agents working autonomously. Reported separately from human active time
 | Implementer TASK-279–284 (batch B) | sonnet | 2026-09-25 23:39:20 | 2026-09-26 00:22:51 | 43m 31s | 6/6; E2E 114/114; one failure misclassified as ENV (incident #28) |
 | Spec-writer: TASK-281 revision, TASK-285 | opus | 2026-09-26 00:23:40 | 2026-09-26 00:32:45 | 9m 05s | split from one format() string; regression battery planned |
 | Implementer TASK-281 fix + TASK-285 | sonnet | 2026-09-26 00:33:00 | 2026-09-26 00:45:24 | 11m 58s | container journey 1/1, E2E 114/114 |
+| Reviewer PR #20 | sonnet | 2026-09-26 00:45:40 | 2026-09-26 00:54:02 | 8m 22s | APPROVE, 0 findings |
+| Analyst: doc-sync PR #20 | sonnet | 2026-09-26 00:54:20 | 2026-09-26 00:59:31 | 5m 11s | statuses, DESIGN.md, flows diagram, README counts, scope doc |
+| Implementer: not-found page title (incident #29) | sonnet | 2026-09-26 01:10:00 | 2026-09-26 01:24:44 | 14m 40s | fixed, attempt 1 |
 
 ## Events
 
@@ -248,6 +251,11 @@ Pipeline agents working autonomously. Reported separately from human active time
 | 2026-09-25 21:50:00 | Human clarified that the "Creativity" criterion means technical creativity of the product; README gains "Technical highlights"; the demo recording stays as usability support (discussion deferred by the human) |
 | 2026-09-25 23:45:00 | Human asked that the final test battery include the new work to prevent regressions: planned as TASK-285 (container journey in CI, `npm run test:all`, UX finding → test table) |
 | 2026-09-26 00:23:28 | Orchestrator re-ran the REQ-151 failure on Node 22: it fails there too, so the implementer's ENV classification was wrong; reclassified SPEC (incident #28) |
+| 2026-09-26 01:03:41 | Orchestrator ran the battery on the PR #20 head: unit 531/531 (Node 22), integration 27/27, E2E 114/114 (chromium 106 + mobile 8), container build + smoke 3/3 + journey 1/1; CI 10/10 |
+| 2026-09-26 01:03:56 | PR #20 merged by the orchestrator (human pre-authorized) |
+| 2026-09-26 01:05:30 | Orchestrator, fresh clone of `main`: `npm ci` (lockfile untouched), `docker:journey` healthy, smoke 3/3, container journey 1/1 |
+| 2026-09-26 01:07:30 | Orchestrator recorded a 34 s demo of the real app (local container with the OpenRouter key): register, Fill with AI, save, invite link, guest RSVP in a second browser, organizer sees the guest; MP4 + GIF in `docs/media/` |
+| 2026-09-26 01:08:45 | Orchestrator smoke-tested production after the Phase 12 deploy: localized page titles, forgot-password hint, localized 404 with a way home; found the 404 kept the generic title (incident #29) |
 
 ## Time report
 
