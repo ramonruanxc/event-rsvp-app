@@ -22,9 +22,9 @@
 | 9 | `phase-9/containerize` | One-command local run (A5): `docker compose up --build` starts Postgres and the app, which migrates, seeds and serves on `APP_PORT` (default 3000). `.env.local` is optional (`AUTH_SECRET` is generated when it is absent). Node 22 image with the full build, and no secret in the image. `docker compose up -d db` for development and tests. A non-required CI smoke job. README | REQ-108–REQ-113 | 8 (TASK-239–TASK-246), no human task |
 | 10 | `phase-10/password-auth` | Email and password sign-in alongside Google (A6): register, sign in (one generic error, failed attempts limited per email and IP), set or change a password on a new Account page; Google links to an existing email only when verified, clears the unverified password and shows a notice; JWT sessions; scrypt from `node:crypto`; en/fr/pt-BR, WCAG 2.2 AA; README | REQ-114–REQ-130 (+ amended REQ-01, REQ-02, REQ-39, REQ-80, REQ-81) | 23 (TASK-247–TASK-269), no human task |
 | 11 | `phase-11/date-time-picker` | Fix incident 26: the date and time pickers open again (click on the field, or a labelled icon button) while REQ-66's hidden Chromium indicator stays hidden. AI budget 10 s → 20 s, and a failed AI fill says why: not set up, too slow, or unavailable | REQ-131–REQ-133 (+ amended REQ-47, REQ-51, REQ-87, REQ-88, REQ-95, REQ-101) | 3 (TASK-270–TASK-272), no human task |
-| 12 | `phase-12/ux-polish` | UX polish from the 2026-09-25 audit (27 findings, fixes only): localized page titles and a not-found page for unknown paths; busy buttons keep focus, a failed validation focuses the first invalid field, a success focuses its result, one alert per failed submit; RSVP Not going → Going, "Keep my answer", "I can't go"; failure messages for owner actions; language select and account menu keyboard fixes; invite link and time on phones, ended-event copy, back link from edit; AI panel hints; forgot-password hint and sign-in chrome; a mobile Playwright project, axe title/lang checks and a real picker test | REQ-134–REQ-159 (+ amended REQ-31, REQ-54, REQ-69, REQ-71, REQ-72, REQ-80, REQ-84, REQ-85) | 12 (TASK-273–TASK-284), no human task |
+| 12 | `phase-12/ux-polish` | UX polish from the 2026-09-25 audit (27 findings, fixes only): localized page titles and a not-found page for unknown paths; busy buttons keep focus, a failed validation focuses the first invalid field, a success focuses its result, one alert per failed submit; RSVP Not going → Going, "Keep my answer", "I can't go"; failure messages for owner actions; language select and account menu keyboard fixes; invite link and time on phones, ended-event copy, back link from edit; AI panel hints; forgot-password hint and sign-in chrome; a mobile Playwright project, axe title/lang checks and a real picker test; a regression battery (container journey in CI, `npm run test:all`) | REQ-134–REQ-160 (+ amended REQ-31, REQ-54, REQ-69, REQ-71, REQ-72, REQ-80, REQ-84, REQ-85) | 13 (TASK-273–TASK-285), no human task |
 
-Totals: 159 requirements (146 product + 13 tooling), 251 agent tasks, 6 human tasks.
+Totals: 160 requirements (146 product + 14 tooling), 252 agent tasks, 6 human tasks.
 
 **Adjustments to the suggested phases (with reasons):**
 - *All Prisma repositories move to Phase 1* (including the RSVP repository and its unique-constraint test REQ-27):
@@ -13220,7 +13220,8 @@ after a failed submit, axe `document-title` / `html-has-lang` on every page, the
 Playwright **mobile** project with the audit's screen-position checks, and a test that really opens the native date
 and time pickers.
 
-Order: TASK-273 → TASK-274 → … → TASK-284. No human task, no migration, no new environment variable. One new dev
+Order: TASK-273 → TASK-274 → … → TASK-284 → TASK-285 (the regression battery, REQ-160, added at the human's request
+after batches A and B). No human task, no migration, no new environment variable. One new dev
 dependency: `axe-core`, pinned to 4.13.0, the version already in `node_modules` through `eslint-config-next`
 (TASK-274).
 
@@ -15273,7 +15274,7 @@ lint, typecheck, format and trace pass.
 **TDD exception:** none
 
 ### TASK-281 — Event page on a phone: a readable invite link; time and zone on one line
-**Phase:** 12 · **Requirements:** REQ-150, REQ-151 · **Status:** todo · **Revision:** 1
+**Phase:** 12 · **Requirements:** REQ-150, REQ-151 · **Status:** todo · **Revision:** 2
 **Files:** src/lib/format-date.ts, src/lib/format-date.test.ts, src/components/event-details.tsx,
 src/app/globals.css, e2e/mobile.spec.ts
 **Interface** (`src/lib/format-date.ts`):
@@ -15376,21 +15377,31 @@ no `.ev-time`). Commit `test(event-page): invite link and time zone readable on 
      time: string;
    }
 
-   /** Splits {@link formatEventDateTime}'s text into the date part and the time-of-day + zone part (REQ-151, BR-184). */
+   /**
+    * Splits {@link formatEventDateTime}'s text into the date part and the time-of-day + zone part
+    * (REQ-151, BR-184). Both halves are cut from the one `format()` string, so `date + time` is
+    * exactly that text: `formatToParts()` only gives the cut position (the summed length of the parts
+    * before the first `hour` part). The two APIs may differ in the space before AM/PM (U+0020 vs
+    * U+202F), but each is one UTF-16 unit, so the position is the same.
+    */
    export function formatEventDateTimeParts(
      instant: Date,
      timeZone: string,
      locale: string,
    ): EventDateTimeParts {
-     const parts = new Intl.DateTimeFormat(locale, { ...EVENT_DATE_TIME, timeZone }).formatToParts(
-       instant,
-     );
-     const join = (list: Intl.DateTimeFormatPart[]) => list.map((part) => part.value).join('');
+     const formatter = new Intl.DateTimeFormat(locale, { ...EVENT_DATE_TIME, timeZone });
+     const full = formatter.format(instant);
+     const parts = formatter.formatToParts(instant);
      const hour = parts.findIndex((part) => part.type === 'hour');
-     if (hour < 0) return { date: join(parts), time: '' };
-     return { date: join(parts.slice(0, hour)), time: join(parts.slice(hour)) };
+     const partsLength = parts.reduce((sum, part) => sum + part.value.length, 0);
+     if (hour < 0 || partsLength !== full.length) return { date: full, time: '' };
+     const cut = parts.slice(0, hour).reduce((sum, part) => sum + part.value.length, 0);
+     return { date: full.slice(0, cut), time: full.slice(cut) };
    }
    ```
+   (Revision 1 joined the `formatToParts()` values instead; on Node 22 and 24 those carry U+202F before "PM" while
+   `format()` has a plain space, so `date + time` differed from `formatEventDateTime` in `en`. The length guard only
+   protects against a future ICU where the two strings differ in length: the whole text then stays in `date`.)
 2. `src/components/event-details.tsx`: import `formatEventDateTimeParts` instead of `formatEventDateTime`; inside
    the component `const when = formatEventDateTimeParts(event.startsAt, event.timezone, locale);` and the date line
    becomes
@@ -15423,11 +15434,29 @@ no `.ev-time`). Commit `test(event-page): invite link and time zone readable on 
 4. Prettier, run the unit file and the E2E file again: all pass. Commit
    `fix(event-page): stack the invite link on phones and keep the time and zone on one line`.
 
+**Revision 2 — follow-up on the branch** (commits `d73f4e8` test and `cf2ae15` fix already exist; do not rewrite
+them, and do not edit the tests: they are right):
+1. In `src/lib/format-date.ts` replace the body and comment of `formatEventDateTimeParts` with the Revision 2 code in
+   step 1 above. Nothing else changes (`EVENT_DATE_TIME`, `formatEventDateTime`, `EventDateTimeParts`,
+   `event-details.tsx` and the CSS stay as committed).
+2. `npx prettier --write src/lib/format-date.ts`, then verify on Node 22 (CI's version) and on the local Node:
+   `npx -y -p node@22 node node_modules/vitest/vitest.mjs run --project unit src/lib/format-date.test.ts` and
+   `npx vitest run --project unit src/lib/format-date.test.ts`: all 8 tests pass on both, including
+   "REQ-151: in English the date ends with "at " and the time keeps its zone" (`/^8:00\sPM\sGMT-3$/` still matches:
+   `\s` matches both U+0020 and U+202F). Before the change the first REQ-151 test fails on Node 22 with
+   `en: expected 'Friday, October 2, 2026 at 8:00 …' to be 'Friday, October 2, 2026 at 8:00 PM GM…'`.
+3. Commit `fix(event-page): cut the event date and time from the one formatted string` with body line
+   `Refs: TASK-281, REQ-151` (a fix commit after the existing ones; the red test already exists).
+
 **Verification:** `E2E_PORT=3100 npm run test:e2e -- e2e/mobile.spec.ts e2e/share.spec.ts e2e/event-page.spec.ts
-e2e/i18n-layout.spec.ts e2e/owner.spec.ts e2e/privacy.spec.ts` and the Phase 12 note 9 checks.
-**Done when:** the new unit and E2E tests pass, the existing `REQ-12` formatting tests and the listed specs pass
-unchanged, and unit, lint, typecheck, format and trace pass.
+e2e/i18n-layout.spec.ts e2e/owner.spec.ts e2e/privacy.spec.ts`, the two Node commands of the Revision 2 step 2, and
+the Phase 12 note 9 checks.
+**Done when:** the new unit and E2E tests pass (the unit file on Node 22 and on the local Node), the existing
+`REQ-12` formatting tests and the listed specs pass unchanged, and unit, lint, typecheck, format and trace pass.
 **TDD exception:** none
+**Changelog:** Revision 2 (SPEC failure, incident 28): cut `date` and `time` from the `format()` string at the offset
+of the first `hour` part, instead of joining `formatToParts()` values, whose U+202F before AM/PM differs from
+`format()`.
 
 ### TASK-282 — Event page copy: ended events read as ended, the owner's pill, a way back from edit
 **Phase:** 12 · **Requirements:** REQ-152, REQ-153, REQ-154 · **Status:** todo · **Revision:** 1
@@ -15980,3 +16009,277 @@ e2e/header.spec.ts e2e/a11y.spec.ts e2e/brand.spec.ts e2e/pages.spec.ts`, then t
 **Done when:** the new unit and E2E tests pass, the full E2E suite passes in both projects, and unit, lint,
 typecheck, format and trace pass.
 **TDD exception:** none
+
+### TASK-285 — Regression battery: container journey in CI, `npm run test:all`, regression coverage table
+**Phase:** 12 · **Requirements:** REQ-160 · **Status:** todo · **Revision:** 1
+**Files:** docker/compose.journey.yml (new), playwright.container.config.ts (new), e2e/container/journey.spec.ts
+(new), playwright.config.ts, package.json, scripts/docker/container-files.test.ts, .github/workflows/ci.yml,
+README.md, docs/design/2026-09-25-ux-audit.md
+**Interface:** no product code changes. New npm scripts:
+- `"docker:journey": "docker compose -f docker-compose.yml -f docker/compose.journey.yml up --build -d --wait --wait-timeout 300"`
+- `"test:container": "playwright test -c playwright.container.config.ts"`
+- `"test:all": "docker compose up -d --wait db && npm run test:unit && npm run test:int && npm run test:e2e && npm run docker:journey && tsx scripts/docker/smoke-cli.ts && npm run test:container"`
+
+Why these choices (all dry-run on this machine with `APP_PORT=3200`, then reverted): the override file keeps
+`docker-compose.yml` untouched (REQ-112) and blanks the AI keys even when `.env.local` has them (`environment` wins
+over `env_file`), so the journey always sees REQ-156's "not set up" state; the journey has its own config and folder,
+so the existing `chromium` / `mobile` projects never run it and it never starts a webServer; it needs no database
+access because it uses a fresh email per run.
+
+**Test first:**
+1. `scripts/docker/container-files.test.ts`, test `REQ-113: container-smoke builds the stack, runs the smoke check and
+   always tears it down`: the expected run lines become
+   ```ts
+   '- run: npm ci',
+   '- run: npm run docker:journey',
+   '- run: npx tsx scripts/docker/smoke-cli.ts',
+   '- run: npx playwright install --with-deps chromium',
+   '- run: npm run test:container',
+   'run: docker compose logs app',
+   'run: docker compose down -v',
+   ```
+   and add inside `describe('CI smoke job (REQ-113)', …)`:
+   ```ts
+   it('REQ-160: container-smoke runs the journey on a stack started without AI keys', () => {
+     const scripts = JSON.parse(read('package.json')).scripts as Record<string, string>;
+     expect(scripts['docker:journey']).toBe(
+       'docker compose -f docker-compose.yml -f docker/compose.journey.yml up --build -d --wait --wait-timeout 300',
+     );
+     expect(scripts['test:container']).toBe('playwright test -c playwright.container.config.ts');
+     expect(scripts['test:all']).toBe(
+       'docker compose up -d --wait db && npm run test:unit && npm run test:int && npm run test:e2e && npm run docker:journey && tsx scripts/docker/smoke-cli.ts && npm run test:container',
+     );
+     const override = read('docker/compose.journey.yml');
+     expect(override).toContain("ANTHROPIC_API_KEY: ''");
+     expect(override).toContain("OPENROUTER_API_KEY: ''");
+     expect(read('playwright.container.config.ts')).not.toContain('webServer');
+     expect(read('playwright.config.ts')).toContain('/[\\\\/]e2e[\\\\/]container[\\\\/]/');
+   });
+   ```
+   (the last line checks the source text `/[\\/]e2e[\\/]container[\\/]/` of the ignore pattern in step 3 below)
+2. Create `e2e/container/journey.spec.ts`:
+   ```ts
+   import { test, expect } from '@playwright/test';
+
+   const PASSWORD = 'journey horse 42';
+
+   /** A calendar date a week from now, `yyyy-MM-dd` (always in the future, whatever the time zone). */
+   function nextWeek(): string {
+     return new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+   }
+
+   test.describe('REQ-160: regression journey against the docker compose app', () => {
+     test('REQ-160: register, create an event, a guest replies, the organizer sees it, sign out, sign in', async ({
+       page,
+       browser,
+     }) => {
+       const email = `journey-${Date.now()}@example.com`;
+       const main = page.locator('main');
+       const banner = page.getByRole('banner');
+
+       // Register → dashboard
+       await page.goto('/en/register');
+       await main.getByLabel('Name').fill('Journey Organizer');
+       await main.getByLabel('Email').fill(email);
+       await main.getByLabel('Password', { exact: true }).fill(PASSWORD);
+       await main.getByLabel('Confirm password').fill(PASSWORD);
+       await main.getByRole('button', { name: 'Create account' }).click();
+       await expect(page).toHaveURL(/\/en\/dashboard$/);
+
+       // Create an event: no AI key in the container; the picker buttons focus their fields
+       await page.goto('/en/events/new');
+       await expect(
+         main.getByText("AI fill isn't set up on this server — fill the form below."),
+       ).toBeVisible();
+       await expect(main.getByRole('button', { name: 'Fill with AI' })).toHaveCount(0);
+       await main.getByLabel('Name', { exact: true }).fill('Journey dinner');
+       await main.getByLabel('Description', { exact: true }).fill('Regression journey');
+       await main.getByRole('button', { name: 'Open calendar' }).click();
+       await expect(main.locator('#date')).toBeFocused();
+       await page.keyboard.press('Escape');
+       await main.locator('#date').fill(nextWeek());
+       await main.getByRole('button', { name: 'Open time picker' }).click();
+       await expect(main.locator('#time')).toBeFocused();
+       await page.keyboard.press('Escape');
+       await main.locator('#time').fill('19:00');
+       await main.getByRole('button', { name: 'Save event' }).click();
+       await expect(page).toHaveURL(/\/en\/e\/[A-Za-z0-9_-]{10}$/);
+       const slug = new URL(page.url()).pathname.split('/').pop()!;
+
+       // A guest replies from a separate browser context
+       const guestContext = await browser.newContext();
+       const guest = await guestContext.newPage();
+       await guest.goto(`/en/e/${slug}`);
+       await guest.getByLabel('Your name').fill('Guest Journey');
+       await guest.getByRole('button', { name: 'One more person' }).click();
+       await guest.getByRole('button', { name: 'Send RSVP' }).click();
+       await expect(guest.getByRole('heading', { name: "You're going · 2 people" })).toBeVisible();
+       await guestContext.close();
+
+       // The organizer sees the guest
+       await page.reload();
+       await expect(page.getByRole('row', { name: /Guest Journey/ })).toContainText('Going');
+       await expect(page.getByText('1 going · 0 declined · 2 people')).toBeVisible();
+
+       // The calendar file
+       const ics = await page.request.get(`/e/${slug}/calendar.ics`);
+       expect(ics.status()).toBe(200);
+       expect(ics.headers()['content-type']).toContain('text/calendar');
+       expect(await ics.text()).toContain('SUMMARY:Journey dinner');
+
+       // Sign out
+       await banner.getByLabel('Account menu').click();
+       await banner.getByRole('button', { name: 'Sign out' }).click();
+       await expect(banner.getByLabel('Account menu')).toHaveCount(0);
+
+       // A wrong password shows the generic error, then the right one signs in
+       await page.goto('/en/sign-in');
+       await main.getByLabel('Email').fill(email);
+       await main.getByLabel('Password', { exact: true }).fill('wrong horse 42');
+       await main.getByRole('button', { name: 'Sign in', exact: true }).click();
+       await expect(main.getByRole('alert')).toHaveText('Email or password is incorrect.');
+       await main.getByLabel('Password', { exact: true }).fill(PASSWORD);
+       await main.getByRole('button', { name: 'Sign in', exact: true }).click();
+       await expect(page).toHaveURL(/\/en\/dashboard$/);
+       await expect(main.getByText('Journey dinner')).toBeVisible();
+     });
+   });
+   ```
+Run `npx vitest run --project unit scripts/docker/container-files.test.ts`: the edited REQ-113 test and the REQ-160
+test fail. The journey needs the next steps to run at all. Commit
+`test(ci): container regression journey and the scripts that run it`.
+
+**Implementation:**
+1. `docker/compose.journey.yml`:
+   ```yaml
+   # Container regression journey (REQ-160): the app runs with no AI key, whatever .env.local
+   # holds, so the journey sees the "AI fill isn't set up" state (REQ-156). Use it on top of the
+   # main file: docker compose -f docker-compose.yml -f docker/compose.journey.yml up …
+   services:
+     app:
+       environment:
+         ANTHROPIC_API_KEY: ''
+         OPENROUTER_API_KEY: ''
+   ```
+2. `playwright.container.config.ts`:
+   ```ts
+   import { defineConfig, devices } from '@playwright/test';
+
+   /** Port of the running docker compose app (env `APP_PORT`, default 3000), as in scripts/docker/smoke.ts. */
+   const port = Number(process.env.APP_PORT?.trim() || 3000);
+   if (!Number.isInteger(port) || port <= 0) {
+     throw new Error(`APP_PORT must be a positive integer, got "${process.env.APP_PORT}"`);
+   }
+
+   /**
+    * Regression journey against the app already running in docker compose (REQ-160). No webServer:
+    * start the stack first. Separate from playwright.config.ts, whose projects ignore e2e/container/.
+    */
+   export default defineConfig({
+     testDir: './e2e/container',
+     fullyParallel: false,
+     workers: 1,
+     retries: process.env.CI ? 1 : 0,
+     reporter: 'list',
+     outputDir: 'test-results/container',
+     use: { baseURL: `http://localhost:${port}`, trace: 'retain-on-failure' },
+     projects: [
+       {
+         name: 'container',
+         use: { ...devices['Desktop Chrome'], locale: 'en-US', timezoneId: 'America/New_York' },
+       },
+     ],
+   });
+   ```
+3. `playwright.config.ts`, the `chromium` project only:
+   `testIgnore: /mobile\.spec\.ts$/,` → `testIgnore: [/mobile\.spec\.ts$/, /[\\/]e2e[\\/]container[\\/]/],`
+   (Playwright matches `testIgnore` against the absolute path; `[\\/]` covers Windows and Linux). Nothing else in the
+   file changes. Check: `npx playwright test --list` shows no `journey.spec.ts` (114 tests in 26 files at the time of
+   writing), and `npx playwright test -c playwright.container.config.ts --list` shows exactly the one
+   `[container]` test.
+4. `package.json`, `"scripts"`: add the three scripts of the Interface right after `"test:e2e"`.
+5. `.github/workflows/ci.yml`, job `container-smoke`, the steps become:
+   ```yaml
+       steps:
+         - uses: actions/checkout@v7
+         - uses: actions/setup-node@v4
+           with: { node-version: 22, cache: npm }
+         - run: npm ci
+         - run: npm run docker:journey
+         - run: npx tsx scripts/docker/smoke-cli.ts
+         - run: npx playwright install --with-deps chromium
+         - run: npm run test:container
+         - uses: actions/upload-artifact@v4
+           if: failure()
+           with: { name: container-journey, path: test-results/container, retention-days: 7 }
+         - if: failure()
+           run: docker compose logs app
+         - if: always()
+           run: docker compose down -v
+   ```
+   (the job still needs no `APP_PORT`: 3000 is free on the runner; the other jobs do not change)
+6. `README.md`, section "Tests", inside the `bash` block, after the `npm run test:e2e` line, one line:
+   `npm run test:all      # db, unit, integration, E2E (both projects), then the docker compose journey; honours E2E_PORT and APP_PORT`
+7. `docs/design/2026-09-25-ux-audit.md`: append at the end of the file:
+   ```markdown
+
+   ## Regression coverage
+
+   Tests that fail if a finding comes back (Phase 12). The container journey (`e2e/container/journey.spec.ts`, run by
+   CI's `container-smoke` job and by `npm run test:all`) replays the main flows on the built image.
+
+   | UX ID | Requirement | Test file(s) | Test |
+   |---|---|---|---|
+   | UX-01 | REQ-138 | `e2e/rsvp.spec.ts`, `src/components/rsvp-form.test.tsx` | REQ-138: a guest who said Not going can come after all |
+   | UX-02 | REQ-134 | `e2e/pages.spec.ts` | REQ-134: every page passes axe document-title and html-has-lang |
+   | UX-03 | REQ-144 | `e2e/header.spec.ts`, `src/components/locale-switcher.test.tsx` | REQ-144: arrow keys only move the choice; Enter switches and keeps focus |
+   | UX-04 | REQ-136 | `e2e/focus.spec.ts`, `src/components/ui/button.test.tsx` | REQ-136: a wrong password leaves focus on Sign in |
+   | UX-05 | REQ-137 | `e2e/mobile.spec.ts`, `e2e/focus.spec.ts`, `src/components/ui/field.test.tsx` | REQ-137: an empty new-event form focuses Name inside the viewport |
+   | UX-06 | REQ-140 | `e2e/rsvp.spec.ts`, `e2e/owner.spec.ts`, `src/components/password-notice.test.tsx` | REQ-140: after Send, Change, Keep and I can't go, focus is on the result |
+   | UX-07 | REQ-139 | `src/components/guest-rsvp-panel.test.tsx`, `e2e/rsvp.spec.ts` | REQ-139: Keep my answer leaves the answer unchanged and focuses Change |
+   | UX-08 | REQ-155 | `src/components/event-form.test.tsx` | REQ-155: Fill with AI with an empty description asks for one and calls nothing |
+   | UX-09 | REQ-145 | `e2e/header.spec.ts`, `src/components/user-menu.test.tsx` | REQ-145: Escape closes the menu and returns focus to it |
+   | UX-10 | REQ-135 | `e2e/pages.spec.ts` | REQ-135: an unknown path renders the not-found page inside the layout |
+   | UX-11 | REQ-150 | `e2e/mobile.spec.ts` | REQ-150: the French invite link field is readable, with the button under it |
+   | UX-12 | REQ-142 | `src/components/delete-event-button.test.tsx`, `src/components/remove-rsvp-button.test.tsx`, `src/components/create-sample-button.test.tsx` | REQ-142: a failed delete says why and stays on the page |
+   | UX-13 | REQ-147 | `e2e/sign-in.spec.ts`, `src/components/password-sign-in-form.test.tsx` | REQ-147: the forgot-password hint is under Password before any attempt |
+   | UX-14 | REQ-156 | `src/components/event-form.test.tsx`, `e2e/container/journey.spec.ts` | REQ-156: without an AI key the form says so and offers no AI fill |
+   | UX-15 | REQ-151 | `e2e/mobile.spec.ts`, `src/lib/format-date.test.ts` | REQ-151: the time and its zone stay on one line |
+   | UX-16 | REQ-138 | `src/components/rsvp-form.test.tsx` | REQ-138: the party size can be cleared and retyped |
+   | UX-17 | REQ-153 | `e2e/owner.spec.ts` | REQ-153: a Going guest reads "Vient" in French and "Vai" in Portuguese |
+   | UX-18 | REQ-152 | `e2e/event-page.spec.ts`, `src/components/copy-invite-link-button.test.tsx` | REQ-152: guest and owner see the past tense, no calendar link, and the closed hint |
+   | UX-19 | REQ-154 | `e2e/events.spec.ts` | REQ-154: the edit page and its ended notice link back to the event |
+   | UX-20 | REQ-135 | `e2e/pages.spec.ts` | REQ-135: an unknown event slug shows the hint and the way home |
+   | UX-21 | REQ-157 | `src/components/event-form.test.tsx` | REQ-157: editing a flagged field clears its Needed flag only |
+   | UX-22 | REQ-143 | `e2e/owner.spec.ts`, `src/components/ui/inline-confirm.test.tsx` | REQ-143: at 375 px the Remove question is visible; at 1280 px it is hidden |
+   | UX-23 | REQ-149 | `e2e/home.spec.ts` | REQ-149: the preview card is one link to the demo, named by its caption |
+   | UX-24 | REQ-141 | `src/components/guest-rsvp-panel.test.tsx`, `e2e/rsvp.spec.ts` | REQ-141: I can't go calls the cancel action |
+   | UX-25 | REQ-148 | `src/components/register-form.test.tsx` | REQ-148: in the email-taken message, Sign in links to the sign-in page with the callback |
+   | UX-26 | REQ-146 | `e2e/sign-in.spec.ts`, `src/components/header-sign-in-link.test.tsx` | REQ-146: no header Sign in link on the auth pages, a gap under the heading, an "or" divider |
+   | UX-27 | REQ-158 | `src/components/event-form.test.tsx` | REQ-158: timezone options read with spaces and keep their ids |
+   | Pickers (incident 26) | REQ-131 | `e2e/mobile.spec.ts` | REQ-131: tapping the Date field opens its picker |
+   ```
+   Every title above was checked against the branch when this task was written. Check again: for each row,
+   `git grep -nF "<Test>" -- <first file>` prints exactly one line (for UX-14 check
+   `src/components/event-form.test.tsx`). If one does not, fix the row to the title that exists and say so in the
+   task result; do not edit the test.
+8. Prettier on the new `.ts` files, `package.json` and `ci.yml` (`npx prettier --write …`); run the unit file
+   again: all pass. Commit `ci: run the container regression journey; add npm run test:all` (steps 1–6) and
+   `docs(design): regression coverage of the UX audit findings` (step 7).
+
+**Verification** (local constraints of Phase 12 note 1; port 3000 is taken here, so always set `APP_PORT=3200` and
+`E2E_PORT=3100` in the shell):
+1. `npx vitest run --project unit scripts/docker/container-files.test.ts` and the Phase 12 note 9 checks.
+2. Record whether an `app` container exists before you start (`docker compose ps -a --format '{{.Service}} {{.State}}'`).
+3. `APP_PORT=3200 E2E_PORT=3100 npm run test:all`. On this machine (Windows, Node 24) it stops at the known REQ-100
+   unit failure of Phase 12 note 3; if that is the only failure, run the rest of the chain with the same variables:
+   `npm run test:int && npm run test:e2e && npm run docker:journey && npx tsx scripts/docker/smoke-cli.ts && npm run
+   test:container`. Report both results.
+4. Afterwards leave the containers as you found them: if there was no `app` container before, `docker compose rm -sf
+   app`; never `docker compose down -v` locally (it deletes the development database). The journey leaves one
+   `journey-<timestamp>@example.com` user and its event in the development database; that is expected.
+**Done when:** the REQ-113 and REQ-160 unit tests pass, the container journey passes against the stack started by
+`npm run docker:journey`, the E2E suite passes in `chromium` and `mobile` without running `e2e/container/`, the
+README line and the audit table are in, and unit, lint, typecheck, format and trace pass.
+**TDD exception:** characterization for `e2e/container/journey.spec.ts` (it replays behaviour that already works); the
+CI and script changes are test-first through the REQ-113 / REQ-160 unit tests.
