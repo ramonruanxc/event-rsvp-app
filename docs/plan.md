@@ -12957,7 +12957,7 @@ budget is honoured — the route that runs the AI action had no `maxDuration`, s
 timeout could end the request first. Fixed by setting `export const maxDuration = 30` in
 `src/app/[locale]/events/new/page.tsx`, with a test asserting it stays above the AI budget. Whether 30 s is actually
 honoured depends on the Vercel project's compute mode (Fluid Compute vs. the legacy Hobby 10 s cap); this is
-unverifiable from the repository and is checked on the platform after deploy. See `docs/pipeline/failures.md` #27.
+unverifiable from the repository and is checked on the platform after deploy. See `docs/pipeline/failures.md` #27. **Confirmed by the human on 2026-09-26: Fluid Compute is enabled on the Vercel project.**
 
 ### TASK-272 — A failed AI fill says why: not set up, too slow, or unavailable
 **Phase:** 11 · **Requirements:** REQ-132 · **Status:** done · **Revision:** 1
