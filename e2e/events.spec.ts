@@ -3,6 +3,7 @@ import { fromZonedTime } from 'date-fns-tz';
 import { resetDatabase, db } from './helpers/db';
 import { signInAs } from './helpers/auth';
 import { futureDate } from './helpers/dates';
+import { createEvent } from './helpers/factories';
 
 test.beforeEach(async () => {
   await resetDatabase();
@@ -151,5 +152,28 @@ test.describe('REQ-17: editing an event', () => {
 
     await page.goto(`/en/e/${event.slug}`);
     await expect(page.getByRole('link', { name: 'Edit' })).toHaveCount(0);
+  });
+});
+
+test.describe('REQ-154: a way back from the edit page', () => {
+  test('REQ-154: the edit page and its ended notice link back to the event', async ({
+    page,
+    context,
+  }) => {
+    const { id } = await signInAs(context, { email: 'back@example.com', name: 'Back' });
+    const upcoming = await createEvent(id);
+    const ended = await createEvent(id, { startsAt: new Date('2020-01-01T00:00:00.000Z') });
+
+    await page.goto(`/en/e/${upcoming.slug}/edit`);
+    await expect(page.getByRole('link', { name: 'Back to event' })).toHaveAttribute(
+      'href',
+      `/en/e/${upcoming.slug}`,
+    );
+
+    await page.goto(`/fr/e/${ended.slug}/edit`);
+    await expect(page.getByRole('link', { name: "Retour à l'événement" })).toHaveAttribute(
+      'href',
+      `/fr/e/${ended.slug}`,
+    );
   });
 });

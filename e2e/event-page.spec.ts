@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { resetDatabase } from './helpers/db';
-import { createOwner, createEvent } from './helpers/factories';
+import { signInAs } from './helpers/auth';
+import { createOwner, createEvent, createRsvp } from './helpers/factories';
 
 test.beforeEach(async () => {
   await resetDatabase();
@@ -69,5 +70,29 @@ test.describe('REQ-84: the "Ended" pill', () => {
       'aria-hidden',
       'true',
     );
+  });
+});
+
+test.describe('REQ-152: an ended event reads as ended', () => {
+  test('REQ-152: guest and owner see the past tense, no calendar link, and the closed hint', async ({
+    page,
+    context,
+  }) => {
+    const owner = await createOwner('ended-owner@example.com');
+    const event = await createEvent(owner.id, { startsAt: new Date('2020-01-01T19:00:00Z') });
+    await createRsvp(event.id, 'Maria', 'GOING', 2);
+
+    await page.goto(`/en/e/${event.slug}`);
+    await expect(page.getByText('2 people went')).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Add to calendar' })).toHaveCount(0);
+
+    await signInAs(context, { email: 'ended-owner@example.com', name: 'Owner' });
+    await page.goto(`/en/e/${event.slug}`);
+    await expect(page.getByText('2 people went')).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Add to calendar' })).toHaveCount(0);
+    await expect(page.locator('#invite-link-hint')).toHaveText(
+      'Replies are closed, so answers can no longer be sent or changed.',
+    );
+    await expect(page.getByText('Anyone with this link can reply')).toHaveCount(0);
   });
 });

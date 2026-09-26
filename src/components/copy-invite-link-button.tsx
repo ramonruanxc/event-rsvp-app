@@ -12,6 +12,8 @@ export interface CopyInviteLinkButtonProps {
   slug: string;
   /** How long the "Copied" state lasts before returning, in ms (default 2000, REQ-70). */
   copiedMs?: number;
+  /** When true, the hint says replies are closed instead of inviting more replies (REQ-152). */
+  ended?: boolean;
 }
 
 /**

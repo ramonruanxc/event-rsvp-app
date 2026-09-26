@@ -56,4 +56,12 @@ describe('CopyInviteLinkButton', () => {
     await waitFor(() => screen.getByRole('button', { name: 'Copy invite link' }));
     expect(container.querySelector('[aria-live="polite"]')?.textContent).toBe('');
   });
+
+  test('REQ-152: an ended event shows the closed-replies hint instead of the invite hint', () => {
+    renderWithIntl(<CopyInviteLinkButton slug="abc" ended />);
+
+    expect(document.getElementById('invite-link-hint')?.textContent).toBe(
+      'Replies are closed, so answers can no longer be sent or changed.',
+    );
+  });
 });

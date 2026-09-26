@@ -178,3 +178,21 @@ test.describe('REQ-143, REQ-140: removing a guest', () => {
     await expect(page.getByRole('heading', { name: 'Guest list' })).toBeFocused();
   });
 });
+
+test.describe('REQ-153: the owner pill in French and Portuguese', () => {
+  test('REQ-153: a Going guest reads "Vient" in French and "Vai" in Portuguese', async ({
+    page,
+    context,
+  }) => {
+    const { id } = await signInAs(context, { email: 'pill@example.com', name: 'Pill' });
+    const event = await createEvent(id);
+    await createRsvp(event.id, 'Ana', 'GOING', 2);
+
+    await page.goto(`/fr/e/${event.slug}`);
+    await expect(page.getByRole('row', { name: /Ana/ }).locator('.pill')).toHaveText('Vient');
+    await expect(page.getByText('2 personnes viennent')).toBeVisible();
+
+    await page.goto(`/pt-BR/e/${event.slug}`);
+    await expect(page.getByRole('row', { name: /Ana/ }).locator('.pill')).toHaveText('Vai');
+  });
+});
