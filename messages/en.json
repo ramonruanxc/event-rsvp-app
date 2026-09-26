@@ -175,6 +175,10 @@
     "EMAIL_TAKEN": "An account with this email already exists. Sign in instead.",
     "GOOGLE_ACCOUNT_EXISTS": "This email already has an account that uses Google. Sign in with Google, then set a password in Account."
   },
+  "notFound": {
+    "hint": "The link may be mistyped, or the event was deleted.",
+    "home": "Go to the home page"
+  },
   "validation": {
     "required": "This field is required.",
     "tooLong": "This is too long.",

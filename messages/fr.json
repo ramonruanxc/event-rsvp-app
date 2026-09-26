@@ -175,6 +175,10 @@
     "EMAIL_TAKEN": "Un compte existe déjà avec cet e-mail. Connectez-vous plutôt.",
     "GOOGLE_ACCOUNT_EXISTS": "Cet e-mail a déjà un compte qui utilise Google. Connectez-vous avec Google, puis définissez un mot de passe dans Compte."
   },
+  "notFound": {
+    "hint": "Le lien est peut-être mal saisi, ou l'événement a été supprimé.",
+    "home": "Aller à l'accueil"
+  },
   "validation": {
     "required": "Ce champ est obligatoire.",
     "tooLong": "C'est trop long.",

@@ -1,6 +1,7 @@
 import { Clock } from 'lucide-react';
 import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
+import type { Metadata } from 'next';
 import { EventForm } from '@/components/event-form';
 import { NotFoundError } from '@/domain/errors';
 import { toLocalParts } from '@/domain/event-time';
@@ -8,6 +9,17 @@ import { getServices } from '@/lib/container';
 import { requireUserId } from '@/lib/session';
 import { Icon } from '@/components/ui/icon';
 import { updateEventAction } from '../actions';
+
+/** Localized page title (REQ-134). */
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string; slug: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale });
+  return { title: t('eventForm.titleEdit') };
+}
 
 /** The owner's edit form for an event, prefilled with its current values (REQ-17). */
 export default async function EditEventPage({

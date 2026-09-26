@@ -175,6 +175,10 @@
     "EMAIL_TAKEN": "Já existe uma conta com este e-mail. Entre com ela.",
     "GOOGLE_ACCOUNT_EXISTS": "Este e-mail já tem uma conta que usa o Google. Entre com o Google e depois defina uma senha em Conta."
   },
+  "notFound": {
+    "hint": "O link pode estar digitado errado, ou o evento foi excluído.",
+    "home": "Ir para a página inicial"
+  },
   "validation": {
     "required": "Este campo é obrigatório.",
     "tooLong": "Isto é muito longo.",

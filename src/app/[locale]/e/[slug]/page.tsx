@@ -2,6 +2,7 @@ import { cookies } from 'next/headers';
 import { notFound } from 'next/navigation';
 import { Pencil } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
+import type { Metadata } from 'next';
 import { buttonClass } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { CopyInviteLinkButton } from '@/components/copy-invite-link-button';
@@ -15,6 +16,22 @@ import { getServices } from '@/lib/container';
 import { editTokenCookieName } from '@/lib/edit-token-cookie';
 import { getCurrentUserId } from '@/lib/session';
 import { cancelRsvpAction, deleteEventAction, submitRsvpAction } from './actions';
+
+/** The event's name as the page title (REQ-134); an unknown slug keeps the default title. */
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string; slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  try {
+    const view = await getServices().getEventPage.execute({ slug, userId: null, editToken: null });
+    return { title: view.event.name };
+  } catch (error) {
+    if (error instanceof NotFoundError) return {};
+    throw error;
+  }
+}
 
 /** An event's public page: RSVP form for guests, full guest list for the owner (REQ-33). */
 export default async function EventPage({

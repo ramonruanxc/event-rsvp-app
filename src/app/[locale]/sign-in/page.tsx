@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
+import type { Metadata } from 'next';
 import { Link } from '@/i18n/navigation';
 import { sanitizeCallbackUrl } from '@/lib/auth-redirect';
 import { getCurrentUserId } from '@/lib/session';
@@ -8,6 +9,17 @@ import { Alert } from '@/components/ui/field';
 import { GoogleMark } from '@/components/google-mark';
 import { PasswordSignInForm } from '@/components/password-sign-in-form';
 import { signInWithPasswordAction } from '../actions';
+
+/** Localized page title (REQ-134). */
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale });
+  return { title: t('auth.signInTitle') };
+}
 
 /** Sign-in page: Google or email and password, then back to the callback path (REQ-126, BR-154, BR-95). */
 export default async function SignInPage({

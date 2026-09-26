@@ -1,5 +1,6 @@
 import { CalendarPlus, Check, ChevronRight } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
+import type { Metadata } from 'next';
 import { CreateSampleButton } from '@/components/create-sample-button';
 import { Link } from '@/i18n/navigation';
 import { getServices } from '@/lib/container';
@@ -16,6 +17,17 @@ const STEPS = [
   ['dashboard.step2Title', 'dashboard.step2Text'],
   ['dashboard.step3Title', 'dashboard.step3Text'],
 ] as const;
+
+/** Localized page title (REQ-134). */
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale });
+  return { title: t('dashboard.title') };
+}
 
 /** The signed-in organizer's events, split into upcoming and past, with RSVP totals (REQ-36, REQ-82). */
 export default async function DashboardPage({ params }: { params: Promise<{ locale: string }> }) {
