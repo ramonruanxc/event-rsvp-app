@@ -74,7 +74,7 @@ test.describe('REQ-31: a returning guest', () => {
     await page.getByRole('button', { name: 'Send RSVP' }).click();
     await expect(page.getByText("You're going · 5 people")).toBeVisible();
 
-    await page.getByRole('button', { name: 'Cancel RSVP' }).click();
+    await page.getByRole('button', { name: "I can't go" }).click();
     await expect(page.getByText("You're not going")).toBeVisible();
 
     const rsvp = await db.rsvp.findFirst();
@@ -140,7 +140,7 @@ test.describe('REQ-29: the guest page of an ended event', () => {
     await expect(page.getByText('This event has ended')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Send RSVP' })).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Change' })).toHaveCount(0);
-    await expect(page.getByRole('button', { name: 'Cancel RSVP' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: "I can't go" })).toHaveCount(0);
   });
 });
 
@@ -164,5 +164,27 @@ test.describe('REQ-138: from Not going to Going', () => {
     const rsvp = await db.rsvp.findFirst();
     expect(rsvp?.status).toBe('GOING');
     expect(rsvp?.partySize).toBe(1);
+  });
+});
+
+test.describe('REQ-140: focus follows the answer', () => {
+  test("REQ-140: after Send, Change, Keep and I can't go, focus is on the result", async ({
+    page,
+  }) => {
+    const owner = await createOwner();
+    const event = await createEvent(owner.id);
+
+    await page.goto(`/en/e/${event.slug}`);
+    await page.getByLabel('Your name').fill('Maria');
+    await page.getByRole('button', { name: 'Send RSVP' }).click();
+    await expect(page.getByRole('heading', { name: "You're going · 1 person" })).toBeFocused();
+
+    await page.getByRole('button', { name: 'Change' }).click();
+    await expect(page.getByLabel('Your name')).toBeFocused();
+    await page.getByRole('button', { name: 'Keep my answer' }).click();
+    await expect(page.getByRole('button', { name: 'Change' })).toBeFocused();
+
+    await page.getByRole('button', { name: "I can't go" }).click();
+    await expect(page.getByRole('heading', { name: "You're not going" })).toBeFocused();
   });
 });
