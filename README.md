@@ -8,6 +8,12 @@ Create an event, share one link, see who's coming.
 if you are a test user). Guests never need to sign in: the
 [demo event](https://event-rsvp-app-flax.vercel.app/e/demoPicnic) takes RSVPs with no account at all.
 
+![34-second demo: create an account, fill an event from one sentence with AI, share the invite link, a guest
+RSVPs, the organizer sees them](docs/media/demo.gif)
+
+Screen recording of the real app running in a local container (no generated imagery) —
+[MP4 version](docs/media/demo.mp4).
+
 **60-second walkthrough**
 
 1. Open the demo event and RSVP as a guest — no sign-in required.

@@ -16,6 +16,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   sign-out/sign-in, AI "not set up") runs against the `docker compose` stack in CI; `npm run test:all` runs the full
   suite plus that journey in one command (REQ-160).
 - axe-core `document-title` and `html-has-lang` checks on every page (REQ-134).
+- A 34-second screen recording of the real app (local container) in `docs/media/` — register, "Fill with AI" from
+  one sentence, save, share the invite link, a guest RSVPs, the organizer sees them — embedded in the README.
 
 ### Changed
 
@@ -50,6 +52,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   panel says the server has no AI key before any typing, instead of after a wasted description (REQ-156); a
   "Needed" flag clears as soon as the organizer edits that field (REQ-157); timezone options show spaces instead of
   underscores (REQ-158).
+
+### Fixed
+
+- The not-found page shows a localized title instead of the generic default: `not-found.tsx` cannot export page
+  metadata, so an effect now sets it from `notFound.title` once mounted (REQ-134, REQ-135, incident #29).
 
 ### Fixed
 
